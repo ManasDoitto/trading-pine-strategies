@@ -1,0 +1,148 @@
+//@version=5
+// BankNifty Opening-Range Breakout v0.3  (NSE:BANKNIFTY1! futures, 3-minute)
+// A GROUND-UP BankNifty strategy - NOT the crude EMA-pullback method.
+// Concept: the sharpest BankNifty moves come out of the first 30 min. Mark that
+//   range, then trade the first 3m CLOSE beyond it IN THE DIRECTION of the 9/22 EMA
+//   trend. Stop = far side of the opening range. Target = 1.2R. Flat by 15:15.
+//   One trade per day, entries only 09:30-14:30.
+// Tuned via ~15-run sweep on NSE:BANKNIFTY1! 3m (~10 months):
+//   base ORB (no trend filter) ....... gross PF 1.02  (breakeven)
+//   + EMA9/22 trend-align filter ..... gross PF 1.12  <- the edge lives here
+//   + 30-min range (vs 15) ........... Sharpe 0.48 -> smoother
+//   + 1.2R target (vs 1.5) ........... Sharpe 0.66, Sortino 2.13, MaxDD 5.4%
+// Result 3m: gross PF ~1.12 | 53% win | 75 trades | MaxDD 5.4% | net +3.5% after
+//   ~Rs.700/round-trip commission on 1 BNF lot.  Honest read: a REAL but THIN edge,
+//   well below crude v1.0 (PF 1.89). 5m/15m ORB and momentum-breakout variants all
+//   tested negative - see bnf v0.2 experiment file. Forward-test before sizing.
+strategy("BankNifty ORB v0.3", overlay=true,
+     initial_capital=1000000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500)
+
+orbMins    = input.int(30, "Opening range minutes", options=[5,10,15,20,30,45,60])
+sessStart  = input.session("0915-0916", "Day start anchor")
+exitTime   = input.session("1510-1515", "Force-exit window")
+tradeWin   = input.session("0930-1430", "Entry allowed window")
+maxTrades  = input.int(1, "Max entries per day", options=[1,2])
+slMode     = input.string("orange", "Stop mode", options=["orange","atr","half"])
+slAtr      = input.float(1.5, "ATR SL dist (x ATR14)", step=0.1)
+rMultiple  = input.float(1.2, "R:R target", step=0.1)
+useEma200  = input.bool(false, "Bias: long only >EMA200, short only <EMA200")
+useEma922  = input.bool(true,  "Bias: align with EMA9 vs EMA22")
+retest     = input.bool(false, "Require close back inside then re-break")
+ema9FadeEx = input.bool(false, "Exit on EMA9 fade")
+beAfterR   = input.float(0.0, "Move SL to BE after +R (0=off)", step=0.1)
+showBox    = input.bool(true, "Show OR box")
+
+ema9   = ta.ema(close, 9)
+ema22  = ta.ema(close, 22)
+ema200 = ta.ema(close, 200)
+atr14  = ta.atr(14)
+
+isNewDay = not na(time(timeframe.period, sessStart)) and na(time(timeframe.period, sessStart)[1])
+var int dayStartBarTime = na
+if isNewDay
+    dayStartBarTime := time
+inORB = not na(dayStartBarTime) and (time - dayStartBarTime) < orbMins * 60 * 1000
+afterORB = not na(dayStartBarTime) and (time - dayStartBarTime) >= orbMins * 60 * 1000
+
+var float orbHi = na
+var float orbLo = na
+var int   nTrades = 0
+var bool  brokeUpDone = false
+var bool  brokeDnDone = false
+if isNewDay
+    orbHi := high
+    orbLo := low
+    nTrades := 0
+    brokeUpDone := false
+    brokeDnDone := false
+else if inORB
+    orbHi := math.max(orbHi, high)
+    orbLo := math.min(orbLo, low)
+
+inTradeWin = not na(time(timeframe.period, tradeWin))
+inExit     = not na(time(timeframe.period, exitTime))
+
+biasLongOK  = (not useEma200 or close > ema200) and (not useEma922 or ema9 > ema22)
+biasShortOK = (not useEma200 or close < ema200) and (not useEma922 or ema9 < ema22)
+
+var bool armedUp = false
+brkUp = afterORB and not na(orbHi) and close > orbHi
+brkDn = afterORB and not na(orbLo) and close < orbLo
+if retest
+    if brkUp and close[1] <= orbHi
+        armedUp := true
+    if armedUp and close < orbHi
+        armedUp := false
+else
+    armedUp := brkUp
+
+longTrig  = (retest ? (armedUp and close > orbHi) : brkUp) and close[1] <= orbHi
+shortTrig = brkDn and close[1] >= orbLo
+
+canTrade = afterORB and inTradeWin and not inExit and strategy.position_size == 0 and nTrades < maxTrades
+
+var float slL = na
+var float tpL = na
+var float slS = na
+var float tpS = na
+var float riskL0 = na
+
+if canTrade and longTrig and not brokeUpDone and biasLongOK
+    _sl = slMode == "atr" ? close - slAtr * atr14 : slMode == "half" ? (orbHi + orbLo)/2.0 : orbLo
+    _risk = close - _sl
+    if _risk > 0
+        strategy.entry("Long", strategy.long)
+        slL := _sl
+        tpL := close + _risk * rMultiple
+        riskL0 := _risk
+        nTrades += 1
+        brokeUpDone := true
+
+if canTrade and shortTrig and not brokeDnDone and biasShortOK
+    _sl = slMode == "atr" ? close + slAtr * atr14 : slMode == "half" ? (orbHi + orbLo)/2.0 : orbHi
+    _risk = _sl - close
+    if _risk > 0
+        strategy.entry("Short", strategy.short)
+        slS := _sl
+        tpS := close - _risk * rMultiple
+        riskL0 := _risk
+        nTrades += 1
+        brokeDnDone := true
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+
+if strategy.position_size > 0
+    _sl = slL
+    if beAfterR > 0 and not na(riskL0) and high >= strategy.position_avg_price + beAfterR * riskL0
+        _sl := math.max(_sl, strategy.position_avg_price)
+    slL := _sl
+    strategy.exit("Exit L", from_entry="Long", stop=slL, limit=tpL)
+    if ema9FadeEx and close < ema9 and close[1] >= ema9[1]
+        strategy.close("Long", comment="EMA9 fade")
+    if inExit
+        strategy.close("Long", comment="EOD")
+if strategy.position_size < 0
+    _sl = slS
+    if beAfterR > 0 and not na(riskL0) and low <= strategy.position_avg_price - beAfterR * riskL0
+        _sl := math.min(_sl, strategy.position_avg_price)
+    slS := _sl
+    strategy.exit("Exit S", from_entry="Short", stop=slS, limit=tpS)
+    if ema9FadeEx and close > ema9 and close[1] <= ema9[1]
+        strategy.close("Short", comment="EMA9 fade")
+    if inExit
+        strategy.close("Short", comment="EOD")
+
+plot(ema9,  "EMA9",  color=color.aqua, linewidth=1)
+plot(ema200,"EMA200",color=color.new(color.purple,0), linewidth=2)
+plot(afterORB and not na(orbHi) ? orbHi : na, "ORB Hi", color=color.new(color.green,0), style=plot.style_linebr)
+plot(afterORB and not na(orbLo) ? orbLo : na, "ORB Lo", color=color.new(color.red,0), style=plot.style_linebr)
+bgcolor(showBox and inORB ? color.new(color.blue, 90) : na)
+plotshape(longEntryBar,  "Long",  shape.triangleup,   location.belowbar, color.new(color.teal,0), size=size.small, text="LONG",  textcolor=color.white)
+plotshape(shortEntryBar, "Short", shape.triangledown, location.abovebar, color.new(color.red,0),  size=size.small, text="SHORT", textcolor=color.white)
+plot(strategy.position_size > 0 ? tpL : strategy.position_size < 0 ? tpS : na, "TP", color=color.green, style=plot.style_linebr)
+plot(strategy.position_size > 0 ? slL : strategy.position_size < 0 ? slS : na, "SL", color=color.red, style=plot.style_linebr)

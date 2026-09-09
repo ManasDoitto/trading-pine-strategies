@@ -1,0 +1,44 @@
+//@version=5
+// ============================================================================
+//  BankNifty experiment log  --  concepts tried before ORB v0.3 was adopted
+//  All tested on NSE:BANKNIFTY1! futures, qty=1 lot, 0.02% commission,
+//  ~10 months of data.  GROSS profit factor quoted (commission ~Rs.700/RT).
+// ============================================================================
+//
+//  v0.1  --  crude v1.0 EMA 9/22 pullback-continuation, crude-specifics removed,
+//            BankNifty knobs added (NSE session, midday skip, %-vol floor,
+//            15m MTF bias gate, SMC pivot-BOS structure gate, time-stop /
+//            EMA9-fade quick exits).  ~11 sweep configs across 5m and 15m.
+//      BEST: 15m + rMultiple 2.0-2.5 + sepMlt 0.5 + SMC "not-against"
+//            + skipMidday + coolBars 6
+//            -> gross PF ~1.03 | ~43% win | 183-185 trades | net ~0.00%
+//            => breakeven after cost.  No config reached an edge.
+//      WHY IT FAILS ON BANKNIFTY: the pullback-fade entry needs an instrument
+//            that pulls back shallow and resumes.  BankNifty on 5m reverses
+//            through the 9/22 EMAs both ways (chop); the setup that pays on
+//            crude (thin, trending, one-directional sessions) does not repeat.
+//
+//  v0.2  --  Impulse / momentum-breakout (OPPOSITE of the pullback idea):
+//            enter on the CLOSE of a strong momentum bar (body >= 0.5x ATR,
+//            close in top third) that breaks an N-bar micro-high, only when
+//            NOT overextended from EMA9, in the direction of the 9/22 trend;
+//            small 1.2R target + EMA9-fade + optional time stop.
+//      RESULT:  3m  gross PF 0.72  | 35% win | 96 trades   (LOSS)
+//               5m  gross PF 0.65  | 30% win | 91 trades   (LOSS)
+//               15m gross PF 1.02  | 34% win | 53 trades   (breakeven)
+//      WHY IT FAILS: BankNifty intraday breakouts get sold into - buying the
+//            strong close is buying the top of the impulse.  Worse than the
+//            pullback version at every timeframe.
+//
+//  --------------------------------------------------------------------------
+//  ADOPTED: Opening-Range Breakout (see  bnf v0.3 ... .pine.txt).
+//    Only concept that showed a positive Sharpe on BankNifty.  The edge is the
+//    first-30-min range + a 9/22 trend-direction filter on the 3m chart:
+//      no filter        -> gross PF 1.02  (breakeven)
+//      + 9/22 filter    -> gross PF 1.12 | 53% win | 75 trades | MaxDD 5.4%
+//                          Sharpe 0.66 | Sortino 2.13 | net +3.5% / 10mo
+//    Real but THIN - far below crude v1.0 (PF 1.89).  5m and 15m ORB both
+//    tested negative (PF 0.89-0.90); the edge is 3m-only.
+//  --------------------------------------------------------------------------
+//
+//  This file is a written record only - not a runnable strategy.
