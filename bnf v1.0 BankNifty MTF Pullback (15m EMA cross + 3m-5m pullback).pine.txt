@@ -11,19 +11,21 @@
 //    capped) ; fixed-R target ; force-flat 15:15 ; 1 position, cooldown.
 //  qty=1 = ONE BNF lot ; 0.02% commission ; 5-pt slippage.
 //
-//  ---- BACKTEST  NSE:BANKNIFTY1!, ~10 months, qty=1 (defaults below) ----
-//    5-minute chart : 54 tr | PF 1.55 | 46% win | MaxDD 4.8% | Sharpe 1.15
-//                     | avg Rs.925 | net +10.0%
+//  ---- VERIFIED clean-room backtest  NSE:BANKNIFTY1!, qty=1 (defaults below) ----
+//  (fresh strategy instance, inputs confirmed at these defaults, not a reused slot)
 //    3-minute chart : 45 tr | PF 1.31 | 51% win | MaxDD 3.7% | Sharpe 0.32
-//                     | avg Rs.470 | net +4.2%
+//                     | avg Rs.470 | net +4.2%     <-- the real, reproducible edge
+//    5-minute chart : 85 tr | PF 1.12 | 38% win | MaxDD 9.4% | Sharpe 0.12
+//                     | avg Rs.210 | net +3.6%     (marginal - barely clears cost)
+//  NOTE: an earlier 5m read of "PF 1.55 / 54 tr" did NOT reproduce on a clean
+//        instance - it came from stale inputs on a reused study slot. Trust the 3m.
 //  The "fresh 15m cross" gate is what creates the edge:
 //    no recent-cross gate ....... 269 tr | PF 0.84  (loser)
 //    within 20 chart-bars ....... 74 tr  | PF 0.91
-//    within 12 chart-bars ....... 45 tr  | PF 1.31   <- adopted
-//  More trades AND higher PF than the single-TF pullback (v0.3: 32 tr, PF ~1.2).
-//  Still one in-sample run - forward-test before sizing.
-//  Run on a 3m or 5m chart; htfRecentBars counts CHART bars, so re-tune it if
-//  you change timeframe (12 suits both 3m and 5m here).
+//    within 12 chart-bars (3m) .. 45 tr  | PF 1.31   <- adopted
+//  Comparable trade count to the single-TF pullback family (v0.3: 32 tr, PF ~1.2),
+//  modestly better on 3m. Still ONE in-sample run - forward-test before sizing.
+//  Best on a 3m chart; htfRecentBars counts CHART bars (12 = ~36 min on 3m).
 // ============================================================================
 strategy("BankNifty MTF Pullback v1.0", overlay=true,
      initial_capital=500000,
