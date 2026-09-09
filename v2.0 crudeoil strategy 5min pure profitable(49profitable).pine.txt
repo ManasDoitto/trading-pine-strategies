@@ -1,0 +1,217 @@
+//@version=5
+// v1.0 - EMA 9/22 pullback continuation (5m, MCX:CRUDEOIL1!)  -- tuned from v0.8 via a
+// ~25-run parameter sweep. Entry/SL logic UNCHANGED from v0.8. Adopted 5 parameter moves:
+//   coolBars 0->3 | sepMlt 0.35->0.50 | RSI veto 85/15->70/30 | atrMinPts 0->10 | session 1200-2330 -> 1000-2230
+// Backtest 5m ~10mo:  v0.8 = +23.1% | PF 1.26 | win 43% | MaxDD 1.9% | worst -384k
+//                     v1.0 = +41.6% | PF 1.89 | win 49% | MaxDD 0.55% | worst -155k | avg/trade INR 20.5k
+// NOTE: single-sample in-sample tuning. Session-trim + atrMin are structural (thin
+//       post-session liquidity, dead-vol chop); cooldown/sep/RSI are more fit-prone.
+//       Forward-test before sizing up.
+strategy("EMA 9/22 Pullback (5m) v1.0", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=10,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============
+emaFastLen  = input.int(9,   "EMA Fast")
+emaMedLen   = input.int(22,  "EMA Med")
+emaSlowLen  = input.int(200, "EMA Slow")
+use200      = input.bool(true, "R1: only trade with 5m EMA200")
+sepMlt      = input.float(0.5, "R3: min EMA9-EMA22 separation (x ATR14)", step=0.05)
+allowCoil   = input.bool(true, "COIL: trade the EMA-convergence break")
+clusterMlt  = input.float(1.0, "  coil: 3-EMA span <= x ATR14", step=0.1)
+clusterBuf  = input.float(0.25, "  coil SL buffer beyond band (x ATR14)", step=0.05)
+useSession  = input.bool(true, "R4: session filter")
+sessTime    = input.session("1000-2230", "Session")
+rsiLen      = input.int(3,   "RSI Length")
+rsiMaxLong  = input.int(70,  "No long if RSI(3) above")
+rsiMinShort = input.int(30,  "No short if RSI(3) below")
+pbLookback  = input.int(10,  "Pullback within N bars of above-both close")
+reclaimWin  = input.int(8,   "Max bars: touch -> reclaim -> entry")
+coolBars    = input.int(3,   "Cooldown bars after exit")
+rMultiple   = input.float(2.0, "R:R target", step=0.1)
+atrBuffMlt   = input.float(0.15, "SL buffer beyond pullback low (x ATR14)", step=0.05)
+stopFloorATR = input.float(0.5,  "Min SL floor (x ATR14)", step=0.05)
+tgtFromTight = input.bool(true,  "Target from PRE-floor risk")
+maxStopATR  = input.float(2.0, "Max stop (x ATR14)", step=0.25)
+atrMinPts   = input.float(10.0, "Min ATR14 points to trade (0=off)", step=1)
+beAfterR    = input.float(0.0, "EXP: move SL to breakeven after +R (0=off)", step=0.1)
+tp1R        = input.float(0.0, "EXP: partial TP at +R (0=off)", step=0.1)
+tp1Pct      = input.int(50,    "EXP: partial TP % of position")
+atrMaxPts   = input.float(0.0, "EXP: max ATR14 points (0=off)", step=1)
+skipMon     = input.bool(false, "EXP: skip Monday")
+skipFri     = input.bool(false, "EXP: skip Friday")
+showBG      = input.bool(true, "Trend background")
+showMarks   = input.bool(true, "Entry/exit marks")
+
+// ============ INDICATORS ============
+ema9   = ta.ema(close, emaFastLen)
+ema22  = ta.ema(close, emaMedLen)
+ema200 = ta.ema(close, emaSlowLen)
+rsi3   = ta.rsi(close, rsiLen)
+atr14  = ta.atr(14)
+
+emaHi3 = math.max(ema9, math.max(ema22, ema200))
+emaLo3 = math.min(ema9, math.min(ema22, ema200))
+coilOn = allowCoil and (emaHi3 - emaLo3) <= clusterMlt * atr14
+
+inSession = not useSession or not na(time(timeframe.period, sessTime))
+emaSepOK  = sepMlt == 0 or math.abs(ema9 - ema22) >= sepMlt * atr14 or coilOn
+atrOK     = (atrMinPts == 0 or atr14 >= atrMinPts) and (atrMaxPts == 0 or atr14 <= atrMaxPts)
+dowOK     = not (skipMon and dayofweek == dayofweek.monday) and not (skipFri and dayofweek == dayofweek.friday)
+
+// ============ 5m REGIME ============
+regimeUp = (ema9 > ema22 or coilOn) and (not use200 or close > ema200)
+regimeDn = (ema9 < ema22 or coilOn) and (not use200 or close < ema200)
+aboveBoth = coilOn ? close > emaHi3 : (close > ema9 and close > ema22)
+belowBoth = coilOn ? close < emaLo3 : (close < ema9 and close < ema22)
+
+// ============ PULLBACK TRACKER ============
+var bool  pbActL   = false
+var float pbLowL   = na
+var int   pbBarL   = na
+var int   lastAbvL = na
+var bool  pbActS   = false
+var float pbHiS    = na
+var int   pbBarS   = na
+var int   lastBlwS = na
+
+if not regimeUp
+    pbActL := false
+    pbLowL := na
+    pbBarL := na
+else
+    if aboveBoth
+        lastAbvL := bar_index
+    if low <= ema9 and not na(lastAbvL) and (bar_index - lastAbvL) <= pbLookback
+        fresh = not pbActL or (not na(pbBarL) and lastAbvL >= pbBarL)
+        pbLowL := fresh ? low : math.min(pbLowL, low)
+        pbActL := true
+        pbBarL := bar_index
+
+if not regimeDn
+    pbActS := false
+    pbHiS  := na
+    pbBarS := na
+else
+    if belowBoth
+        lastBlwS := bar_index
+    if high >= ema9 and not na(lastBlwS) and (bar_index - lastBlwS) <= pbLookback
+        fresh = not pbActS or (not na(pbBarS) and lastBlwS >= pbBarS)
+        pbHiS := fresh ? high : math.max(pbHiS, high)
+        pbActS := true
+        pbBarS := bar_index
+
+// ============ COOLDOWN ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+
+// ============ TRIGGER SETUP ============
+var bool  waitL   = false
+var int   waitBarL = na
+var float trigL   = na
+var float slL     = na
+var float tpL     = na
+var float tp1LvL  = na
+var bool  waitS   = false
+var int   waitBarS = na
+var float trigS   = na
+var float slS     = na
+var float tpS     = na
+var float tp1LvS  = na
+
+gateL = regimeUp and aboveBoth and emaSepOK and inSession and atrOK and dowOK and rsi3 < rsiMaxLong
+gateS = regimeDn and belowBoth and emaSepOK and inSession and atrOK and dowOK and rsi3 > rsiMinShort
+
+if strategy.opentrades == 0 and coolOK and not waitL and pbActL and gateL and not na(pbBarL) and (bar_index - pbBarL) <= reclaimWin
+    _slTight = coilOn ? (emaLo3 - clusterBuf * atr14) : (pbLowL - atrBuffMlt * atr14)
+    _sl      = stopFloorATR > 0 ? math.min(_slTight, high - stopFloorATR * atr14) : _slTight
+    _riskSL  = high - _sl
+    _riskTgt = tgtFromTight ? (high - _slTight) : _riskSL
+    if _riskSL > 0 and (maxStopATR == 0 or _riskSL <= maxStopATR * atr14)
+        waitL := true
+        waitBarL := bar_index
+        trigL := high
+        slL := _sl
+        tpL := high + _riskTgt * rMultiple
+        tp1LvL := tp1R > 0 ? high + _riskTgt * tp1R : na
+        pbActL := false
+
+if strategy.opentrades == 0 and coolOK and not waitS and pbActS and gateS and not na(pbBarS) and (bar_index - pbBarS) <= reclaimWin
+    _slTight = coilOn ? (emaHi3 + clusterBuf * atr14) : (pbHiS + atrBuffMlt * atr14)
+    _sl      = stopFloorATR > 0 ? math.max(_slTight, low + stopFloorATR * atr14) : _slTight
+    _riskSL  = _sl - low
+    _riskTgt = tgtFromTight ? (_slTight - low) : _riskSL
+    if _riskSL > 0 and (maxStopATR == 0 or _riskSL <= maxStopATR * atr14)
+        waitS := true
+        waitBarS := bar_index
+        trigS := low
+        slS := _sl
+        tpS := low - _riskTgt * rMultiple
+        tp1LvS := tp1R > 0 ? low - _riskTgt * tp1R : na
+        pbActS := false
+
+if waitL and (bar_index - waitBarL > reclaimWin or not regimeUp)
+    waitL := false
+if waitS and (bar_index - waitBarS > reclaimWin or not regimeDn)
+    waitS := false
+
+if waitL
+    strategy.entry("Long", strategy.long, stop=trigL)
+else
+    strategy.cancel("Long")
+if waitS
+    strategy.entry("Short", strategy.short, stop=trigS)
+else
+    strategy.cancel("Short")
+
+// ============ ENTRY / EXIT BAR DETECTION ============
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+exitBar       = strategy.position_size == 0 and strategy.position_size[1] != 0
+var bool lastWasLong = false
+var float riskL0 = na
+if longEntryBar
+    lastWasLong := true
+    waitL := false
+    riskL0 := strategy.position_avg_price - slL
+if shortEntryBar
+    lastWasLong := false
+    waitS := false
+    riskL0 := slS - strategy.position_avg_price
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    waitL := false
+    _sl = slL
+    if beAfterR > 0 and not na(riskL0) and high >= strategy.position_avg_price + beAfterR * riskL0
+        _sl := math.max(_sl, strategy.position_avg_price)
+    slL := _sl
+    if tp1R > 0 and not na(tp1LvL)
+        strategy.exit("TP1 L", from_entry="Long", qty_percent=tp1Pct, stop=slL, limit=tp1LvL)
+    strategy.exit("Exit L", from_entry="Long", stop=slL, limit=tpL)
+if strategy.position_size < 0
+    waitS := false
+    _sl = slS
+    if beAfterR > 0 and not na(riskL0) and low <= strategy.position_avg_price - beAfterR * riskL0
+        _sl := math.min(_sl, strategy.position_avg_price)
+    slS := _sl
+    if tp1R > 0 and not na(tp1LvS)
+        strategy.exit("TP1 S", from_entry="Short", qty_percent=tp1Pct, stop=slS, limit=tp1LvS)
+    strategy.exit("Exit S", from_entry="Short", stop=slS, limit=tpS)
+
+// ============ VISUALS ============
+bgcolor(showBG and regimeUp and aboveBoth ? color.new(color.green, 92) : na)
+bgcolor(showBG and regimeDn and belowBoth ? color.new(color.red,   92) : na)
+bgcolor(showBG and useSession and not inSession ? color.new(color.gray, 92) : na)
+plot(ema9,   "EMA9",   color=color.aqua,   linewidth=1)
+plot(ema22,  "EMA22",  color=color.orange, linewidth=1)
+plot(ema200, "EMA200", color=color.new(color.purple, 0), linewidth=2)
+plotshape(showMarks and longEntryBar,  "Long",  shape.triangleup,   location.belowbar, color.new(color.teal, 0), size=size.small, text="LONG",  textcolor=color.white)
+plotshape(showMarks and shortEntryBar, "Short", shape.triangledown, location.abovebar, color.new(color.red, 0),  size=size.small, text="SHORT", textcolor=color.white)
+plot(strategy.position_size > 0 ? tpL : strategy.position_size < 0 ? tpS : na, "TP", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slL : strategy.position_size < 0 ? slS : na, "SL", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=1)
