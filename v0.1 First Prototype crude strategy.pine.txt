@@ -1,0 +1,138 @@
+//@version=5
+strategy("EMA Pullback | Iter 21 — EMA9 Continuous Trail", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=10,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     process_orders_on_close=true)
+
+tf15 = input.timeframe("15", "15m Confirmation TF (trend only, not entry)")
+emaFastLen = input.int(9,   "EMA Fast")
+emaMedLen  = input.int(22,  "EMA Med")
+emaSlowLen = input.int(200, "EMA Slow - Hard Gate")
+haLen1     = input.int(10,  "HA Smooth 1")
+haLen2     = input.int(10,  "HA Smooth 2")
+rsiLen     = input.int(3,   "RSI Length")
+rsiDip     = input.int(40,  "RSI dip level (long)")
+rsiRip     = input.int(60,  "RSI rip level (short)")
+angleLen   = input.int(3,   "EMA9 slope bars")
+
+maxSLpct     = input.float(0.15, "Max SL % of entry", step=0.01)
+minBarsBeforeTrail = input.int(2, "Bars before EMA9 trail activates", minval=0)
+cooldownBars = input.int(3, "Cooldown bars", minval=1)
+
+ema9   = ta.ema(close, emaFastLen)
+ema22  = ta.ema(close, emaMedLen)
+ema200 = ta.ema(close, emaSlowLen)
+rsi3   = ta.rsi(close, rsiLen)
+
+var int rsiBullBar = -99
+var int rsiBearBar = -99
+if ta.crossover(rsi3, rsiDip)
+    rsiBullBar := bar_index
+if ta.crossunder(rsi3, rsiRip)
+    rsiBearBar := bar_index
+inBullRSI = (bar_index - rsiBullBar) <= 3
+inBearRSI = (bar_index - rsiBearBar) <= 3
+
+o1 = ta.ema(open,  haLen1)
+c1 = ta.ema(close, haLen1)
+h1 = ta.ema(high,  haLen1)
+l1 = ta.ema(low,   haLen1)
+haC = (o1+h1+l1+c1)/4
+var float haO = na
+haO := na(haO[1]) ? (o1+c1)/2 : (haO[1]+haC[1])/2
+smO = ta.ema(haO, haLen2)
+smC = ta.ema(haC, haLen2)
+haBull = smC > smO
+haBear = smC < smO
+
+[e9_15, e22_15, c15] = request.security(syminfo.tickerid, tf15,
+     [ta.ema(close,emaFastLen), ta.ema(close,emaMedLen), close],
+     lookahead=barmerge.lookahead_off)
+bull15 = c15 > e9_15 and c15 > e22_15
+bear15 = c15 < e9_15 and c15 < e22_15
+
+longSetup = close>ema200 and ema9>ema22 and ema9>ema9[angleLen] and bull15
+          and (low<=ema9 or low<=ema22) and close>ema9 and close>ema22
+          and haBull and inBullRSI
+
+shortSetup = close<ema200 and ema9<ema22 and ema9<ema9[angleLen] and bear15
+           and (high>=ema9 or high>=ema22) and close<ema9 and close<ema22
+           and haBear and inBearRSI
+
+var int lastBar = -99
+coolOk    = (bar_index - lastBar) >= cooldownBars
+longCond  = longSetup  and coolOk and strategy.opentrades == 0
+shortCond = shortSetup and coolOk and strategy.opentrades == 0
+
+var float entryPx = na
+var float sl0     = na
+var float curStop = na
+var int   entryBar = na
+var bool  isLong  = false
+
+if longCond
+    stopL = math.max(low - close*0.001, close*(1 - maxSLpct/100))
+    entryPx  := close
+    sl0      := stopL
+    curStop  := stopL
+    entryBar := bar_index
+    isLong   := true
+    strategy.entry("Long", strategy.long)
+    strategy.exit("L-Exit", from_entry="Long", stop=curStop)
+    lastBar := bar_index
+
+if shortCond
+    stopS = math.min(high + close*0.001, close*(1 + maxSLpct/100))
+    entryPx  := close
+    sl0      := stopS
+    curStop  := stopS
+    entryBar := bar_index
+    isLong   := false
+    strategy.entry("Short", strategy.short)
+    strategy.exit("S-Exit", from_entry="Short", stop=curStop)
+    lastBar := bar_index
+
+// ── Continuous EMA9 trail: stop only ever moves in favorable direction ──
+if strategy.opentrades > 0 and (bar_index - entryBar) >= minBarsBeforeTrail
+    if isLong
+        newStop = math.max(curStop, ema9 - close*0.001)
+        if newStop > curStop
+            curStop := newStop
+            strategy.exit("L-Exit", from_entry="Long", stop=curStop)
+    else
+        newStop = math.min(curStop, ema9 + close*0.001)
+        if newStop < curStop
+            curStop := newStop
+            strategy.exit("S-Exit", from_entry="Short", stop=curStop)
+
+var int lastClosedCount = 0
+if strategy.closedtrades > lastClosedCount
+    idx = strategy.closedtrades - 1
+    exitPx  = strategy.closedtrades.exit_price(idx)
+    tradeProfit = strategy.closedtrades.profit(idx)
+    isWin = tradeProfit > 0
+    tradeIsLong = strategy.closedtrades.size(idx) > 0
+    label.new(bar_index, exitPx,
+         text = (isWin ? "WIN " : "LOSS ") + str.tostring(tradeProfit, "#.##"),
+         color = isWin ? color.new(color.green, 20) : color.new(color.red, 20),
+         textcolor = color.white,
+         style = tradeIsLong ? label.style_label_down : label.style_label_up,
+         size = size.small)
+    lastClosedCount := strategy.closedtrades
+
+plot(ema9,   "EMA9",   color=color.aqua,   linewidth=1)
+plot(ema22,  "EMA22",  color=color.orange, linewidth=1)
+plot(ema200, "EMA200", color=color.purple, linewidth=2)
+
+bgcolor(close>ema200 and ema9>ema22 and bull15 ? color.new(color.green,92) : na, title="Long Zone")
+bgcolor(close<ema200 and ema9<ema22 and bear15 ? color.new(color.red,  92) : na, title="Short Zone")
+
+plotshape(longCond,  "Long Entry",  shape.triangleup,   location.belowbar, color.lime,    size=size.small)
+plotshape(shortCond, "Short Entry", shape.triangledown, location.abovebar, color.fuchsia, size=size.small)
+
+plot(longCond  ? sl0 : na, "L-SL", style=plot.style_cross, color=color.red, linewidth=2)
+plot(shortCond ? sl0 : na, "S-SL", style=plot.style_cross, color=color.red, linewidth=2)
+
+plot(rsi3,                          "RSI3",      display=display.data_window)
+plot(bull15 ? 1 : bear15 ? -1 : 0, "15m Trend", display=display.data_window)

@@ -1,0 +1,237 @@
+//@version=5
+strategy("EMA Pullback | Deep Sweep Breakout (1:3)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=10,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============
+tf15        = input.timeframe("15", "15m Confirmation TF")
+emaFastLen  = input.int(9,   "EMA Fast")
+emaMedLen   = input.int(22,  "EMA Med")
+emaSlowLen  = input.int(200, "EMA Slow - Hard Gate")
+haLen1      = input.int(10,  "HA Smooth 1")
+haLen2      = input.int(10,  "HA Smooth 2")
+rsiLen      = input.int(3,   "RSI Length")
+rsiDip      = input.int(40,  "RSI dip level (long)")
+rsiRip      = input.int(60,  "RSI rip level (short)")
+rMultiple   = input.float(3.0, "Target R-Multiple (strict mode)", step=0.1)
+atrBuffMlt  = input.float(0.0, "SL buffer beyond swept close (x ATR14)", step=0.05)
+minStopATR  = input.float(0.0, "Min stop distance filter (x ATR14, 0=off)", step=0.05)
+useScaleOut = input.bool(false, "Scale-out mode (TP1 @ 2R + EMA9 trail) instead of strict 3R")
+tp1R        = input.float(2.0, "TP1 R-multiple (scale-out)", step=0.1)
+trailAfterR = input.float(1.0, "Arm EMA9 trail after +R (scale-out)", step=0.1)
+showBG      = input.bool(true, "Trend background")
+showMarks   = input.bool(true, "Entry/exit marks")
+
+// ============ INDICATORS ============
+ema9   = ta.ema(close, emaFastLen)
+ema22  = ta.ema(close, emaMedLen)
+ema200 = ta.ema(close, emaSlowLen)
+rsi3   = ta.rsi(close, rsiLen)
+atr14  = ta.atr(14)
+
+var int rsiBullBar = -99
+var int rsiBearBar = -99
+if ta.crossover(rsi3, rsiDip)
+    rsiBullBar := bar_index
+if ta.crossunder(rsi3, rsiRip)
+    rsiBearBar := bar_index
+inBullRSI = (bar_index - rsiBullBar) <= 3
+inBearRSI = (bar_index - rsiBearBar) <= 3
+
+o1 = ta.ema(open,  haLen1)
+c1 = ta.ema(close, haLen1)
+h1 = ta.ema(high,  haLen1)
+l1 = ta.ema(low,   haLen1)
+haC = (o1+h1+l1+c1)/4
+var float haO = na
+haO := na(haO[1]) ? (o1+c1)/2 : (haO[1]+haC[1])/2
+smO = ta.ema(haO, haLen2)
+smC = ta.ema(haC, haLen2)
+haBull = smC > smO
+haBear = smC < smO
+
+[e9_15, e22_15, c15] = request.security(syminfo.tickerid, tf15,
+     [ta.ema(close,emaFastLen), ta.ema(close,emaMedLen), close],
+     lookahead=barmerge.lookahead_off)
+bull15 = c15 > e9_15 and c15 > e22_15
+bear15 = c15 < e9_15 and c15 < e22_15
+
+// ============ TREND GATE ============
+validUptrend   = close > ema200 and ema9 > ema22 and bull15
+validDowntrend = close < ema200 and ema9 < ema22 and bear15
+
+// ============ DEEP SWEEP TRACKER (close-based SL source) ============
+// SL = lowest CLOSE (longs) / highest CLOSE (shorts) among the pullback bars
+// that pierced EMA22 before the trend resumed. Close-based so liquidity-grab
+// wicks do not inflate R.
+var bool  inDeepSweepL = false
+var float sweptCloseL  = na
+var bool  inDeepSweepS = false
+var float sweptCloseS  = na
+
+if validUptrend
+    if low < ema22
+        inDeepSweepL := true
+        sweptCloseL  := na(sweptCloseL) ? close : math.min(sweptCloseL, close)
+else
+    inDeepSweepL := false
+    sweptCloseL  := na
+
+if validDowntrend
+    if high > ema22
+        inDeepSweepS := true
+        sweptCloseS  := na(sweptCloseS) ? close : math.max(sweptCloseS, close)
+else
+    inDeepSweepS := false
+    sweptCloseS  := na
+
+// ============ ONE-TRADE-PER-LEG LOCK ============
+var bool legUsedL = false
+var bool legUsedS = false
+if not validUptrend
+    legUsedL := false
+if not validDowntrend
+    legUsedS := false
+
+// ============ SETUP CONFIRMATION ============
+longSetup  = inDeepSweepL and close > ema9 and close > ema22 and haBull and inBullRSI and not legUsedL
+shortSetup = inDeepSweepS and close < ema9 and close < ema22 and haBear and inBearRSI and not legUsedS
+
+// ============ BREAKOUT EXECUTION ============
+var bool  armedL = false
+var float trigL  = na
+var float slL    = na
+var float tpL    = na
+var float tp1L   = na
+var bool  armedS = false
+var float trigS  = na
+var float slS    = na
+var float tpS    = na
+var float tp1S   = na
+
+if longSetup and strategy.opentrades == 0
+    _sl   = math.min(sweptCloseL, close) - atrBuffMlt * atr14
+    _risk = high - _sl
+    if _risk > 0 and _risk >= minStopATR * atr14
+        armedL := true
+        armedS := false
+        trigL  := high
+        slL    := _sl
+        tpL    := trigL + _risk * rMultiple
+        tp1L   := trigL + _risk * tp1R
+        inDeepSweepL := false
+
+if shortSetup and strategy.opentrades == 0
+    _sl   = math.max(sweptCloseS, close) + atrBuffMlt * atr14
+    _risk = _sl - low
+    if _risk > 0 and _risk >= minStopATR * atr14
+        armedS := true
+        armedL := false
+        trigS  := low
+        slS    := _sl
+        tpS    := trigS - _risk * rMultiple
+        tp1S   := trigS - _risk * tp1R
+        inDeepSweepS := false
+
+if armedL
+    strategy.entry("Long", strategy.long, stop=trigL)
+else
+    strategy.cancel("Long")
+
+if armedS
+    strategy.entry("Short", strategy.short, stop=trigS)
+else
+    strategy.cancel("Short")
+
+if armedL and close < ema22
+    armedL := false
+if armedS and close > ema22
+    armedS := false
+
+// ============ ENTRY / EXIT BAR DETECTION ============
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+exitBar       = strategy.position_size == 0 and strategy.position_size[1] != 0
+var bool lastWasLong = false
+if longEntryBar
+    lastWasLong := true
+if shortEntryBar
+    lastWasLong := false
+
+var bool trailArmL = false
+var bool trailArmS = false
+if longEntryBar
+    trailArmL := false
+if shortEntryBar
+    trailArmS := false
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    armedL := false
+    legUsedL := true
+    if useScaleOut
+        r1 = strategy.position_avg_price + (strategy.position_avg_price - slL) * trailAfterR
+        if high >= r1
+            trailArmL := true
+        strategy.exit("TP1 L", from_entry="Long", qty_percent=50, stop=slL, limit=tp1L)
+        strategy.exit("Rnr L", from_entry="Long", stop=slL, limit=tpL)
+        if trailArmL and close < ema9
+            strategy.close("Long", comment="EMA9 trail")
+    else
+        strategy.exit("Exit L", from_entry="Long", stop=slL, limit=tpL)
+
+if strategy.position_size < 0
+    armedS := false
+    legUsedS := true
+    if useScaleOut
+        r1s = strategy.position_avg_price - (slS - strategy.position_avg_price) * trailAfterR
+        if low <= r1s
+            trailArmS := true
+        strategy.exit("TP1 S", from_entry="Short", qty_percent=50, stop=slS, limit=tp1S)
+        strategy.exit("Rnr S", from_entry="Short", stop=slS, limit=tpS)
+        if trailArmS and close > ema9
+            strategy.close("Short", comment="EMA9 trail")
+    else
+        strategy.exit("Exit S", from_entry="Short", stop=slS, limit=tpS)
+
+// ============ TREND BACKGROUND ============
+bgcolor(showBG and validUptrend   ? color.new(color.green, 90) : na, title="Bull regime")
+bgcolor(showBG and validDowntrend ? color.new(color.red,   90) : na, title="Bear regime")
+
+// ============ EMA PLOTS ============
+plot(ema9,   "EMA9",   color=color.aqua,   linewidth=1)
+plot(ema22,  "EMA22",  color=color.orange, linewidth=1)
+plot(ema200, "EMA200", color=color.purple, linewidth=2)
+
+// ============ ENTRY / EXIT MARKS ============
+plotshape(showMarks and armedL and not armedL[1], "Armed Long",  shape.circle, location.belowbar, color.new(color.yellow, 0), size=size.tiny)
+plotshape(showMarks and armedS and not armedS[1], "Armed Short", shape.circle, location.abovebar, color.new(color.yellow, 0), size=size.tiny)
+
+plotshape(showMarks and longEntryBar,  "Long Entry",  shape.triangleup,   location.belowbar, color.new(color.teal, 0), size=size.small, text="LONG",  textcolor=color.white)
+plotshape(showMarks and shortEntryBar, "Short Entry", shape.triangledown, location.abovebar, color.new(color.red, 0),  size=size.small, text="SHORT", textcolor=color.white)
+
+var float entryPxV  = na
+var float slAtEntry = na
+if longEntryBar or shortEntryBar
+    entryPxV  := strategy.position_avg_price
+    slAtEntry := longEntryBar ? slL : slS
+
+exWin = exitBar and strategy.closedtrades.profit(strategy.closedtrades - 1) >= 0
+plotshape(showMarks and exitBar and exWin,     "Exit Win",  shape.xcross, location.abovebar, color.new(color.green, 0), size=size.tiny)
+plotshape(showMarks and exitBar and not exWin, "Exit Loss", shape.xcross, location.abovebar, color.new(color.red,   0), size=size.tiny)
+
+if showMarks and exitBar and not na(entryPxV) and not na(slAtEntry)
+    exPx = strategy.closedtrades.exit_price(strategy.closedtrades - 1)
+    risk = math.abs(entryPxV - slAtEntry)
+    rr   = risk > 0 ? (lastWasLong ? (exPx - entryPxV) : (entryPxV - exPx)) / risk : 0.0
+    label.new(bar_index, high, (rr >= 0 ? "+" : "") + str.tostring(rr, "0.0") + "R",
+         yloc=yloc.abovebar, style=label.style_label_down,
+         color=exWin ? color.new(color.green, 0) : color.new(color.red, 0),
+         textcolor=color.white, size=size.small)
+
+plot(strategy.position_size != 0 ? entryPxV : na, "Entry Px", color=color.new(color.gray, 0),  style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? (useScaleOut ? tp1L : tpL) : strategy.position_size < 0 ? (useScaleOut ? tp1S : tpS) : na, "TP", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slL : strategy.position_size < 0 ? slS : na, "SL", color=color.new(color.red,   0), style=plot.style_linebr, linewidth=1)

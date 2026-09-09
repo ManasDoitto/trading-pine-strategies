@@ -1,0 +1,158 @@
+//@version=5
+strategy("EMA Pullback | Deep Sweep Breakout (1:3)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=10,
+     margin_long=0, margin_short=0, // Prevents TV from closing trades prematurely
+     commission_type=strategy.commission.percent, commission_value=0.02)
+
+// ============ INPUTS ============
+tf15 = input.timeframe("15", "15m Confirmation TF")
+emaFastLen = input.int(9,   "EMA Fast")
+emaMedLen  = input.int(22,  "EMA Med")
+emaSlowLen = input.int(200, "EMA Slow - Hard Gate")
+haLen1     = input.int(10,  "HA Smooth 1")
+haLen2     = input.int(10,  "HA Smooth 2")
+rsiLen     = input.int(3,   "RSI Length")
+rsiDip     = input.int(40,  "RSI dip level (long)")
+rsiRip     = input.int(60,  "RSI rip level (short)")
+rMultiple  = input.float(3.0, "Target R-Multiple (1:3)", step=0.1)
+
+// ============ INDICATORS ============
+ema9   = ta.ema(close, emaFastLen)
+ema22  = ta.ema(close, emaMedLen)
+ema200 = ta.ema(close, emaSlowLen)
+rsi3   = ta.rsi(close, rsiLen)
+
+// RSI Alignment
+var int rsiBullBar = -99
+var int rsiBearBar = -99
+if ta.crossover(rsi3, rsiDip)
+    rsiBullBar := bar_index
+if ta.crossunder(rsi3, rsiRip)
+    rsiBearBar := bar_index
+inBullRSI = (bar_index - rsiBullBar) <= 3
+inBearRSI = (bar_index - rsiBearBar) <= 3
+
+// Smoothed Heiken Ashi
+o1 = ta.ema(open,  haLen1)
+c1 = ta.ema(close, haLen1)
+h1 = ta.ema(high,  haLen1)
+l1 = ta.ema(low,   haLen1)
+haC = (o1+h1+l1+c1)/4
+var float haO = na
+haO := na(haO[1]) ? (o1+c1)/2 : (haO[1]+haC[1])/2
+smO = ta.ema(haO, haLen2)
+smC = ta.ema(haC, haLen2)
+haBull = smC > smO
+haBear = smC < smO
+
+// 15m Trend
+[e9_15, e22_15, c15] = request.security(syminfo.tickerid, tf15,
+     [ta.ema(close,emaFastLen), ta.ema(close,emaMedLen), close],
+     lookahead=barmerge.lookahead_off)
+bull15 = c15 > e9_15 and c15 > e22_15
+bear15 = c15 < e9_15 and c15 < e22_15
+
+// ============ DEEP SWEEP TRACKER ============
+var bool inDeepSweepL = false
+var float sweepLowPx = na
+
+var bool inDeepSweepS = false
+var float sweepHighPx = na
+
+// Long Sweep Logic: Must be in an uptrend, and price must dip BELOW the 22 EMA
+validUptrend = close > ema200 and ema9 > ema22 and bull15
+if validUptrend
+    if low < ema22 
+        inDeepSweepL := true
+        sweepLowPx := na(sweepLowPx) ? low : math.min(sweepLowPx, low) // Tracks the absolute bottom of the dip
+else
+    inDeepSweepL := false
+    sweepLowPx := na
+
+// Short Sweep Logic: Must be in a downtrend, and price must pierce ABOVE the 22 EMA
+validDowntrend = close < ema200 and ema9 < ema22 and bear15
+if validDowntrend
+    if high > ema22
+        inDeepSweepS := true
+        sweepHighPx := na(sweepHighPx) ? high : math.max(sweepHighPx, high) // Tracks the absolute top of the spike
+else
+    inDeepSweepS := false
+    sweepHighPx := na
+
+// ============ SETUP CONFIRMATION ============
+// Setup is complete when price closes back ABOVE both EMAs with HA/RSI alignment
+longSetup = inDeepSweepL and close > ema9 and close > ema22 and haBull and inBullRSI
+shortSetup = inDeepSweepS and close < ema9 and close < ema22 and haBear and inBearRSI
+
+// ============ BREAKOUT EXECUTION ============
+var bool armedL = false
+var float trigL = na
+var float slL = na
+var float tpL = na
+
+var bool armedS = false
+var float trigS = na
+var float slS = na
+var float tpS = na
+
+// ARM THE TRADE: Lock in the trigger price, the sweep SL, and the 1:3 TP
+if longSetup and strategy.opentrades == 0
+    armedL := true
+    armedS := false
+    trigL := high // Must break this candle's high to enter
+    slL := sweepLowPx // SL is the absolute bottom of the deep sweep
+    tpL := trigL + ((trigL - slL) * rMultiple)
+    
+    // Reset the sweep tracker so we don't take double setups on the same pullback
+    inDeepSweepL := false
+    sweepLowPx := na
+
+if shortSetup and strategy.opentrades == 0
+    armedS := true
+    armedL := false
+    trigS := low // Must break this candle's low to enter
+    slS := sweepHighPx // SL is the absolute top of the deep sweep
+    tpS := trigS - ((slS - trigS) * rMultiple)
+    
+    inDeepSweepS := false
+    sweepHighPx := na
+
+// PLACE PENDING ORDERS
+if armedL
+    strategy.entry("Long", strategy.long, stop=trigL)
+else
+    strategy.cancel("Long")
+
+if armedS
+    strategy.entry("Short", strategy.short, stop=trigS)
+else
+    strategy.cancel("Short")
+
+// DISARM IF SETUP FAILS (Price closes back below EMAs before triggering the breakout)
+if armedL and close < ema22
+    armedL := false
+if armedS and close > ema22
+    armedS := false
+
+// ============ STRICT 1:3 EXITS ============
+if strategy.position_size > 0
+    armedL := false // Ensure we don't re-enter
+    strategy.exit("Exit L", "Long", stop=slL, limit=tpL)
+
+if strategy.position_size < 0
+    armedS := false 
+    strategy.exit("Exit S", "Short", stop=slS, limit=tpS)
+
+// ============ PLOTS ============
+plot(ema9,   "EMA9",   color=color.aqua,   linewidth=1)
+plot(ema22,  "EMA22",  color=color.orange, linewidth=1)
+plot(ema200, "EMA200", color=color.purple, linewidth=2)
+
+// Visuals for Armed Breakouts
+plotshape(armedL and not armedL[1], "Armed Long Breakout", shape.triangleup, location.belowbar, color.yellow, size=size.small)
+plotshape(armedS and not armedS[1], "Armed Short Breakout", shape.triangledown, location.abovebar, color.yellow, size=size.small)
+
+// Active Stop Loss Lines
+plot(strategy.position_size > 0 ? slL : na, "L-SL", style=plot.style_cross, color=color.red, linewidth=2)
+plot(strategy.position_size < 0 ? slS : na, "S-SL", style=plot.style_cross, color=color.red, linewidth=2)
