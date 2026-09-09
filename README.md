@@ -8,6 +8,17 @@ and **honest** backtest metrics (profit factor, win%, drawdown, trade count).
 > Profit factor and win% are position-size independent; net % and drawdown depend
 > on sizing/commission. **Forward-test before risking capital.**
 
+> ⚠️ **WINDOW-DEPENDENCY WARNING (added after further testing).** The BankNifty
+> strategies below are **not window-robust**. Re-running `BankNifty MTF Pullback
+> v1.0` with its exact "verified" defaults on a *different* 4-month window gave
+> **PF 0.33 / 21% win / −16%** vs the **PF 1.31 / 51% win / +4.2%** originally
+> reported. Same code, same parameters, opposite result. Every BankNifty number
+> in this README and in the `bnf *` file headers is a single favourable in-sample
+> window and must be treated as **UNVERIFIED** until walk-forward tested across
+> 8–12 separate quarters. The CrudeOil v1.0 numbers are also single-window and
+> unverified by walk-forward, though that strategy has held up better in spot
+> checks.
+
 ---
 
 ## CrudeOil (MCX:CRUDEOIL1!, 5-minute) — the strong one
@@ -25,16 +36,20 @@ to EMA9 in an established trend; structure stop; fixed R target.
 
 ---
 
-## BankNifty (NSE:BANKNIFTY1! futures) — hard instrument, thin edges
+## BankNifty (NSE:BANKNIFTY1! futures) — no window-stable edge found
 
-Extensive attempt to build a BankNifty strategy matching or beating crude. Three
-distinct entry concepts were tested across 3m/5m/15m. **None reached crude's edge.**
+Extensive attempt (~20 variants: pullback, momentum, ORB, MTF-confluence, quality
+-score) across 3m/5m/15m. **None showed a window-stable edge.** The good-looking
+numbers below were single favourable in-sample windows; on other windows the same
+configs produce PF 0.3–0.9. Do not trade these without walk-forward validation.
 
-| File | Concept | Best result | Verdict |
-|---|---|---|---|
-| `bnf v0.1 … EMA Pullback 5min` | Pullback + VWAP + wick-quality + volume filters | 5m: PF **1.43** · 50% win · DD 2.5% · **26 trades** · +3.9% | Net-positive but **very thin sample** |
-| `bnf v0.1-0.2 … experiments` | v0.1 base sweeps + impulse/momentum breakout | pullback PF ~1.03; breakout PF 0.65–1.02 | Not adopted (breakeven / loss) |
-| `bnf v0.3 … Opening-Range Breakout 3min` | 1st-30-min range break + 9/22 trend filter | 3m: PF **1.12** · 53% win · DD 5.4% · 75 trades · +3.5% | Real but thin edge |
+| File | Concept | Single-window result (UNVERIFIED) |
+|---|---|---|
+| `bnf v0.1 … EMA Pullback 5min` | Pullback + VWAP + wick-quality + volume filters | 5m: PF 1.43 · 50% win · 26 trades (n too small) |
+| `bnf v0.1-0.2 … experiments` | v0.1 base sweeps + impulse/momentum breakout | pullback PF ~1.03; breakout PF 0.65–1.02 |
+| `bnf v0.3 … EMA Pullback 5min (quality-score)` | 4-condition wick+vol+vwap+hold gate | 5m: PF 1.2–1.4 · ~32 trades (n too small) |
+| `bnf v0.3 … Opening-Range Breakout 3min` | 1st-30-min range break + 9/22 trend filter | 3m: PF 1.12 · 53% win · 75 trades |
+| `bnf v1.0 … MTF Pullback` | 15m EMA cross → 3m pullback | window A: PF 1.31 · 51% win · window B: PF 0.33 · 21% win |
 
 ### Key BankNifty findings
 - **Pullback edge = intersection of "rejection wick" + "above-average volume".**
@@ -49,6 +64,7 @@ distinct entry concepts were tested across 3m/5m/15m. **None reached crude's edg
 - Both BankNifty strategies are **timeframe-specific** (pullback 5m-only; ORB
   3m-only). Off-timeframe variants tested negative.
 
-**Bottom line:** BankNifty futures on this data resisted a durable edge. The two
-adopted strategies are marginal and should be treated as forward-test candidates,
-not production systems. CrudeOil v1.0 remains the only strong performer here.
+**Bottom line:** No mechanical BankNifty edge in this repo survives a change of
+backtest window. Treat all BankNifty files as research notes, not systems.
+CrudeOil v1.0 is the only strategy here with a plausible (still single-window)
+edge. Anything used live needs walk-forward testing across 8–12 quarters first.

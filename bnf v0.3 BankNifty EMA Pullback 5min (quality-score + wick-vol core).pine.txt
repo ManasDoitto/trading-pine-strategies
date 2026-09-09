@@ -1,7 +1,12 @@
 //@version=5
 // ============================================================================
 //  BankNifty EMA Pullback v0.3 (final)  --  NSE:BANKNIFTY1!  5-minute, pure
-//  The proven edge = a SPECIFIC 4-condition conjunction on the reclaim bar:
+//  !!! CORRECTION: the "PF 1.2-1.4 edge" below was a SINGLE ~10-month in-sample
+//  window and is NOT window-robust (the whole BankNifty pullback family flips
+//  to PF < 0.5 on other windows - see bnf v1.0 header). n=32 was already too
+//  small to trust; treat all numbers here as UNVERIFIED. Reference only. !!!
+//
+//  The (claimed) edge = a SPECIFIC 4-condition conjunction on the reclaim bar:
 //    rejection-wick pullback + above-avg volume + on the VWAP side + pullback
 //    held above EMA21.  This is RARE (~32 trades / 10 months) and that is the
 //    whole story: broadening it destroys the edge (proven 4 ways below).

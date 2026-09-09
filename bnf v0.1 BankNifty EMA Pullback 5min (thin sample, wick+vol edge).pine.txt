@@ -1,6 +1,9 @@
 //@version=5
 // ============================================================================
 //  BankNifty EMA Pullback (5m) v0.1   --  NSE:BANKNIFTY1!  (pure 5-minute)
+//  !!! CORRECTION: all backtest numbers below are a single in-sample window and
+//  are NOT window-robust (the BankNifty pullback family flips to PF < 0.5 on
+//  other 4-month windows). Reference only - do not size from these. !!!
 //  Built to the "BankNifty Intraday Pullback" spec. Structural template =
 //  crude v2.0/v1.0 pullback-continuation engine. Pure 5m: NO request.security
 //  (no repaint), NO lookahead.

@@ -11,21 +11,21 @@
 //    capped) ; fixed-R target ; force-flat 15:15 ; 1 position, cooldown.
 //  qty=1 = ONE BNF lot ; 0.02% commission ; 5-pt slippage.
 //
-//  ---- VERIFIED clean-room backtest  NSE:BANKNIFTY1!, qty=1 (defaults below) ----
-//  (fresh strategy instance, inputs confirmed at these defaults, not a reused slot)
-//    3-minute chart : 45 tr | PF 1.31 | 51% win | MaxDD 3.7% | Sharpe 0.32
-//                     | avg Rs.470 | net +4.2%     <-- the real, reproducible edge
-//    5-minute chart : 85 tr | PF 1.12 | 38% win | MaxDD 9.4% | Sharpe 0.12
-//                     | avg Rs.210 | net +3.6%     (marginal - barely clears cost)
-//  NOTE: an earlier 5m read of "PF 1.55 / 54 tr" did NOT reproduce on a clean
-//        instance - it came from stale inputs on a reused study slot. Trust the 3m.
-//  The "fresh 15m cross" gate is what creates the edge:
-//    no recent-cross gate ....... 269 tr | PF 0.84  (loser)
-//    within 20 chart-bars ....... 74 tr  | PF 0.91
-//    within 12 chart-bars (3m) .. 45 tr  | PF 1.31   <- adopted
-//  Comparable trade count to the single-TF pullback family (v0.3: 32 tr, PF ~1.2),
-//  modestly better on 3m. Still ONE in-sample run - forward-test before sizing.
-//  Best on a 3m chart; htfRecentBars counts CHART bars (12 = ~36 min on 3m).
+//  ============================================================================
+//  !!! CORRECTION (do not trust the numbers this header originally claimed) !!!
+//  This strategy is NOT window-robust. The SAME config, SAME defaults:
+//    window A (BNF falling, ~4mo)  : 45 tr | PF 1.31 | 51% win | +4.2%
+//    window B (BNF rising, choppy) : 57 tr | PF 0.33 | 21% win | -16.2%
+//  The "PF 1.31 / reproducible edge" claim was a single favourable 4-month
+//  sample. On a different 4 months the identical strategy loses badly. Treat
+//  every BankNifty backtest in this repo as UNVERIFIED pending a proper
+//  walk-forward test across 8-12 separate quarters. Kept for reference only.
+//  ============================================================================
+//  (original in-sample numbers, window A only - NOT to be relied on):
+//    3m : 45 tr | PF 1.31 | 51% win    5m : 85 tr | PF 1.12 | 38% win
+//  The "fresh 15m cross" gate reduced trade count but did not create a stable
+//  edge; on choppy directional windows the 15m EMA whipsaws and the strategy
+//  shorts into up-moves / longs into down-moves and gets stopped.
 // ============================================================================
 strategy("BankNifty MTF Pullback v1.0", overlay=true,
      initial_capital=500000,

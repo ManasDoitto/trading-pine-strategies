@@ -1,5 +1,7 @@
 //@version=5
 // BankNifty Opening-Range Breakout v0.3  (NSE:BANKNIFTY1! futures, 3-minute)
+// !!! CORRECTION: "real but thin edge" / PF 1.12 was ONE in-sample 4-month
+// window. Not walk-forward tested; treat as UNVERIFIED. Reference only. !!!
 // A GROUND-UP BankNifty strategy - NOT the crude EMA-pullback method.
 // Concept: the sharpest BankNifty moves come out of the first 30 min. Mark that
 //   range, then trade the first 3m CLOSE beyond it IN THE DIRECTION of the 9/22 EMA
