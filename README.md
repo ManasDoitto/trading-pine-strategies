@@ -82,9 +82,32 @@ windows (replay):
 **Profitable only in downtrends; blows up (−15%, ~15% win) in up/flat months.**
 Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 
-**Bottom line:** No mechanical BankNifty edge in this repo survives walk-forward,
-including v4.1 which was built directly from the trader's own trades and tuned.
-Every BankNifty strategy here is regime-dependent — they print in one trend
-direction and bleed in the other. Treat all BankNifty files as research notes,
-not systems. CrudeOil v1.0 is the only strategy here with a plausible (still
-single-window, not walk-forward-verified) edge.
+### Full BankNifty concept scoreboard (all 3m, all tested)
+
+| # | Concept | Best win% | Best PF | Result |
+|---|---|---|---|---|
+| 1 | EMA 9/22 pullback (v0.1–v1.0, Sets A–K) | ~50% | 1.4 | fails walk-forward |
+| 2 | Opening-range breakout | 53% | 1.12 | regime bet |
+| 3 | Opening-range fade | 35% | 0.50 | loser |
+| 4 | Momentum breakout | 35% | 1.0 | loser |
+| 5 | MTF confluence (15m+3m) | 43% | 0.76 | loser |
+| 6 | Session + SMC structure | 39% | 0.73 | loser |
+| 7 | OB pullback (from marked trades, tuned) | 44% | 1.85¹ | fails walk-forward (0.33 in up months) |
+| 8 | VWAP mean-reversion | 37% | 0.59 | loser (stretches continue) |
+| 9 | Morning-move fade | 34% | 0.55 | loser |
+| 10 | PDH/PDL level fakeout | 26% | 1.10² | loser |
+| 11 | FVG + order-flow proxy | 37% | 1.12¹ | fails walk-forward (mean PF 0.86) |
+| 12 | Pure SMC (OB+FVG+structure, clean chart) | 33% | 0.71 | loser |
+| 13 | Sweep + CHoCH + prior-day levels + premium/discount | 26% | 0.40 | loser |
+
+¹ tuned on one favourable window; ² tiny sample.
+
+**~65 configurations. Walk-forward tested. Every approach lands at 22–37% win,
+PF 0.4–0.9. The three that tuned positive on one window all failed on the next.**
+
+**Bottom line:** There is no regime-robust, commission-surviving mechanical
+BankNifty 3m intraday edge in the rule-space explored (price-action pullback,
+breakout, fade, mean-reversion, structure/SMC, order block, fair value gap,
+liquidity sweep, prior-day levels, order-flow proxy). Every BankNifty file here
+is a research note, not a system. CrudeOil v1.0 is the only strategy in this repo
+with a plausible (single-window, not walk-forward-verified) edge.
