@@ -36,14 +36,23 @@
 //     Feb-Jun 2026      down        71  0.54   35%  +2657    +427   1039
 //     Feb-Sep 2026      down        80  0.58   39%  +2518    +385    875
 //     ----------------------------------------------------------------------
-//     EVERY window net-positive. ~0.5 trades/day (8-12/mo) - ~2.5x v10.4.
-//     Up-regime windows are thin (+12-13/mo = the CORE carrying, LAYER ~flat);
-//     flat/down windows are strong (+186 to +427/mo). The 8-day daily-SMA
-//     slope filter is what keeps the LAYER out of sustained uptrends - with a
-//     3-day lookback the up windows bleed -110 to -135/mo (brief pullbacks
-//     flip the filter and you fade into a resuming uptrend).
-//     CORE alone is net-positive in every window on its own; the LAYER adds
-//     the frequency and the flat/down upside.
+//     Every window above net-positive. ~0.5 trades/day (8-12/mo) - ~2.5x v10.4.
+//
+//  !!! ROBUSTNESS FAILURE ON OLDER DATA (walk-forward extended back to 2024) !!!
+//     Window (~6mo)        v12 Net/mo   CORE (tot)      LAYER (tot)
+//     ~Apr-Oct 2024         -348        -390 (17% win)  -734
+//     ~Jun-Dec 2024         -323        -110            -837
+//     ~Aug 2024-Feb 2025    -204        -221            +92
+//     ~Oct 2024-Apr 2025    -253        -739            +565
+//     ~Dec 2024-Jun 2025    -210        -546            +479
+//   EVERY window before ~Apr 2025 is a net loser, most badly (-200..-350/mo).
+//   And it is NOT just the LAYER: the CORE (pure v10.3/10.4/10.5 PDH/PDL fade)
+//   loses in all 5 of those windows at 17-38% win. The whole sweep-fade family
+//   was tuned + walk-forward-tested on Apr 2025 - Sep 2026, which was a
+//   range-bound / corrective stretch that suits mean-reversion. 2024 trended,
+//   and the fade got run over. Treat the +ve 2025-26 numbers as REGIME-
+//   CONDITIONAL, not a durable edge. Do not deploy without a live trend filter
+//   that stands the strategy down in sustained directional regimes.
 //
 //   Walk-forward numbers -> README. v10.3/10.4/10.5/10.6/11 untouched.
 // ============================================================================

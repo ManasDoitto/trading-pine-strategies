@@ -108,7 +108,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | **all 5 windows +ve; worst trade −134; ~+205 net pts/mo, ~4 tr/mo** |
 | 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 windows, −100 pts/mo in one uptrend; companion to v10.5, not standalone |
 | 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
-| 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | **deployable: all 5 windows +ve, ~0.5 tr/day (~2.5× v10.4), up windows thin (+12/mo), flat/down strong (+186…+427/mo)** |
+| 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | +ve every window Apr-2025→Sep-2026 (~0.5 tr/day) **BUT every 2024→mid-2025 window −200…−350 pts/mo — edge is a 2025-26 regime artifact, not durable** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
@@ -205,18 +205,38 @@ basket of intraday levels (5m swing H/L + opening range), running only while the
 | Feb–Jun 2026 | down | 71 | 0.54 | 35% | +2657 | +427 |
 | Feb–Sep 2026 | down | 80 | 0.58 | 39% | +2518 | +385 |
 
-**All 5 windows net-positive**, ~0.5 trades/day (~2.5× v10.4). Up-regime windows
-are thin (the CORE carrying, LAYER ~flat); flat/down windows carry the P&L. The
-**8-day** daily-slope lookback is essential — at 3 days, brief pullbacks flip
-the filter and the up windows bleed −110 to −135 pts/month.
+All 5 windows above net-positive, ~0.5 trades/day (~2.5× v10.4). The **8-day**
+daily-slope lookback is essential — at 3 days, brief pullbacks flip the filter
+and the up windows bleed −110 to −135 pts/month.
+
+> ⚠️ **ROBUSTNESS FAILURE ON OLDER DATA.** Walk-forward extended back to 2024:
+>
+> | Window (~6mo) | v12 Net/mo | CORE (tot) | LAYER (tot) |
+> |---|---|---|---|
+> | ~Apr–Oct 2024 | −348 | −390 (17% win) | −734 |
+> | ~Jun–Dec 2024 | −323 | −110 | −837 |
+> | ~Aug 2024–Feb 2025 | −204 | −221 | +92 |
+> | ~Oct 2024–Apr 2025 | −253 | −739 | +565 |
+> | ~Dec 2024–Jun 2025 | −210 | −546 | +479 |
+>
+> **Every window before ~Apr 2025 is a net loser (−200 to −350 pts/month), and
+> it is not just the LAYER — the CORE (pure v10.3/10.4/10.5 PDH/PDL fade) loses
+> in all 5 at 17–38% win.** The whole sweep-fade family was tuned and
+> walk-forward-tested on Apr 2025–Sep 2026, a range-bound / corrective stretch
+> that suits mean-reversion. 2024 trended and the fade got run over. The
+> positive 2025–26 numbers are **regime-conditional, not a durable edge.**
 
 **Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
 **5m**, the prior-day-level liquidity-sweep fade + daily-trend regime gate
-(`v10.3` rupee / `v10.4` points / `v10.5` SL-capped / `v10.6` +score dashboard)
-stays net-positive across up, flat and down windows. **`v12`** bolts on the
-higher-frequency intraday-level layer for ~2.5× the trades while keeping every
-window positive — the most complete deployable version. `v11` is the layer
-standalone (companion only). A thin, regime-gated edge worth forward-testing,
-not yet a proven system. Every other BankNifty file here is a research note.
-CrudeOil v1.0 remains the strongest strategy in the repo (single-window, not
+(`v10.3`–`v10.6`, and `v12` with the intraday layer) is net-positive across
+every walk-forward window **from ~Apr 2025 to Sep 2026** — but **extending the
+walk-forward back to 2024 breaks it**: every ~6-month window from Apr 2024 to
+mid-2025 is a net loser (−200 to −350 pts/month), including the "robust" CORE
+alone at 17–38% win. The family's apparent edge is a **regime artifact** of the
+2025–26 range-bound/corrective market; it does not survive the 2024 trending
+period. Not deployable without an external regime filter that stands it down in
+sustained directional markets — and even then it is unproven. `v12` is the most
+complete build (core + layer, split scoreboard) for continuing that research.
+Every BankNifty file here is a research note, not a system. CrudeOil v1.0
+remains the strongest strategy in the repo (single-window, not
 walk-forward-verified).
