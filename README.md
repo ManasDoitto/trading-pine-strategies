@@ -110,8 +110,29 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
 | 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | +ve every window Apr-2025→Sep-2026 (~0.5 tr/day) **BUT every 2024→mid-2025 window −200…−350 pts/mo** |
 | 13h | + daily regime filter (**5m**, `v13`, mode="bear") | 40–75% (CORE) | 2.0–2.4 | best of the family: "bear" gate improves 7 of 8 windows, up windows +13→+164 / +12→+219, halves 2024 loss (−348→−164) **but 2024→mid-2025 still net −94…−302/mo. ADX & slope-magnitude filter modes both fail entirely.** |
+| 14 | Opening-range breakout **continuation** (5m/15m) | 32% | 1.2–1.25 | loser after cost: ~19–30 tr/mo, net −90/mo (2024) to −227/mo (2025-26) — gross edge too thin for 20-pt option friction |
+| 15 | ORB break + retest re-entry (5m) | 28% | 0.94 | loser — retest condition re-fires; 32 tr/mo, net −785/mo |
+| 16 | EMA 9/21/50 stack + pullback-to-EMA21 (5m) | 24% | 0.91 | loser — pullback trigger fires every bar in a stack; 30 tr/mo, net −768/mo |
+| 17 | Displacement "drive" candle continuation (5m) | — | — | ~0 trades at any sane filter; not viable |
+| 18 | VWAP ±2σ band mean-reversion (5m) | 36% | 0.85 | loser — 46 tr/mo, band pierced and price continues; net −1293/mo |
+| 19 | Opening-gap fade toward prior close (5m) | 23% | 0.79 | loser — BankNifty gaps continue, don't fill; 17 tr/mo, net −633/mo |
+| 20 | Range-day fade of developing day H/L (5m) | 50% | 0.97 | ~2 trades / 6 months — first-90-min range is essentially never small enough; not viable |
 
 ¹ tuned on one favourable window; ² tiny sample.
+
+> **Concepts 14–20 (focused momentum/mean-reversion batch, tested with 2024
+> included).** All seven lose after the 20-pt/round-trip option-friction charge,
+> most badly, and several barely trigger. The recurring killers: BankNifty 5m
+> intraday **continues rather than reverts or cleanly breaks-and-runs**, entry
+> triggers fire far too often (17–46 trades/month) for option-buying friction,
+> and win rates sit at 22–36%. This is now **~20 distinct concept families**
+> across 3m/5m/15m — pullback, breakout, breakout-retest, fade (level/ORB/sweep/
+> VWAP/gap/range-day), momentum, EMA-stack, displacement, MTF confluence,
+> SMC/OB/FVG, order-flow proxy, CHoCH, prior-day-level sweep + regime gate.
+> **None has a durable, friction-surviving mechanical BankNifty intraday edge.**
+> The `v13` "bear" sweep-fade is the least-bad (regime-conditional, positive
+> 2025–26, negative through 2024). Further mechanical search on BankNifty
+> intraday is very unlikely to change this conclusion.
 
 > **2024 walk-forward failure (rows 13b–13h).** All of the 5m sweep-fade
 > versions were tuned and tested on **Apr 2025 → Sep 2026**, a range-bound /
