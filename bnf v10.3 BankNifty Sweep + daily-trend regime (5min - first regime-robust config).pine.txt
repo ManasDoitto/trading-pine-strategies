@@ -1,0 +1,301 @@
+//@version=5
+// ============================================================================
+//  BankNifty Sweep v10.3  --  NSE:BANKNIFTY1!  (5-minute)
+//  ---------------------------------------------------------------------------
+//  FIRST BankNifty config in this project that is positive / breakeven across
+//  4 of 5 regime walk-forward windows (incl. strong uptrends). Not a blowout
+//  edge - a thin, regime-gated one. Forward-test before risking capital.
+//  ---------------------------------------------------------------------------
+//  IDEA
+//    Fade a PDH / PDL liquidity sweep back through the prior-day range, but
+//    ONLY when price is not stretched away from its multi-day mean (the
+//    "dtrend" regime gate). The raw fade (no gate) is a coin-flip that only
+//    pays in flat/down markets and bleeds -9% in strong uptrends; the gate
+//    sits those uptrends out.
+//
+//  SETUP
+//    SWEEP  : intraday wick beyond PDH (or PDL) by <= maxSweepMlt x avgRange,
+//             then a reversal bar closes back inside the range AND past the
+//             prior bar's extreme, with body range >= dispMlt x avgRange.
+//    REGIME : dirFilter = "dtrend" (default).
+//             smaD = SMA(daily close[1], regimeLen=8)  [no lookahead].
+//             short a PDH sweep only if 5m close <= smaD  (room to fall)
+//             long  a PDL sweep only if 5m close >= smaD  (room to rise)
+//             -> in a trending market price sits on one side of smaD, so only
+//                the with-trend fades are allowed and the against-trend fades
+//                (the ones that get run over) are skipped.
+//    STOP   : sweep wick +/- bufMlt(0.60) x avgRange.
+//    TARGET : opposite prior-day level if it clears minRR(2.0), else rFixed 3.5R.
+//    RISK   : 1 lot. one fade per level per day. maxPerDay 4. cooldown 2 bars.
+//             entries 09:30-15:00 IST, force-flat 15:15.
+//
+//  WALK-FORWARD (NSE:BANKNIFTY1! 5m, replay, default cfg, regimeLen=8)
+//    Window (approx)      Market (B&H)     PF     Net%    Win%   Trades  MaxDD
+//    Apr-Oct 2025         strong up +172k  1.06   +0.6%   44%    25      5.5%
+//    Jun-Dec 2025         up        +82k   0.78   -2.2%   33%    24      5.1%
+//    Dec 2025-Apr 2026    flat      -16k   1.19   +2.4%   37%    19      9.1%
+//    Feb-Jun 2026         down      -72k   1.71   +9.2%   50%    20      6.5%
+//    Feb-Sep 2026         down     -136k   1.97  +12.1%   46%    24      4.1%
+//    ------------------------------------------------------------------------
+//    Only ONE losing window (-2.2%). Mean PF ~1.25. Same windows with the
+//    gate OFF: PF 0.66 / -9.1% (Apr-Oct 2025) ... 1.45 / +14.5% (Feb-Sep 2026)
+//    i.e. the gate trades ~14% of the profit in the good window for surviving
+//    the bad ones. regimeLen=5 flips which up-window loses (Jun-Dec -> +2.3%,
+//    Apr-Oct -> -2.8%) - it's a see-saw, so 8 (smaller worst case) is kept.
+//
+//  CAVEATS
+//    - Single data vendor, ~18 months, overlapping windows 4 & 5.
+//    - 19-25 trades / window ~= 2-3 trades / week. Small sample.
+//    - Edge is thin: net +0.6% to +12% per ~6mo, commission ~= 30% of gross.
+//      Naked option buying on top of this will not clear 70% PnL - the R:R
+//      here is real 1:2 to 1:3, win ~40%, so expectancy ~ +0.3R / trade.
+//    - This is a research config, not a validated system. Paper-trade first.
+//
+//  Grab filters (rejWick / stall / engulf / volume / pool) all tested -> none
+//  identified a "real" institutional grab on BankNifty; left off (0).
+//  Concept family #13b. Prior 13 families + ~70 cfgs: see README scoreboard.
+// ============================================================================
+strategy("BankNifty Sweep v10.3", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=5, max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============  (// N)
+maxSweepMlt = input.float(1.0, "Max wick beyond level (x avg range)", step=0.1, group="Sweep") // 0
+reclaimBars = input.int(0, "grab B: reclaim within N bars (0=off)", group="Grab filters") // 1
+rejWickFrac = input.float(0.0, "grab A: sweep-bar rejection wick >= frac (0=off)", step=0.05, group="Grab filters") // 2
+stallBars   = input.int(0, "grab C: no new extreme for N bars (0=off)", group="Grab filters") // 3
+poolLook    = input.int(40, "grab D: pool lookback (bars)", group="Grab filters") // 4
+poolTol     = input.float(0.0, "grab D: pool swings within x avg range (0=off)", step=0.1, group="Grab filters") // 5
+poolMin     = input.int(1, "grab D: min prior swings at the level", group="Grab filters") // 6
+volMlt      = input.float(0.0, "grab E: sweep-bar volume >= x SMA20 (0=off)", step=0.1, group="Grab filters") // 7
+engulfFrac  = input.float(0.0, "grab F: reversal close past x of sweep-bar (0=off)", step=0.05, group="Grab filters") // 8
+swLen       = input.int(4, "Pool swing pivot length", group="Grab filters") // 9
+sweepWin    = input.int(8, "Max bars: poke -> trigger", group="Sweep") // 10
+dispMlt     = input.float(0.3, "Reversal bar range >= x avg range", step=0.1, group="Sweep") // 11
+dirFilter   = input.string("dtrend", "Regime filter", options=["off","vs-open","pdc-vs-pp","dtrend","both"], group="Direction") // 12
+tgtLevel    = input.string("opposite", "Level target", options=["PP","opposite"], group="Risk") // 13
+rFixed      = input.float(3.5, "Fixed R:R (or fallback)", step=0.1, group="Risk") // 14
+minRR       = input.float(2.0, "Min R:R to accept a level target", step=0.1, group="Risk") // 15
+bufMlt      = input.float(0.60, "Stop buffer beyond wick (x avg range)", step=0.05, group="Risk") // 16
+maxStopMlt  = input.float(4.0, "Reject if stop > x avg range (0=off)", step=0.25, group="Risk") // 17
+sessEntry   = input.session("0930-1500", "Entry window (IST)", group="Time") // 18
+flatTime    = input.session("1515-1530", "Force-flat window", group="Time") // 19
+coolBars    = input.int(2, "Cooldown bars after exit", group="Time") // 20
+maxPerDay   = input.int(4, "Max entries per day", group="Time") // 21
+skipExpiry  = input.bool(false, "Skip Thursday", group="Time") // 22
+beAfterR    = input.float(0.0, "EXP: SL to BE after +R (0=off)", step=0.1, group="Exits") // 23
+useTrail    = input.bool(false, "EXP: trail after +1R", group="Exits") // 24
+trailMlt    = input.float(1.0, "  trail dist (x avg range)", step=0.1, group="Exits") // 25
+avgRngLen   = input.int(20, "Avg candle-range length", group="Core") // 26
+showViz     = input.bool(true, "Visuals", group="Visuals") // 27
+regimeLen   = input.int(8, "dtrend: SMA of daily close (days)", group="Direction") // 28
+regimeSlack = input.float(0.0, "dtrend: allow band around SMA (x avg range)", step=0.25, group="Direction") // 29
+
+// ============ CORE ============
+avgRng = ta.sma(high - low, avgRngLen)
+volSma = ta.sma(volume, 20)
+[pdh, pdl, pdc] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
+pp  = (pdh + pdl + pdc) / 3.0
+smaD = request.security(syminfo.tickerid, "1D", ta.sma(close[1], regimeLen), lookahead=barmerge.lookahead_off)
+
+inEntryWin = not na(time(timeframe.period, sessEntry))
+inFlat     = not na(time(timeframe.period, flatTime))
+isThu      = dayofweek == dayofweek.thursday
+dowOK      = not (skipExpiry and isThu)
+newDay = ta.change(time("D")) != 0
+var int nDay = 0
+var float dayOpenPx = na
+if newDay
+    nDay := 0
+    dayOpenPx := open
+
+pdcWeak   = not na(pdc) and not na(pp) and pdc <= pp
+pdcStrong = not na(pdc) and not na(pp) and pdc >= pp
+belowOpen = not na(dayOpenPx) and close < dayOpenPx
+aboveOpen = not na(dayOpenPx) and close > dayOpenPx
+regBand   = regimeSlack * avgRng
+dtrendS   = not na(smaD) and close <= smaD + regBand
+dtrendL   = not na(smaD) and close >= smaD - regBand
+dirOKs = dirFilter == "off" ? true : dirFilter == "vs-open" ? belowOpen : dirFilter == "pdc-vs-pp" ? pdcWeak : dirFilter == "dtrend" ? dtrendS : (belowOpen and pdcWeak)
+dirOKl = dirFilter == "off" ? true : dirFilter == "vs-open" ? aboveOpen : dirFilter == "pdc-vs-pp" ? pdcStrong : dirFilter == "dtrend" ? dtrendL : (aboveOpen and pdcStrong)
+
+ph = ta.pivothigh(high, swLen, swLen)
+pl = ta.pivotlow(low, swLen, swLen)
+var phArr = array.new_float(0)
+var plArr = array.new_float(0)
+if not na(ph)
+    array.push(phArr, ph)
+    if array.size(phArr) > 60
+        array.shift(phArr)
+if not na(pl)
+    array.push(plArr, pl)
+    if array.size(plArr) > 60
+        array.shift(plArr)
+
+poolCntNear(arr, lvl) =>
+    int c = 0
+    n = array.size(arr)
+    if poolTol > 0 and n > 0
+        lo = math.max(0, n - 14)
+        for i = lo to n - 1
+            if math.abs(array.get(arr, i) - lvl) <= poolTol * avgRng
+                c += 1
+    c
+poolHiOK = poolTol == 0 or poolCntNear(phArr, pdh) >= poolMin
+poolLoOK = poolTol == 0 or poolCntNear(plArr, pdl) >= poolMin
+
+wickUpFrac = (high - math.max(open, close)) / math.max(high - low, syminfo.mintick)
+wickDnFrac = (math.min(open, close) - low) / math.max(high - low, syminfo.mintick)
+
+// ============ PDH SWEEP -> short ============
+var bool  aH = false
+var float wickH = na
+var int   pokeBarH = na
+var float sweepLowH = na
+var bool  usedH = false
+var bool  wickOKH = false
+var bool  volOKH = false
+if newDay
+    aH := false
+    wickH := na
+    pokeBarH := na
+    usedH := false
+if not na(pdh) and not usedH and not aH and high > pdh and (high - pdh) <= maxSweepMlt * avgRng and poolHiOK
+    aH := true
+    wickH := high
+    pokeBarH := bar_index
+    sweepLowH := low
+    wickOKH := rejWickFrac == 0 or wickUpFrac >= rejWickFrac
+    volOKH := volMlt == 0 or na(volSma) or volume >= volMlt * volSma
+if aH and not usedH
+    wickH := math.max(wickH, high)
+if aH and ((wickH - pdh) > maxSweepMlt * avgRng or (not na(pokeBarH) and (bar_index - pokeBarH) > sweepWin))
+    aH := false
+if aH and stallBars > 0 and not na(pokeBarH) and (bar_index - pokeBarH) > stallBars and high > wickH[1]
+    aH := false
+reclaimOKH = reclaimBars == 0 or (not na(pokeBarH) and (bar_index - pokeBarH) <= reclaimBars)
+engulfOKH  = engulfFrac == 0 or (not na(sweepLowH) and close <= wickH - engulfFrac * (wickH - sweepLowH))
+trigS = aH and not usedH and wickOKH and volOKH and reclaimOKH and engulfOKH and dirOKs and close < pdh and close < open and (high - low) >= dispMlt * avgRng and close < low[1]
+
+// ============ PDL SWEEP -> long ============
+var bool  aL = false
+var float wickL = na
+var int   pokeBarL = na
+var float sweepHighL = na
+var bool  usedL = false
+var bool  wickOKL = false
+var bool  volOKL = false
+if newDay
+    aL := false
+    wickL := na
+    pokeBarL := na
+    usedL := false
+if not na(pdl) and not usedL and not aL and low < pdl and (pdl - low) <= maxSweepMlt * avgRng and poolLoOK
+    aL := true
+    wickL := low
+    pokeBarL := bar_index
+    sweepHighL := high
+    wickOKL := rejWickFrac == 0 or wickDnFrac >= rejWickFrac
+    volOKL := volMlt == 0 or na(volSma) or volume >= volMlt * volSma
+if aL and not usedL
+    wickL := math.min(wickL, low)
+if aL and ((pdl - wickL) > maxSweepMlt * avgRng or (not na(pokeBarL) and (bar_index - pokeBarL) > sweepWin))
+    aL := false
+if aL and stallBars > 0 and not na(pokeBarL) and (bar_index - pokeBarL) > stallBars and low < wickL[1]
+    aL := false
+reclaimOKL = reclaimBars == 0 or (not na(pokeBarL) and (bar_index - pokeBarL) <= reclaimBars)
+engulfOKL  = engulfFrac == 0 or (not na(sweepHighL) and close >= wickL + engulfFrac * (sweepHighL - wickL))
+trigL = aL and not usedL and wickOKL and volOKL and reclaimOKL and engulfOKL and dirOKl and close > pdl and close > open and (high - low) >= dispMlt * avgRng and close > high[1]
+
+// ============ RISK ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+baseOK = strategy.position_size == 0 and coolOK and inEntryWin and not inFlat and dowOK and nDay < maxPerDay
+
+float slS = na
+float slL = na
+if trigS and not na(wickH)
+    slS := wickH + bufMlt * avgRng
+if trigL and not na(wickL)
+    slL := wickL - bufMlt * avgRng
+rkS = not na(slS) ? slS - close : na
+rkL = not na(slL) ? close - slL : na
+
+float tgtS = na
+float tgtL = na
+if trigS and not na(rkS) and rkS > 0
+    _lv = tgtLevel == "PP" ? pp : pdl
+    tgtS := (not na(_lv) and _lv < close - minRR * rkS) ? _lv : close - rFixed * rkS
+if trigL and not na(rkL) and rkL > 0
+    _lv2 = tgtLevel == "PP" ? pp : pdh
+    tgtL := (not na(_lv2) and _lv2 > close + minRR * rkL) ? _lv2 : close + rFixed * rkL
+
+okS = trigS and not na(rkS) and rkS > 0 and (maxStopMlt == 0 or rkS <= maxStopMlt * avgRng) and not na(tgtS) and tgtS < close
+okL = trigL and not na(rkL) and rkL > 0 and (maxStopMlt == 0 or rkL <= maxStopMlt * avgRng) and not na(tgtL) and tgtL > close
+
+// ============ ENTRIES ============
+var float slLv = na
+var float tpLv = na
+var float slSv = na
+var float tpSv = na
+var float riskInit = na
+
+if baseOK and okS
+    strategy.entry("Short", strategy.short)
+    slSv := slS
+    tpSv := tgtS
+    nDay := nDay + 1
+    usedH := true
+    aH := false
+if baseOK and okL
+    strategy.entry("Long", strategy.long)
+    slLv := slL
+    tpLv := tgtL
+    nDay := nDay + 1
+    usedL := true
+    aL := false
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+if longEntryBar
+    riskInit := strategy.position_avg_price - slLv
+if shortEntryBar
+    riskInit := slSv - strategy.position_avg_price
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    _s = slLv
+    if beAfterR > 0 and not na(riskInit) and high >= strategy.position_avg_price + beAfterR * riskInit
+        _s := math.max(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and high >= strategy.position_avg_price + riskInit
+        _s := math.max(_s, strategy.position_avg_price, high - trailMlt * avgRng)
+    slLv := _s
+    strategy.exit("Exit L", from_entry="Long", stop=slLv, limit=tpLv)
+    if inFlat
+        strategy.close("Long", comment="EOD")
+if strategy.position_size < 0
+    _s = slSv
+    if beAfterR > 0 and not na(riskInit) and low <= strategy.position_avg_price - beAfterR * riskInit
+        _s := math.min(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and low <= strategy.position_avg_price - riskInit
+        _s := math.min(_s, strategy.position_avg_price, low + trailMlt * avgRng)
+    slSv := _s
+    strategy.exit("Exit S", from_entry="Short", stop=slSv, limit=tpSv)
+    if inFlat
+        strategy.close("Short", comment="EOD")
+
+// ============ VISUALS ============
+plot(showViz ? pdh : na, "PDH", color=color.new(color.red, 30), style=plot.style_stepline)
+plot(showViz ? pdl : na, "PDL", color=color.new(color.green, 30), style=plot.style_stepline)
+plot(showViz ? pp  : na, "PP",  color=color.new(color.gray, 20), style=plot.style_stepline)
+plot(showViz ? smaD : na, "RegSMA", color=color.new(color.blue, 40))
+bgcolor(showViz and aH ? color.new(color.red, 90) : aL ? color.new(color.green, 90) : na)
+plotshape(showViz and longEntryBar,  "L", shape.triangleup,   location.belowbar, color.new(color.teal,0), size=size.small, text="L")
+plotshape(showViz and shortEntryBar, "S", shape.triangledown, location.abovebar, color.new(color.red,0),  size=size.small, text="S")
+plot(strategy.position_size > 0 ? tpLv : strategy.position_size < 0 ? tpSv : na, "TP", color=color.new(color.green,0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slLv : strategy.position_size < 0 ? slSv : na, "SL", color=color.new(color.red,0),   style=plot.style_linebr, linewidth=1)

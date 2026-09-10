@@ -36,12 +36,16 @@ to EMA9 in an established trend; structure stop; fixed R target.
 
 ---
 
-## BankNifty (NSE:BANKNIFTY1! futures) — no window-stable edge found
+## BankNifty (NSE:BANKNIFTY1! futures) — one thin regime-gated edge (v10.3)
 
-Extensive attempt (~20 variants: pullback, momentum, ORB, MTF-confluence, quality
--score) across 3m/5m/15m. **None showed a window-stable edge.** The good-looking
+Extensive attempt (~70 configs: pullback, momentum, ORB, MTF-confluence,
+quality-score, SMC/OB/FVG, liquidity sweep, prior-day levels) across 3m/5m/15m.
+**Nothing worked on 3m.** The one config that survived walk-forward is
+`bnf v10.3` on **5m** — a prior-day-level liquidity-sweep fade with a daily-trend
+regime gate (details at the bottom of this section). The other good-looking
 numbers below were single favourable in-sample windows; on other windows the same
-configs produce PF 0.3–0.9. Do not trade these without walk-forward validation.
+configs produce PF 0.3–0.9. Do not trade any of these without walk-forward
+validation and live paper-trading first.
 
 | File | Concept | Single-window result (UNVERIFIED) |
 |---|---|---|
@@ -98,16 +102,42 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 10 | PDH/PDL level fakeout | 26% | 1.10² | loser |
 | 11 | FVG + order-flow proxy | 37% | 1.12¹ | fails walk-forward (mean PF 0.86) |
 | 12 | Pure SMC (OB+FVG+structure, clean chart) | 33% | 0.71 | loser |
-| 13 | Sweep + CHoCH + prior-day levels + premium/discount | 26% | 0.40 | loser |
+| 13 | Sweep + CHoCH + prior-day levels + premium/discount (3m) | 26% | 0.40 | loser |
+| 13b | Sweep fade + daily-trend regime gate (**5m**, `v10.3`) | 50% | 1.97 | **regime-robust: +ve/breakeven in 4 of 5 windows, worst −2.2%** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
-**~65 configurations. Walk-forward tested. Every approach lands at 22–37% win,
-PF 0.4–0.9. The three that tuned positive on one window all failed on the next.**
+**~70 configurations. Walk-forward tested. On 3m every approach lands at 22–37%
+win, PF 0.4–0.9. The three that tuned positive on one 3m window all failed on
+the next.**
 
-**Bottom line:** There is no regime-robust, commission-surviving mechanical
-BankNifty 3m intraday edge in the rule-space explored (price-action pullback,
-breakout, fade, mean-reversion, structure/SMC, order block, fair value gap,
-liquidity sweep, prior-day levels, order-flow proxy). Every BankNifty file here
-is a research note, not a system. CrudeOil v1.0 is the only strategy in this repo
-with a plausible (single-window, not walk-forward-verified) edge.
+### `bnf v10.3` — Sweep + daily-trend regime (5-minute) — first regime-robust config
+
+Moving the PDH/PDL liquidity-sweep fade to **5m** and adding a **daily-trend
+regime gate** (fade a high only while price is at/below its 8-day SMA of daily
+closes; mirror for lows) produced the first BankNifty config that does not blow
+up in any regime window:
+
+| Window (approx) | Market | PF | Net | Win% | Trades | MaxDD |
+|---|---|---|---|---|---|---|
+| Apr–Oct 2025 | strong up | 1.06 | +0.6% | 44% | 25 | 5.5% |
+| Jun–Dec 2025 | up | 0.78 | −2.2% | 33% | 24 | 5.1% |
+| Dec 2025–Apr 2026 | flat | 1.19 | +2.4% | 37% | 19 | 9.1% |
+| Feb–Jun 2026 | down | 1.71 | +9.2% | 50% | 20 | 6.5% |
+| Feb–Sep 2026 | down | 1.97 | +12.1% | 46% | 24 | 4.1% |
+
+Only one losing window (−2.2%); mean PF ≈ 1.25. The **same setup with the gate
+OFF** runs PF 0.66 / −9.1% in the strong-up window — the gate is doing the work.
+Caveats: thin edge (net +0.6% to +12% per ~6 months, commission ≈ 30% of gross),
+19–25 trades/window (small sample), single vendor, overlapping windows 4 & 5.
+Tuning `regimeLen` just see-saws which up-window loses, so it is left at 8 (the
+smaller worst case). **Research config, not a validated system — paper-trade first.**
+It will not deliver the "50% win / 70% PnL" naked-option-buying target: real R:R
+is ≈ 1:2–1:3 at ≈ 40% win, so expectancy is only ≈ +0.3R per trade.
+
+**Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
+**5m**, `bnf v10.3` (prior-day-level liquidity-sweep fade + daily-trend regime
+gate) is the one config that stays positive-or-breakeven across up, flat and
+down windows — a thin, regime-gated edge worth forward-testing, not yet a proven
+system. Every other BankNifty file here is a research note. CrudeOil v1.0 remains
+the strongest strategy in the repo (single-window, not walk-forward-verified).
