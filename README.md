@@ -103,26 +103,36 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 11 | FVG + order-flow proxy | 37% | 1.12¹ | fails walk-forward (mean PF 0.86) |
 | 12 | Pure SMC (OB+FVG+structure, clean chart) | 33% | 0.71 | loser |
 | 13 | Sweep + CHoCH + prior-day levels + premium/discount (3m) | 26% | 0.40 | loser |
-| 13b | Sweep fade + daily-trend regime gate (**5m**, `v10.3`) | 50% | 1.97 | **regime-robust: +ve/breakeven in 4 of 5 windows, worst −2.2%** |
-| 13c | + strict gate, points-scored for options (**5m**, `v10.4`) | 59% | 2.71 | **net-positive pts in all 5 windows; ~+190 net pts/mo** |
-| 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | **all 5 windows +ve; worst trade −134; ~+205 net pts/mo, ~4 tr/mo** |
-| 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 windows, −100 pts/mo in one uptrend; companion to v10.5, not standalone |
+| 13b | Sweep fade + daily-trend regime gate (**5m**, `v10.3`) | 50% | 1.97 | +ve/breakeven in 4 of 5 windows **Apr-2025→Sep-2026 only** (see 2024 failure below) |
+| 13c | + strict gate, points-scored for options (**5m**, `v10.4`) | 59% | 2.71 | net-+ve pts all 5 windows **Apr-2025→Sep-2026 only**; ~+190 net pts/mo |
+| 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | all 5 windows +ve **Apr-2025→Sep-2026 only**; worst trade −134; ~+205 net pts/mo, ~4 tr/mo |
+| 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 recent windows, −100 pts/mo in one uptrend; companion, not standalone |
 | 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
-| 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | +ve every window Apr-2025→Sep-2026 (~0.5 tr/day) **BUT every 2024→mid-2025 window −200…−350 pts/mo — edge is a 2025-26 regime artifact, not durable** |
-| 13h | + daily regime filter (**5m**, `v13`, mode="bear") | 40–75% (CORE) | 2.0–2.4 | "bear" gate (trade only while 8d daily-SMA flat/falling) improves 7 of 8 windows, up windows +13→+164 / +12→+219, halves 2024 loss (−348→−164) **but 2024→mid-2025 still net −94…−302/mo. ADX and slope-magnitude filters both fail entirely.** |
+| 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | +ve every window Apr-2025→Sep-2026 (~0.5 tr/day) **BUT every 2024→mid-2025 window −200…−350 pts/mo** |
+| 13h | + daily regime filter (**5m**, `v13`, mode="bear") | 40–75% (CORE) | 2.0–2.4 | best of the family: "bear" gate improves 7 of 8 windows, up windows +13→+164 / +12→+219, halves 2024 loss (−348→−164) **but 2024→mid-2025 still net −94…−302/mo. ADX & slope-magnitude filter modes both fail entirely.** |
 
 ¹ tuned on one favourable window; ² tiny sample.
+
+> **2024 walk-forward failure (rows 13b–13h).** All of the 5m sweep-fade
+> versions were tuned and tested on **Apr 2025 → Sep 2026**, a range-bound /
+> corrective stretch. Extending the walk-forward to 2024 (a trending year) makes
+> every ~6-month window from Apr 2024 to mid-2025 a net loser, −94 to −350
+> pts/month — including the CORE alone (17–38% win). The `v13` "bear" regime
+> filter roughly halves the 2024 damage and lifts the recent windows, but the
+> mid-2024→mid-2025 span is still net-negative. **None of v10.3–v13 is a
+> multi-year-robust system; the 2025–26 numbers are regime-conditional.**
 
 **~70 configurations. Walk-forward tested. On 3m every approach lands at 22–37%
 win, PF 0.4–0.9. The three that tuned positive on one 3m window all failed on
 the next.**
 
-### `bnf v10.3` — Sweep + daily-trend regime (5-minute) — first regime-robust config
+### `bnf v10.3` — Sweep + daily-trend regime (5-minute)
 
 Moving the PDH/PDL liquidity-sweep fade to **5m** and adding a **daily-trend
 regime gate** (fade a high only while price is at/below its 8-day SMA of daily
-closes; mirror for lows) produced the first BankNifty config that does not blow
-up in any regime window:
+closes; mirror for lows) produced a config that does not blow up in any
+**2025–26** regime window (but see the 2024 failure box above — this held only
+on the Apr-2025→Sep-2026 sample):
 
 | Window (approx) | Market | PF | Net | Win% | Trades | MaxDD |
 |---|---|---|---|---|---|---|
