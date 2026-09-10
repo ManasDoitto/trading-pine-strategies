@@ -1,0 +1,279 @@
+//@version=5
+// ============================================================================
+//  BankNifty Level Fakeout v6  --  NSE:BANKNIFTY1!  (3-minute chart)
+//
+//  !!! TESTED - NO EDGE. Research record only. !!!
+//  Concept: prior-day High/Low and opening-range High/Low get SWEPT for
+//  liquidity, then reverse. Fade the failed poke: price exceeds a level by
+//  <= sweepMaxATR*ATR, then a 3m candle closes back inside within sweepWin
+//  bars -> enter the reversal; stop past the sweep extreme; target the next
+//  level (PDC/PDL/ORL) or a fixed R.  Direction-agnostic (fades extremes),
+//  one shot per level per day, flat 15:15.
+//
+//  RESULT on the 3m tester window:
+//    default (sweepMax 1.0, PD+OR)     : 110 tr | 25% win | PF 0.51 | -21%
+//    tight  (sweepMax 0.4, body 0.4,
+//            PD only, sweepWin 4, 2.4R) :  19 tr | 26% win | PF 1.10 | +0.6%
+//  Win rate stays ~25% at every setting. A poke of PDH/PDL that closes back
+//  inside does NOT reliably reverse on BankNifty - price re-tests and breaks
+//  through often enough that fading the first reclaim has no edge.
+//
+//  This was concept family #9 (price-action level fakeout). Combined with the
+//  8 earlier families (EMA pullback, ORB break, ORB fade, momentum, MTF
+//  confluence, SMC structure, OB-pullback, VWAP-revert, morning-fade), the
+//  conclusion is firm: there is no mechanical BankNifty 3m intraday strategy
+//  in this rule-space with a real, regime-robust, commission-surviving edge -
+//  and certainly not one meeting 50% win / 2.4R / +70% (that needs PF ~2.4).
+// ============================================================================
+strategy("BankNifty Level Fakeout v6", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=5, max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============  (// N)
+useP   = input.bool(true,  "Watch prior-day High/Low", group="Levels") // 0
+useOR  = input.bool(true,  "Watch opening-range High/Low", group="Levels") // 1
+orMin  = input.int(15, "Opening-range minutes", options=[5,10,15,20,30], group="Levels") // 2
+atrLen = input.int(14, "ATR length", group="Core") // 3
+sweepMaxATR = input.float(1.0, "Max poke beyond level (x ATR)", step=0.1, group="Sweep") // 4
+sweepWin    = input.int(8, "Max bars: poke -> reclaim", group="Sweep") // 5
+reclaimBufATR = input.float(0.0, "Reclaim must close this far back inside (x ATR)", step=0.05, group="Sweep") // 6
+revBodyMlt  = input.float(0.0, "Reclaim candle body >= x ATR (0=off)", step=0.05, group="Sweep") // 7
+tgtMode = input.string("level", "Target mode", options=["level","R"], group="Risk") // 8
+rMultiple = input.float(2.0, "Fixed R:R (or fallback)", step=0.1, group="Risk") // 9
+minRR   = input.float(1.0, "Min R:R to accept a level target", step=0.1, group="Risk") // 10
+slBufATR = input.float(0.20, "Stop buffer beyond sweep extreme (x ATR)", step=0.05, group="Risk") // 11
+slFloorATR = input.float(0.5, "Min stop distance (x ATR)", step=0.05, group="Risk") // 12
+maxStopATR = input.float(2.5, "Reject if stop > x ATR (0=off)", step=0.25, group="Risk") // 13
+sessEntry = input.session("0930-1500", "Entry window (IST)", group="Time") // 14
+flatTime  = input.session("1515-1530", "Force-flat window", group="Time") // 15
+coolBars  = input.int(3, "Cooldown bars after exit", group="Time") // 16
+maxPerDay = input.int(3, "Max entries per day", group="Time") // 17
+skipExpiry = input.bool(false, "Skip Thursday", group="Filters") // 18
+beAfterR  = input.float(0.0, "EXP: SL to BE after +R (0=off)", step=0.1, group="Exits") // 19
+useTrail  = input.bool(false, "EXP: trail 0.5xATR after +1R", group="Exits") // 20
+showViz   = input.bool(true, "Visuals", group="Visuals") // 21
+
+// ============ CORE ============
+atr = ta.atr(atrLen)
+[pdh, pdl, pdc] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
+
+inEntryWin = not na(time(timeframe.period, sessEntry))
+inFlat     = not na(time(timeframe.period, flatTime))
+isThu      = dayofweek == dayofweek.thursday
+dowOK      = not (skipExpiry and isThu)
+
+newDay = ta.change(time("D")) != 0
+var int   dayOpenTime = na
+var int   nDay = 0
+if newDay
+    dayOpenTime := time
+    nDay := 0
+minsSinceOpen = na(dayOpenTime) ? na : (time - dayOpenTime) / 60000.0
+
+var float orh = na
+var float orl = na
+if newDay
+    orh := high
+    orl := low
+else if not na(minsSinceOpen) and minsSinceOpen < orMin
+    orh := math.max(orh, high)
+    orl := math.min(orl, low)
+orDone = not na(minsSinceOpen) and minsSinceOpen >= orMin
+
+bodyOK = revBodyMlt == 0 or math.abs(close - open) >= revBodyMlt * atr
+
+// PDH (resistance)
+var bool  aPDH = false
+var float sHiPDH = na
+var int   sBarPDH = na
+var bool  uPDH = false
+if newDay
+    aPDH := false
+    sHiPDH := na
+    sBarPDH := na
+    uPDH := false
+resPDHok = useP and not na(pdh)
+if resPDHok and not uPDH and high > pdh
+    aPDH := true
+    sHiPDH := na(sHiPDH) ? high : math.max(sHiPDH, high)
+    sBarPDH := na(sBarPDH) ? bar_index : sBarPDH
+trigShort_PDH = resPDHok and not uPDH and aPDH[1] and close < pdh - reclaimBufATR * atr and not na(sHiPDH) and (sHiPDH - pdh) <= sweepMaxATR * atr and not na(sBarPDH) and (bar_index - sBarPDH) <= sweepWin and bodyOK
+if aPDH and not na(sBarPDH) and (bar_index - sBarPDH) > sweepWin
+    aPDH := false
+    sHiPDH := na
+    sBarPDH := na
+
+// ORH (resistance)
+var bool  aORH = false
+var float sHiORH = na
+var int   sBarORH = na
+var bool  uORH = false
+if newDay
+    aORH := false
+    sHiORH := na
+    sBarORH := na
+    uORH := false
+resORHok = useOR and orDone and not na(orh)
+if resORHok and not uORH and high > orh
+    aORH := true
+    sHiORH := na(sHiORH) ? high : math.max(sHiORH, high)
+    sBarORH := na(sBarORH) ? bar_index : sBarORH
+trigShort_ORH = resORHok and not uORH and aORH[1] and close < orh - reclaimBufATR * atr and not na(sHiORH) and (sHiORH - orh) <= sweepMaxATR * atr and not na(sBarORH) and (bar_index - sBarORH) <= sweepWin and bodyOK
+if aORH and not na(sBarORH) and (bar_index - sBarORH) > sweepWin
+    aORH := false
+    sHiORH := na
+    sBarORH := na
+
+// PDL (support)
+var bool  aPDL = false
+var float sLoPDL = na
+var int   sBarPDL = na
+var bool  uPDL = false
+if newDay
+    aPDL := false
+    sLoPDL := na
+    sBarPDL := na
+    uPDL := false
+supPDLok = useP and not na(pdl)
+if supPDLok and not uPDL and low < pdl
+    aPDL := true
+    sLoPDL := na(sLoPDL) ? low : math.min(sLoPDL, low)
+    sBarPDL := na(sBarPDL) ? bar_index : sBarPDL
+trigLong_PDL = supPDLok and not uPDL and aPDL[1] and close > pdl + reclaimBufATR * atr and not na(sLoPDL) and (pdl - sLoPDL) <= sweepMaxATR * atr and not na(sBarPDL) and (bar_index - sBarPDL) <= sweepWin and bodyOK
+if aPDL and not na(sBarPDL) and (bar_index - sBarPDL) > sweepWin
+    aPDL := false
+    sLoPDL := na
+    sBarPDL := na
+
+// ORL (support)
+var bool  aORL = false
+var float sLoORL = na
+var int   sBarORL = na
+var bool  uORL = false
+if newDay
+    aORL := false
+    sLoORL := na
+    sBarORL := na
+    uORL := false
+supORLok = useOR and orDone and not na(orl)
+if supORLok and not uORL and low < orl
+    aORL := true
+    sLoORL := na(sLoORL) ? low : math.min(sLoORL, low)
+    sBarORL := na(sBarORL) ? bar_index : sBarORL
+trigLong_ORL = supORLok and not uORL and aORL[1] and close > orl + reclaimBufATR * atr and not na(sLoORL) and (orl - sLoORL) <= sweepMaxATR * atr and not na(sBarORL) and (bar_index - sBarORL) <= sweepWin and bodyOK
+if aORL and not na(sBarORL) and (bar_index - sBarORL) > sweepWin
+    aORL := false
+    sLoORL := na
+    sBarORL := na
+
+// ============ COMBINE ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+baseOK = strategy.position_size == 0 and coolOK and inEntryWin and not inFlat and dowOK and nDay < maxPerDay
+
+shortTrig = trigShort_PDH or trigShort_ORH
+longTrig  = trigLong_PDL or trigLong_ORL
+swHiUsed = trigShort_PDH ? sHiPDH : sHiORH
+swLoUsed = trigLong_PDL ? sLoPDL : sLoORL
+
+float slS = na
+float slL = na
+if shortTrig and not na(swHiUsed)
+    slS := math.max(swHiUsed + slBufATR * atr, close + slFloorATR * atr)
+if longTrig and not na(swLoUsed)
+    slL := math.min(swLoUsed - slBufATR * atr, close - slFloorATR * atr)
+rkS = not na(slS) ? slS - close : na
+rkL = not na(slL) ? close - slL : na
+
+float tS = na
+float tL = na
+float tgtS = na
+float tgtL = na
+if shortTrig and not na(rkS) and rkS > 0
+    _limS = close - minRR * rkS
+    if not na(pdc) and pdc <= _limS
+        tS := na(tS) ? pdc : math.max(tS, pdc)
+    if not na(pdl) and pdl <= _limS
+        tS := na(tS) ? pdl : math.max(tS, pdl)
+    if useOR and not na(orl) and orl <= _limS
+        tS := na(tS) ? orl : math.max(tS, orl)
+    tgtS := (tgtMode == "R" or na(tS)) ? close - rMultiple * rkS : tS
+if longTrig and not na(rkL) and rkL > 0
+    _limL = close + minRR * rkL
+    if not na(pdc) and pdc >= _limL
+        tL := na(tL) ? pdc : math.min(tL, pdc)
+    if not na(pdh) and pdh >= _limL
+        tL := na(tL) ? pdh : math.min(tL, pdh)
+    if useOR and not na(orh) and orh >= _limL
+        tL := na(tL) ? orh : math.min(tL, orh)
+    tgtL := (tgtMode == "R" or na(tL)) ? close + rMultiple * rkL : tL
+
+okS = shortTrig and not na(rkS) and rkS > 0 and (maxStopATR == 0 or rkS <= maxStopATR * atr) and not na(tgtS) and tgtS < close
+okL = longTrig  and not na(rkL) and rkL > 0 and (maxStopATR == 0 or rkL <= maxStopATR * atr) and not na(tgtL) and tgtL > close
+
+// ============ ENTRIES ============
+var float slLv = na
+var float tpLv = na
+var float slSv = na
+var float tpSv = na
+var float riskInit = na
+
+if baseOK and okS
+    strategy.entry("Short", strategy.short)
+    slSv := slS
+    tpSv := tgtS
+    nDay := nDay + 1
+    uPDH := uPDH or trigShort_PDH
+    uORH := uORH or trigShort_ORH
+if baseOK and okL
+    strategy.entry("Long", strategy.long)
+    slLv := slL
+    tpLv := tgtL
+    nDay := nDay + 1
+    uPDL := uPDL or trigLong_PDL
+    uORL := uORL or trigLong_ORL
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+if longEntryBar
+    riskInit := strategy.position_avg_price - slLv
+if shortEntryBar
+    riskInit := slSv - strategy.position_avg_price
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    _s = slLv
+    if beAfterR > 0 and not na(riskInit) and high >= strategy.position_avg_price + beAfterR * riskInit
+        _s := math.max(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and high >= strategy.position_avg_price + riskInit
+        _s := math.max(_s, strategy.position_avg_price, high - 0.5 * atr)
+    slLv := _s
+    strategy.exit("Exit L", from_entry="Long", stop=slLv, limit=tpLv)
+    if inFlat
+        strategy.close("Long", comment="EOD")
+if strategy.position_size < 0
+    _s = slSv
+    if beAfterR > 0 and not na(riskInit) and low <= strategy.position_avg_price - beAfterR * riskInit
+        _s := math.min(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and low <= strategy.position_avg_price - riskInit
+        _s := math.min(_s, strategy.position_avg_price, low + 0.5 * atr)
+    slSv := _s
+    strategy.exit("Exit S", from_entry="Short", stop=slSv, limit=tpSv)
+    if inFlat
+        strategy.close("Short", comment="EOD")
+
+// ============ VISUALS ============
+plot(showViz and useP ? pdh : na, "PDH", color=color.new(color.red, 40), style=plot.style_stepline)
+plot(showViz and useP ? pdl : na, "PDL", color=color.new(color.green, 40), style=plot.style_stepline)
+plot(showViz and useP ? pdc : na, "PDC", color=color.new(color.gray, 40), style=plot.style_stepline)
+plot(showViz and useOR and orDone ? orh : na, "ORH", color=color.new(color.orange, 30), style=plot.style_linebr)
+plot(showViz and useOR and orDone ? orl : na, "ORL", color=color.new(color.blue, 30), style=plot.style_linebr)
+plotshape(showViz and longEntryBar,  "L", shape.triangleup,   location.belowbar, color.new(color.teal,0), size=size.small, text="L")
+plotshape(showViz and shortEntryBar, "S", shape.triangledown, location.abovebar, color.new(color.red,0),  size=size.small, text="S")
+plot(strategy.position_size > 0 ? tpLv : strategy.position_size < 0 ? tpSv : na, "TP", color=color.new(color.green,0), style=plot.style_linebr)
+plot(strategy.position_size > 0 ? slLv : strategy.position_size < 0 ? slSv : na, "SL", color=color.new(color.red,0), style=plot.style_linebr)
