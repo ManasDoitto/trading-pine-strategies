@@ -274,5 +274,35 @@ plus the Oct-2024 crash. `v13` mode "bear" is the best version and the one to
 forward-test, but it is **still not robust across a full multi-year sample.**
 Deploy only accepting that strong-trend years lose, or with a discretionary
 "sit out obvious trends and crashes" overlay. Every BankNifty file here is a
-research note, not a system. CrudeOil v1.0 remains the strongest strategy in the
-repo (single-window, not walk-forward-verified).
+research note, not a system.
+
+### Combined book: v13-bear (BankNifty) + CrudeOil v1.0
+
+Tested both as equal ₹500k-capital sleeves over four ~6-month replay windows
+(same end dates; CrudeOil re-run at qty=1 — the shipped qty=10 is ~55× leverage
+and unusable). Futures %, CrudeOil with its 0.02% commission:
+
+| Window (end) | v13-bear | CrudeOil v1.0 | Book (avg) |
+|---|---|---|---|
+| Apr–Oct 2024 | −2.1% | +0.5% | −0.8% |
+| Oct 2024–Apr 2025 | +1.5% | −6.7% | −2.6% |
+| Apr–Oct 2025 | +12.1% | −6.1% | +3.0% |
+| Oct 2025–Apr 2026 | +18.9% | +61.1% | +40.0% |
+
+The two sleeves **are lowly / negatively correlated** — when one is weak the
+other is usually flat-or-positive, so the book never blows up on both at once
+(the diversification the pairing was meant to provide). **But neither sleeve has
+a durable edge:** CrudeOil v1.0 is breakeven-to-losing in 3 of 4 windows (its
+famous +41.6% was one favorable window; the +61% here is a single crude
+trend-run). Strip the one CrudeOil blow-out window and the combined book is
+≈ flat over 18 months. The book is smoother than either piece alone but is
+**not a tradeable system** — its positive total rests on one lucky window.
+
+**Bottom line on the whole repo:** No mechanical BankNifty **3m** edge survived
+walk-forward. On **5m**, the prior-day-level sweep-fade family (`v10.3`–`v13`) is
+net-positive only on the Apr 2025→Sep 2026 sample and loses through 2024;
+`v13` "bear" is the least-bad but still not multi-year-robust. CrudeOil v1.0's
+edge is also a single favourable window and does not survive extended
+walk-forward. **Neither instrument has produced a validated, durable mechanical
+strategy.** Everything here is research, not a system — forward-test on paper
+before risking capital, and expect regime-conditional performance.
