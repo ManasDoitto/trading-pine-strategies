@@ -64,7 +64,27 @@ configs produce PF 0.3–0.9. Do not trade these without walk-forward validation
 - Both BankNifty strategies are **timeframe-specific** (pullback 5m-only; ORB
   3m-only). Off-timeframe variants tested negative.
 
-**Bottom line:** No mechanical BankNifty edge in this repo survives a change of
-backtest window. Treat all BankNifty files as research notes, not systems.
-CrudeOil v1.0 is the only strategy here with a plausible (still single-window)
-edge. Anything used live needs walk-forward testing across 8–12 quarters first.
+### `bnf v4.1` — OB Pullback, reverse-engineered from the trader's own marked trades
+
+Built from 9 hand-marked trades + a 25-config sweep. On its tune window it hit
+**PF 1.85 / +20% / 44% win**. Then walk-forward tested on 6 rolling ~2-month
+windows (replay):
+
+| Window | Regime | PF | Net |
+|---|---|---|---|
+| Sep–Oct 2025 | flat | 0.49 | −12% |
+| Nov–Dec 2025 | strong up | 0.33 | −17% |
+| Dec–Jan 2026 | up | 0.34 | −15% |
+| Feb–Mar 2026 | down | 0.76 | −6% |
+| Mar–Apr 2026 | down | 1.85 | +15% |
+| Apr–May 2026 | strong down | 1.85 | +20% |
+
+**Profitable only in downtrends; blows up (−15%, ~15% win) in up/flat months.**
+Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
+
+**Bottom line:** No mechanical BankNifty edge in this repo survives walk-forward,
+including v4.1 which was built directly from the trader's own trades and tuned.
+Every BankNifty strategy here is regime-dependent — they print in one trend
+direction and bleed in the other. Treat all BankNifty files as research notes,
+not systems. CrudeOil v1.0 is the only strategy here with a plausible (still
+single-window, not walk-forward-verified) edge.

@@ -33,13 +33,23 @@
 //    RESULT: 59 tr | 44% win | PF 1.85 | net +20.0% | MaxDD 3.7% | Sharpe 0.73
 //            | avg Rs.1,697/tr | largest win 21,188 vs largest loss 5,776 (3.7:1)
 //
-//  !!! ROBUSTNESS CAVEAT !!!  This is ONE window, and a strongly trending one.
-//  The 5R fallback target is exactly the lever that exploits a trend - on a
-//  chop/range month it will not fire and the edge likely collapses. The wide
-//  OB-edge stop is more likely to generalise. Before trading: run this on at
-//  least 6-10 separate months (mix of trend + range) and confirm PF stays > 1.3.
-//  The earlier BankNifty strategies in this repo all looked good on one window
-//  and failed on the next - assume the same here until proven otherwise.
+//  !!! WALK-FORWARD RESULT: FAILS. DO NOT TRADE. !!!
+//  Tested on 6 rolling ~2-month NSE:BANKNIFTY1! 3m windows (via replay), SAME
+//  adopted config:
+//    Sep-Oct 2025  (flat, B&H +15k)   : 66 tr | 21% win | PF 0.49 | -12%
+//    Nov-Dec 2025  (strong UP,+157k)  : 63 tr | 14% win | PF 0.33 | -17%
+//    Dec-Jan 2026  (UP, +75k)         : 55 tr | 15% win | PF 0.34 | -15%
+//    Feb-Mar 2026  (DOWN, -155k)      : 65 tr | 26% win | PF 0.76 | -6%
+//    Mar-Apr 2026  (DOWN, -92k)       : 51 tr | 39% win | PF 1.85 | +15%
+//    Apr-May 2026  (strong DOWN,-180k): 59 tr | 44% win | PF 1.85 | +20%
+//  It is profitable ONLY when BankNifty trends DOWN. In up / flat months it
+//  loses 12-17% with a 14-21% win rate - it blows up, it doesn't just lag.
+//  Mean PF across the 6 windows ~0.94 (net loser). The "+20% / PF 1.85" that
+//  the sweep produced was regime luck - it was tuned on the best window.
+//  The 5R runner target needs a sustained directional move; without one the
+//  win rate craters. This is a DOWNTREND-REGIME bet, not an edge.
+//  Possible use: only as a discretionary setup filter when the BankNifty daily
+//  chart is in a clear downtrend. As an always-on mechanical system: no.
 // ============================================================================
 strategy("BankNifty OB Pullback v4.1", overlay=true,
      initial_capital=500000,
