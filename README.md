@@ -109,6 +109,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 windows, −100 pts/mo in one uptrend; companion to v10.5, not standalone |
 | 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
 | 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | +ve every window Apr-2025→Sep-2026 (~0.5 tr/day) **BUT every 2024→mid-2025 window −200…−350 pts/mo — edge is a 2025-26 regime artifact, not durable** |
+| 13h | + daily regime filter (**5m**, `v13`, mode="bear") | 40–75% (CORE) | 2.0–2.4 | "bear" gate (trade only while 8d daily-SMA flat/falling) improves 7 of 8 windows, up windows +13→+164 / +12→+219, halves 2024 loss (−348→−164) **but 2024→mid-2025 still net −94…−302/mo. ADX and slope-magnitude filters both fail entirely.** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
@@ -228,15 +229,19 @@ and the up windows bleed −110 to −135 pts/month.
 
 **Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
 **5m**, the prior-day-level liquidity-sweep fade + daily-trend regime gate
-(`v10.3`–`v10.6`, and `v12` with the intraday layer) is net-positive across
-every walk-forward window **from ~Apr 2025 to Sep 2026** — but **extending the
-walk-forward back to 2024 breaks it**: every ~6-month window from Apr 2024 to
-mid-2025 is a net loser (−200 to −350 pts/month), including the "robust" CORE
-alone at 17–38% win. The family's apparent edge is a **regime artifact** of the
-2025–26 range-bound/corrective market; it does not survive the 2024 trending
-period. Not deployable without an external regime filter that stands it down in
-sustained directional markets — and even then it is unproven. `v12` is the most
-complete build (core + layer, split scoreboard) for continuing that research.
-Every BankNifty file here is a research note, not a system. CrudeOil v1.0
-remains the strongest strategy in the repo (single-window, not
-walk-forward-verified).
+(`v10.3`–`v10.6`, `v12` +intraday layer, `v13` +daily regime filter) is
+net-positive across every walk-forward window **from ~Apr 2025 to Sep 2026** —
+but **extending the walk-forward back to 2024 breaks it.** A regime filter
+(`v13`) was added and every mode tested: **daily ADX** and **slope-magnitude**
+filters fail outright — they can't separate the profitable 2025–26 down-drift
+from the 2024 trend. The best mode, **"bear"** (trade only while the 8-day daily
+SMA is flat or falling), improves 7 of 8 windows, roughly halves the 2024 loss
+(−348 → −164 pts/month) and lifts the recent up windows from breakeven to
++150…+220/month. **But the three windows spanning mid-2024 to mid-2025 are still
+net losers (−94 to −302/month)** — a ~9-month drawdown, mostly the 2024 uptrend
+plus the Oct-2024 crash. `v13` mode "bear" is the best version and the one to
+forward-test, but it is **still not robust across a full multi-year sample.**
+Deploy only accepting that strong-trend years lose, or with a discretionary
+"sit out obvious trends and crashes" overlay. Every BankNifty file here is a
+research note, not a system. CrudeOil v1.0 remains the strongest strategy in the
+repo (single-window, not walk-forward-verified).

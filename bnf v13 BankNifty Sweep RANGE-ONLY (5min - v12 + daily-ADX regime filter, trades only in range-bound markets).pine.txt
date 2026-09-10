@@ -1,0 +1,483 @@
+//@version=5
+// ============================================================================
+//  BankNifty Sweep v13 RANGE-ONLY  --  NSE:BANKNIFTY1!  (5-minute)
+//  ---------------------------------------------------------------------------
+//  v12 (v10.4 PD-level CORE + v11 intraday LAYER) + a DAILY REGIME FILTER.
+//
+//  WHY: v12 walk-forward extended to 2024 failed - the mean-reversion fade
+//  got run over in the 2024 trend. Tried to detect "don't trade now"
+//  mechanically. Findings after testing every mode:
+//    adx   (daily ADX <= 22)  : KILLS the good 2025-26 windows (their daily
+//          ADX was often > 22). ADX <= 40 doesn't touch the 2024 loss.
+//          -> daily ADX does NOT separate the good period from the bad one.
+//    slope (|8d daily-SMA chg| small) : the good 2025-26 down-drift ALSO has a
+//          large |slope|, so any threshold tight enough to block 2024 also
+//          blocks the profitable down windows. -> no good.
+//    bear  (8d daily-SMA chg <= 0 : trade only while the daily is flat or
+//          FALLING; stand down in up-trends)  <-- DEFAULT, and it helps:
+//
+//  WALK-FORWARD  v12 -> v13(bear)  net pts / month
+//    ~Apr-Oct 2024   strong up    -348 -> -164
+//    ~Jun-Dec 2024   up -> crash  -323 -> -302
+//    ~Dec 2024-Jun 2025           -210 -> -94
+//     Apr-Oct 2025   up           +13  -> +164
+//     Jun-Dec 2025   up           +12  -> +219
+//     Dec 2025-Apr 2026  flat     +186 -> +387
+//     Feb-Jun 2026   down         +427 -> +520
+//     Feb-Sep 2026   down         +385 -> +331
+//
+//  The bear filter improves 7 of 8 windows - the recent up windows go from
+//  breakeven to solidly +ve (it cuts the counter-trend long fades that were
+//  dragging), the flat window nearly doubles. It roughly HALVES the 2024
+//  damage but does NOT eliminate it: the three windows spanning mid-2024 to
+//  mid-2025 are still net losers (-94..-302/mo). A real account still eats a
+//  ~9-month drawdown through a 2024-style trending year + the Oct-2024 crash
+//  (fading intraday levels into a crash still loses even with a falling SMA).
+//
+//  BOTTOM LINE: v13-bear is the best version of the family and is the one to
+//  forward-test, but it is still NOT robust across a full multi-year sample.
+//  Deploy only accepting that strong-trend years lose ~-100..-300 pts/month,
+//  or with a discretionary "sit out obvious trends / crashes" overlay.
+//
+//  Everything else = v12: shared 120-pt stop cap, 6R target, dtrend gate,
+//  8-day daily-slope LAYER gate, one fade/level +1 re-entry, flat 15:15,
+//  points scoreboard split CORE vs LAYER.  v10.3-v12 untouched.
+// ============================================================================
+strategy("BankNifty Sweep v13 RANGE-ONLY", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.0,
+     slippage=0, max_lines_count=500, max_labels_count=500, calc_on_every_tick=false)
+
+// ============ INPUTS ============ (// N)
+maxSweepMlt = input.float(0.8, "Max wick beyond level (x avg range)", step=0.1, group="Sweep") // 0
+sweepWin    = input.int(8, "CORE: max bars poke -> reversal", group="Sweep") // 1
+swLen       = input.int(3, "LAYER: swing pivot length", minval=1, group="Sweep") // 2
+dispMlt     = input.float(0.0, "Reversal bar range >= x avg range (0=off)", step=0.1, group="Sweep") // 3
+relaxTrig   = input.bool(false, "Drop momentum-bar confirmation", group="Sweep") // 4
+useSwing    = input.bool(true,  "LAYER: fade 5m swing highs/lows", group="Levels") // 5
+useOR       = input.bool(true,  "LAYER: fade opening-range H/L", group="Levels") // 6
+orSess      = input.session("0930-1000", "  opening-range window", group="Levels") // 7
+lvlExpiryBars = input.int(48, "LAYER: level expiry (bars)", group="Levels") // 8
+minLvlGapPts  = input.float(30.0, "LAYER: min gap between levels (pts)", step=5, group="Levels") // 9
+maxLevels   = input.int(24, "LAYER: max active levels", group="Levels") // 10
+dirFilter   = input.string("dtrend", "Regime filter", options=["off","dtrend"], group="Regime") // 11
+regimeLen   = input.int(8, "dtrend: SMA of daily close (days)", group="Regime") // 12
+regimeSlack = input.float(-1.5, "dtrend: band around SMA (x avg range; -ve stricter)", step=0.25, group="Regime") // 13
+dayTrendFilt= input.bool(true, "LAYER: daily-trend gate on", group="Regime") // 14
+dayTrendLb  = input.int(8, "  daily-SMA slope lookback (days)", minval=1, group="Regime") // 15
+dayFiltCore = input.bool(false, "Apply daily-trend filter to CORE too", group="Regime") // 16
+stopCapPts  = input.float(120.0, "STOP hard cap (points, 0=off)", step=5, group="Risk") // 17
+bufMlt      = input.float(0.60, "Stop buffer beyond wick (x avg range)", step=0.05, group="Risk") // 18
+rFixed      = input.float(6.0, "Reward:Risk", step=0.1, group="Risk") // 19
+sessEntry   = input.session("0935-1500", "Entry window (IST)", group="Time") // 20
+flatTime    = input.session("1515-1530", "Force-flat window", group="Time") // 21
+coolBars    = input.int(1, "Cooldown bars after exit", group="Time") // 22
+maxPerDay   = input.int(6, "Max entries per day", group="Time") // 23
+allowReentry= input.int(1, "Extra fades per level per day", group="Time") // 24
+maxHoldBars = input.int(0, "Hard time-exit after N bars (0=off)", group="Time") // 25
+skipExpiry  = input.bool(false, "Skip Thursday", group="Time") // 26
+avgRngLen   = input.int(20, "Avg candle-range length", group="Core") // 27
+costPtsRound= input.float(20.0, "Option cost pts / round-trip (report)", step=1, group="Core") // 28
+showViz     = input.bool(true, "Visuals", group="Visuals") // 29
+layerMaxUp  = input.float(0.0, "LAYER off when 8d daily-SMA rise > N pts", step=10, group="Regime") // 30
+rangeMode   = input.string("bear", "RANGE filter", options=["off","adx","slope","bear","both"], group="Range regime") // 31
+adxLen      = input.int(14, "  daily ADX length", minval=2, group="Range regime") // 32
+adxMax      = input.float(22.0, "  trade only while daily ADX <=", step=1, group="Range regime") // 33
+rangeMaxSlope = input.float(0.0, "  slope/bear threshold: 8d daily-SMA chg <= this", step=25, group="Range regime") // 34
+
+// ============ CORE DATA ============
+avgRng = ta.sma(high - low, avgRngLen)
+[pdh, pdl, pdc] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
+smaD   = request.security(syminfo.tickerid, "1D", ta.sma(close[1], regimeLen), lookahead=barmerge.lookahead_off)
+dSlope = request.security(syminfo.tickerid, "1D", ta.sma(close[1], regimeLen) - ta.sma(close[1], regimeLen)[dayTrendLb], lookahead=barmerge.lookahead_off)
+[diPd, diMd, adxD] = request.security(syminfo.tickerid, "1D", ta.dmi(adxLen, adxLen), lookahead=barmerge.lookahead_off)
+
+inEntryWin = not na(time(timeframe.period, sessEntry))
+inFlat     = not na(time(timeframe.period, flatTime))
+inOR       = not na(time(timeframe.period, orSess))
+isThu      = dayofweek == dayofweek.thursday
+dowOK      = not (skipExpiry and isThu)
+newDay = ta.change(time("D")) != 0
+var int nDay = 0
+if newDay
+    nDay := 0
+
+regBand = regimeSlack * avgRng
+dtrendS = dirFilter == "off" or (not na(smaD) and close <= smaD + regBand)
+dtrendL = dirFilter == "off" or (not na(smaD) and close >= smaD - regBand)
+dayDnOK = not dayTrendFilt or (not na(dSlope) and dSlope <= 0)
+dayUpOK = not dayTrendFilt or (not na(dSlope) and dSlope >= 0)
+momOK_S = relaxTrig or close < low[1]
+momOK_L = relaxTrig or close > high[1]
+dispOK  = dispMlt == 0 or (high - low) >= dispMlt * avgRng
+
+adxRangeOK   = na(adxD) or adxD <= adxMax
+slopeRangeOK = na(dSlope) or math.abs(dSlope) <= rangeMaxSlope
+bearRangeOK  = na(dSlope) or dSlope <= rangeMaxSlope
+rangeOK = rangeMode == "off" ? true : rangeMode == "adx" ? adxRangeOK : rangeMode == "slope" ? slopeRangeOK : rangeMode == "bear" ? bearRangeOK : (adxRangeOK and slopeRangeOK)
+
+layerActive = not dayTrendFilt or (not na(dSlope) and dSlope <= layerMaxUp)
+coreS = dtrendS and (not dayFiltCore or dayDnOK)
+coreL = dtrendL and (not dayFiltCore or dayUpOK)
+layerS = dtrendS and layerActive
+layerL = dtrendL and layerActive
+
+// ============ OPENING RANGE ============
+var float orH = na
+var float orL = na
+var bool  orDone = false
+if newDay
+    orH := na
+    orL := na
+    orDone := false
+if inOR
+    orH := na(orH) ? high : math.max(orH, high)
+    orL := na(orL) ? low  : math.min(orL, low)
+
+// ============ LAYER: LEVEL BASKET ============
+var lvlP    = array.new_float(0)
+var lvlHi   = array.new_bool(0)
+var lvlBorn = array.new_int(0)
+var lvlUsed = array.new_bool(0)
+
+addLevel(float p, bool isHi) =>
+    if not na(p) and p > 0
+        bool dup = false
+        int n = array.size(lvlP)
+        if n > 0
+            for i = 0 to n - 1
+                if array.get(lvlHi, i) == isHi and math.abs(array.get(lvlP, i) - p) < minLvlGapPts
+                    dup := true
+        if not dup
+            array.push(lvlP, p)
+            array.push(lvlHi, isHi)
+            array.push(lvlBorn, bar_index)
+            array.push(lvlUsed, false)
+            if array.size(lvlP) > maxLevels
+                array.shift(lvlP)
+                array.shift(lvlHi)
+                array.shift(lvlBorn)
+                array.shift(lvlUsed)
+
+if array.size(lvlP) > 0
+    for i = array.size(lvlP) - 1 to 0
+        L = array.get(lvlP, i)
+        isHi = array.get(lvlHi, i)
+        broken = isHi ? (close > L + bufMlt * avgRng) : (close < L - bufMlt * avgRng)
+        if array.get(lvlUsed, i) or broken or (bar_index - array.get(lvlBorn, i)) > lvlExpiryBars
+            array.remove(lvlP, i)
+            array.remove(lvlHi, i)
+            array.remove(lvlBorn, i)
+            array.remove(lvlUsed, i)
+
+ph = ta.pivothigh(high, swLen, swLen)
+pl = ta.pivotlow(low, swLen, swLen)
+if useSwing and not na(ph)
+    addLevel(ph, true)
+if useSwing and not na(pl)
+    addLevel(pl, false)
+orJustFroze = (not inOR) and inOR[1] and not orDone
+if orJustFroze
+    orDone := true
+    if useOR
+        addLevel(orH, true)
+        addLevel(orL, false)
+
+// ============ CORE: PDH/PDL SWEEP STATE MACHINE ============
+var bool  aH = false
+var float wickH = na
+var int   pokeBarH = na
+var bool  usedH = false
+var int   nHfades = 0
+var bool  aL = false
+var float wickL = na
+var int   pokeBarL = na
+var bool  usedL = false
+var int   nLfades = 0
+if newDay
+    aH := false
+    wickH := na
+    pokeBarH := na
+    usedH := false
+    nHfades := 0
+    aL := false
+    wickL := na
+    pokeBarL := na
+    usedL := false
+    nLfades := 0
+if not na(pdh) and not usedH and not aH and high > pdh and (high - pdh) <= maxSweepMlt * avgRng
+    aH := true
+    wickH := high
+    pokeBarH := bar_index
+if aH and not usedH
+    wickH := math.max(wickH, high)
+if aH and ((wickH - pdh) > maxSweepMlt * avgRng or (not na(pokeBarH) and (bar_index - pokeBarH) > sweepWin))
+    aH := false
+if not na(pdl) and not usedL and not aL and low < pdl and (pdl - low) <= maxSweepMlt * avgRng
+    aL := true
+    wickL := low
+    pokeBarL := bar_index
+if aL and not usedL
+    wickL := math.min(wickL, low)
+if aL and ((pdl - wickL) > maxSweepMlt * avgRng or (not na(pokeBarL) and (bar_index - pokeBarL) > sweepWin))
+    aL := false
+
+trigPD_S = aH and not usedH and momOK_S and coreS and close < pdh and close < open and dispOK
+trigPD_L = aL and not usedL and momOK_L and coreL and close > pdl and close > open and dispOK
+
+// ============ LAYER: nearest one-bar rejection ============
+var float xLvl  = na
+var int   xSide = 0
+var float xWick = na
+xLvl  := na
+xSide := 0
+xWick := na
+float bestDist = 1e12
+if array.size(lvlP) > 0
+    for i = 0 to array.size(lvlP) - 1
+        L = array.get(lvlP, i)
+        isHi = array.get(lvlHi, i)
+        used = array.get(lvlUsed, i)
+        sS = not used and isHi and high >= L and close < L and (high - L) <= maxSweepMlt * avgRng and close < open and momOK_S and layerS and dispOK
+        sL = not used and (not isHi) and low <= L and close > L and (L - low) <= maxSweepMlt * avgRng and close > open and momOK_L and layerL and dispOK
+        d = math.abs(L - close)
+        if sS and d < bestDist
+            bestDist := d
+            xLvl := L
+            xSide := -1
+            xWick := high
+        if sL and d < bestDist
+            bestDist := d
+            xLvl := L
+            xSide := 1
+            xWick := low
+
+// ============ RESOLVE ONE CANDIDATE (CORE priority) ============
+int   cSide = 0
+int   cSrc  = 0
+float cWick = na
+if trigPD_S
+    cSide := -1
+    cSrc  := 0
+    cWick := wickH
+else if trigPD_L
+    cSide := 1
+    cSrc  := 0
+    cWick := wickL
+else if xSide == -1
+    cSide := -1
+    cSrc  := 1
+    cWick := xWick
+else if xSide == 1
+    cSide := 1
+    cSrc  := 1
+    cWick := xWick
+
+// ============ RISK ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+baseOK = strategy.position_size == 0 and coolOK and inEntryWin and not inFlat and dowOK and nDay < maxPerDay and rangeOK
+
+float slRaw = na
+if cSide == -1
+    slRaw := cWick + bufMlt * avgRng
+if cSide == 1
+    slRaw := cWick - bufMlt * avgRng
+float sl = na
+if cSide == -1
+    sl := (stopCapPts > 0) ? math.min(slRaw, close + stopCapPts) : slRaw
+if cSide == 1
+    sl := (stopCapPts > 0) ? math.max(slRaw, close - stopCapPts) : slRaw
+rk = cSide == -1 ? (sl - close) : cSide == 1 ? (close - sl) : na
+float tgt = na
+if cSide == -1 and not na(rk) and rk > 0
+    tgt := close - rFixed * rk
+if cSide == 1 and not na(rk) and rk > 0
+    tgt := close + rFixed * rk
+
+okShort = cSide == -1 and not na(rk) and rk > 0 and not na(tgt) and tgt < close
+okLong  = cSide == 1  and not na(rk) and rk > 0 and not na(tgt) and tgt > close
+
+// ============ ENTRIES ============
+var float slLv = na
+var float tpLv = na
+var float slSv = na
+var float tpSv = na
+var int   entryBarIdx = na
+var float maxSLused = 0.0
+var srcArr = array.new_int(0)
+
+markLayerUsed(float L, bool isHi) =>
+    if array.size(lvlP) > 0
+        for i = 0 to array.size(lvlP) - 1
+            if array.get(lvlHi, i) == isHi and math.abs(array.get(lvlP, i) - L) < 1
+                array.set(lvlUsed, i, true)
+
+if baseOK and okShort
+    strategy.entry("Short", strategy.short)
+    slSv := sl
+    tpSv := tgt
+    nDay := nDay + 1
+    array.push(srcArr, cSrc)
+    if cSrc == 0
+        nHfades := nHfades + 1
+        usedH := nHfades > allowReentry
+        aH := false
+    else
+        markLayerUsed(xLvl, true)
+if baseOK and okLong
+    strategy.entry("Long", strategy.long)
+    slLv := sl
+    tpLv := tgt
+    nDay := nDay + 1
+    array.push(srcArr, cSrc)
+    if cSrc == 0
+        nLfades := nLfades + 1
+        usedL := nLfades > allowReentry
+        aL := false
+    else
+        markLayerUsed(xLvl, false)
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+if longEntryBar
+    entryBarIdx := bar_index
+    maxSLused := math.max(maxSLused, strategy.position_avg_price - slLv)
+if shortEntryBar
+    entryBarIdx := bar_index
+    maxSLused := math.max(maxSLused, slSv - strategy.position_avg_price)
+
+if showViz and (longEntryBar or shortEntryBar)
+    _sr = array.size(srcArr) > 0 ? array.get(srcArr, array.size(srcArr) - 1) : 0
+    label.new(bar_index, shortEntryBar ? high : low, _sr == 0 ? "PD" : "x", style=shortEntryBar ? label.style_label_down : label.style_label_up, color=_sr == 0 ? color.new(color.red, 0) : color.new(color.gray, 20), textcolor=color.white, size=size.tiny)
+
+// ============ EXITS ============
+barsHeld = not na(entryBarIdx) ? bar_index - entryBarIdx : 0
+if strategy.position_size > 0
+    strategy.exit("Exit L", from_entry="Long", stop=slLv, limit=tpLv)
+    if inFlat or (maxHoldBars > 0 and barsHeld >= maxHoldBars)
+        strategy.close("Long", comment="TimeOut")
+if strategy.position_size < 0
+    strategy.exit("Exit S", from_entry="Short", stop=slSv, limit=tpSv)
+    if inFlat or (maxHoldBars > 0 and barsHeld >= maxHoldBars)
+        strategy.close("Short", comment="TimeOut")
+
+// ============ SCOREBOARD (points, split CORE vs LAYER) ============
+var float sumPts = 0.0
+var int   nWin = 0
+var int   nTr = 0
+var int   sumBars = 0
+var float sumWinP = 0.0
+var float sumLossP = 0.0
+var float eqPts = 0.0
+var float eqPeak = 0.0
+var float maxDDpts = 0.0
+var float bestT = 0.0
+var float worstT = 0.0
+var int   firstT = 0
+var int   nCore = 0
+var int   wCore = 0
+var float pCore = 0.0
+var int   nLay = 0
+var int   wLay = 0
+var float pLay = 0.0
+
+if firstT == 0 and bar_index > 0
+    firstT := time
+
+newlyClosed = strategy.closedtrades - strategy.closedtrades[1]
+if newlyClosed > 0
+    for k = 0 to newlyClosed - 1
+        idx = strategy.closedtrades - 1 - k
+        dir = strategy.closedtrades.size(idx) > 0 ? 1.0 : -1.0
+        pts = (strategy.closedtrades.exit_price(idx) - strategy.closedtrades.entry_price(idx)) * dir
+        bars = strategy.closedtrades.exit_bar_index(idx) - strategy.closedtrades.entry_bar_index(idx)
+        sr = idx < array.size(srcArr) ? array.get(srcArr, idx) : 0
+        sumPts += pts
+        nTr += 1
+        sumBars += bars
+        if pts >= 0
+            sumWinP += pts
+            nWin += 1
+        else
+            sumLossP += pts
+        bestT  := math.max(bestT, pts)
+        worstT := math.min(worstT, pts)
+        eqPts  += pts
+        eqPeak := math.max(eqPeak, eqPts)
+        maxDDpts := math.max(maxDDpts, eqPeak - eqPts)
+        if sr == 0
+            nCore += 1
+            pCore += pts
+            wCore += pts >= 0 ? 1 : 0
+        else
+            nLay += 1
+            pLay += pts
+            wLay += pts >= 0 ? 1 : 0
+
+avgPts   = nTr > 0 ? sumPts / nTr : 0.0
+winPct   = nTr > 0 ? 100.0 * nWin / nTr : 0.0
+avgWinP  = nWin > 0 ? sumWinP / nWin : 0.0
+nLossC   = nTr - nWin
+avgLossP = nLossC > 0 ? sumLossP / nLossC : 0.0
+ptsPF    = sumLossP < 0 ? sumWinP / (-sumLossP) : na
+avgBars  = nTr > 0 ? sumBars / nTr : 0
+netAfter = sumPts - costPtsRound * nTr
+months   = firstT > 0 ? (time - firstT) / (2629800.0 * 1000.0) : 0.0
+trPerMo  = months > 0.3 ? nTr / months : 0.0
+trPerDay = months > 0.3 ? nTr / (months * 21.0) : 0.0
+netPerMo = months > 0.3 ? netAfter / months : 0.0
+gline(int n, int w, float p) => n > 0 ? (str.tostring(n) + "  " + str.tostring(100.0 * w / n, "#") + "%  " + str.tostring(p / n, "#") + "p  (" + str.tostring(p, "#") + ")") : "-"
+
+if showViz and barstate.islastconfirmedhistory
+    var table t = table.new(position.top_right, 2, 19, border_width=1, frame_color=color.gray, frame_width=1)
+    table.cell(t, 0, 0,  "v13 RANGE-ONLY", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(t, 1, 0,  "BANKNIFTY pts", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(t, 0, 1,  "Range mode / ADX now", text_size=size.small)
+    table.cell(t, 1, 1,  rangeMode + " / " + str.tostring(adxD, "#.#"), text_size=size.small)
+    table.cell(t, 0, 2,  "Trades", text_size=size.small)
+    table.cell(t, 1, 2,  str.tostring(nTr), text_size=size.small)
+    table.cell(t, 0, 3,  "Trades / day", text_size=size.small)
+    table.cell(t, 1, 3,  str.tostring(trPerDay, "#.##"), text_size=size.small)
+    table.cell(t, 0, 4,  "Trades / month", text_size=size.small)
+    table.cell(t, 1, 4,  str.tostring(trPerMo, "#.#"), text_size=size.small)
+    table.cell(t, 0, 5,  "Win %", text_size=size.small)
+    table.cell(t, 1, 5,  str.tostring(winPct, "#.#") + "%", text_size=size.small)
+    table.cell(t, 0, 6,  "Total points", text_size=size.small)
+    table.cell(t, 1, 6,  str.tostring(sumPts, "#"), text_color=sumPts >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 7,  "Points / trade", text_size=size.small)
+    table.cell(t, 1, 7,  str.tostring(avgPts, "#.#"), text_color=avgPts >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 8,  "Avg WIN / LOSS", text_size=size.small)
+    table.cell(t, 1, 8,  str.tostring(avgWinP, "#") + " / " + str.tostring(avgLossP, "#"), text_size=size.small)
+    table.cell(t, 0, 9,  "Max SL pts used", text_size=size.small)
+    table.cell(t, 1, 9,  str.tostring(maxSLused, "#"), text_color=(stopCapPts > 0 and maxSLused > stopCapPts + 1) ? color.red : color.gray, text_size=size.small)
+    table.cell(t, 0, 10, "Points profit factor", text_size=size.small)
+    table.cell(t, 1, 10, na(ptsPF) ? "-" : str.tostring(ptsPF, "#.##"), text_color=(not na(ptsPF) and ptsPF >= 1) ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 11, "Best / Worst", text_size=size.small)
+    table.cell(t, 1, 11, str.tostring(bestT, "#") + " / " + str.tostring(worstT, "#"), text_size=size.small)
+    table.cell(t, 0, 12, "Max DD (pts)", text_size=size.small)
+    table.cell(t, 1, 12, str.tostring(maxDDpts, "#"), text_color=color.red, text_size=size.small)
+    table.cell(t, 0, 13, "Avg bars held", text_size=size.small)
+    table.cell(t, 1, 13, str.tostring(avgBars), text_size=size.small)
+    table.cell(t, 0, 14, "Net pts after " + str.tostring(costPtsRound, "#") + "/rt", text_size=size.small)
+    table.cell(t, 1, 14, str.tostring(netAfter, "#"), text_color=netAfter >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 15, "Net pts / month", text_size=size.small)
+    table.cell(t, 1, 15, str.tostring(netPerMo, "#"), text_color=netPerMo >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 16, "-- n / win% / p_tr / (tot) --", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small)
+    table.cell(t, 1, 16, "", bgcolor=color.new(color.gray, 20))
+    table.cell(t, 0, 17, "CORE  (PD-level)", text_size=size.small)
+    table.cell(t, 1, 17, gline(nCore, wCore, pCore), text_color=pCore >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(t, 0, 18, "LAYER (intraday)", text_size=size.small)
+    table.cell(t, 1, 18, gline(nLay, wLay, pLay), text_color=pLay >= 0 ? color.green : color.red, text_size=size.small)
+
+// ============ VISUALS ============
+plot(showViz ? pdh : na, "PDH", color=color.new(color.red, 40), style=plot.style_stepline)
+plot(showViz ? pdl : na, "PDL", color=color.new(color.green, 40), style=plot.style_stepline)
+plot(showViz ? smaD : na, "RegSMA", color=color.new(color.blue, 55))
+bgcolor(showViz and not rangeOK ? color.new(color.orange, 90) : na, title="trend regime (stand down)")
+plot(strategy.position_size > 0 ? tpLv : strategy.position_size < 0 ? tpSv : na, "TP", color=color.new(color.green,0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slLv : strategy.position_size < 0 ? slSv : na, "SL", color=color.new(color.red,0),   style=plot.style_linebr, linewidth=1)
