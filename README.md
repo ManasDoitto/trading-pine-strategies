@@ -107,6 +107,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13c | + strict gate, points-scored for options (**5m**, `v10.4`) | 59% | 2.71 | **net-positive pts in all 5 windows; ~+190 net pts/mo** |
 | 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | **all 5 windows +ve; worst trade −134; ~+205 net pts/mo, ~4 tr/mo** |
 | 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 windows, −100 pts/mo in one uptrend; companion to v10.5, not standalone |
+| 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
