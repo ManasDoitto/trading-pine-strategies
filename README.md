@@ -105,6 +105,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13 | Sweep + CHoCH + prior-day levels + premium/discount (3m) | 26% | 0.40 | loser |
 | 13b | Sweep fade + daily-trend regime gate (**5m**, `v10.3`) | 50% | 1.97 | **regime-robust: +ve/breakeven in 4 of 5 windows, worst −2.2%** |
 | 13c | + strict gate, points-scored for options (**5m**, `v10.4`) | 59% | 2.71 | **net-positive pts in all 5 windows; ~+190 net pts/mo** |
+| 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | **all 5 windows +ve; worst trade −134; ~+205 net pts/mo, ~4 tr/mo** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
@@ -159,10 +160,37 @@ charge is optimistic on slow days); the down-month totals lean on 1–2 big
 runners; capping hold time kills the edge; single vendor, ~18 months. The
 on-chart POINTS SCOREBOARD table shows all of this live. **Paper-trade first.**
 
+### `bnf v10.5` — SL capped at 120 pts, big-R target, more trades
+
+For an option buyer who cannot stomach a −450-pt stop. `v10.5` makes the risk
+block configurable and ships a tuned default: **stop = min(wick stop, 120 pts)**,
+**target = 6R** (so winners still ride to the 15:15 flat), **re-entry allowed once
+per level per day** (recovers the trades the tight stop loses).
+
+| Window | Market | Tr | Tr/mo | Win% | Total pts | PF | Worst | Net @20 |
+|---|---|---|---|---|---|---|---|---|
+| Apr–Oct 2025 | strong up | 28 | 4.5 | 42.9% | +924 | 1.66 | −126 | +364 |
+| Jun–Dec 2025 | up | 26 | 4.2 | 46.2% | +1106 | 2.01 | −122 | +586 |
+| Dec 2025–Apr 2026 | flat | 22 | 3.5 | 40.9% | +1106 | 1.77 | −134 | +666 |
+| Feb–Jun 2026 | down | 23 | 3.7 | 43.5% | +2006 | 2.31 | −134 | +1546 |
+| Feb–Sep 2026 | down | 25 | 3.8 | 48% | +2557 | 3.08 | −131 | +2057 |
+
+Non-overlapping (1,2,3,5): **+5693 gross pts / ~18 mo ≈ +316 gross / +205 net
+pts per month**, ~4 trades/month. **Worst single trade −134 pts** (vs v10.4's
+−448); PF 1.66–3.08 every window. What mattered: the 120-pt cap (worst loss and
+drawdown down, PF up); keeping the target at 6R not 2R (a 2R target on a capped
+stop collapses net from +2557 to +367 on the strong window — BankNifty fade
+winners run to EOD); re-entry (weak Jun–Dec window +121 → +586 net). **Fixed
+small targets tested and lose.** Still ~4 trades/month — the prior-day-level
+sweep only sets up a few times a month; genuine higher frequency needs a
+different entry model. Research config — paper-trade first.
+
 **Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
-**5m**, `bnf v10.3`/`v10.4` (prior-day-level liquidity-sweep fade + daily-trend
-regime gate) is the one config that stays net-positive across up, flat and down
-windows — a thin, regime-gated edge worth forward-testing, not yet a proven
-system. Use `v10.4` for point-based (option-buying) evaluation. Every other
-BankNifty file here is a research note. CrudeOil v1.0 remains the strongest
-strategy in the repo (single-window, not walk-forward-verified).
+**5m**, `bnf v10.3`/`v10.4`/`v10.5` (prior-day-level liquidity-sweep fade +
+daily-trend regime gate) is the one family that stays net-positive across up,
+flat and down windows. Use **`v10.5`** for option buying (SL ≤ 120 pts,
+points-scored, ~+205 net pts/month); `v10.4` for the wider-stop points version;
+`v10.3` for the rupee version. A thin, regime-gated edge worth forward-testing,
+not yet a proven system. Every other BankNifty file here is a research note.
+CrudeOil v1.0 remains the strongest strategy in the repo (single-window, not
+walk-forward-verified).
