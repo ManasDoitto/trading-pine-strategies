@@ -1,0 +1,255 @@
+//@version=5
+// ============================================================================
+//  BankNifty OB + FVG + OrderFlow v7  --  NSE:BANKNIFTY1!  (3-minute)
+//
+//  !!! TESTED - marginal on some windows, FAILS walk-forward. Research only. !!!
+//  Gives the frequency asked for (~30-40 trades/month) but no durable edge.
+//
+//  Method: Fair-Value-Gap fill continuation.
+//    bullish FVG = bar.low > bar[2].high (3-candle imbalance).  Wait for price
+//    to fill `fillFrac` of the gap, then a bullish bar closes back out -> long.
+//    Optional order-flow filter (EMA20 slope + smoothed signed-volume) and
+//    optional order-block overlap.  Stop below the FVG/structure, target next
+//    swing or fixed R.  Mirror for bearish FVG.  Flat 15:15.
+//
+//  BEST config found (ofMode OFF, fvgMinATR 0.30, fillFrac 1.0 [full fill],
+//    slBufATR 0.75, rMultiple 2.4, minRR 1.5, maxPerDay 6):
+//    recent (up,  B&H +114k) : 64 tr | 37% win | PF 1.09 | +2.1%
+//    Apr    (down, B&H  -84k) : 57 tr | 35% win | PF 1.12 | +2.4%
+//    Jan    (up,  B&H  +64k) : 60 tr | 30% win | PF 0.55 | -8.8%
+//    Nov-Dec(up,  B&H +117k) : 62 tr | 35% win | PF 0.66 | -6.5%
+//    Mean PF ~0.86 -> net loser. 2 of 4 windows profitable, 2 not.
+//
+//  Notes from tuning:
+//   - Requiring the FULL FVG fill (deep pullback) lifted win rate 24% -> 37%.
+//   - The order-flow proxy (EMA slope + volume delta) HURT - it filtered out
+//     good trades along with bad; ofMode "off" was best.
+//   - Wider stop (0.75x ATR beyond the gap) helped, as in every BankNifty
+//     strategy this project - but not enough.
+//   - Win rate tops out ~37%; the 50% / 2.4R target needs PF ~2.4 - not close.
+//
+//  Concept family #10.  Same conclusion as the other 9: no regime-robust
+//  mechanical BankNifty 3m edge in this rule space.
+// ============================================================================
+strategy("BankNifty OB+FVG+OF v7", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=5, max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============  (// N ; [ ] = best-found value)
+atrLen   = input.int(14, "ATR length", group="Core") // 0
+emaLen   = input.int(20, "EMA length (order-flow slope)", group="OrderFlow") // 1
+ofMode   = input.string("off", "Order-flow filter  [best OFF]", options=["off","ema","delta","both"], group="OrderFlow") // 2
+ofLen    = input.int(9, "Signed-volume smoothing (bars)", group="OrderFlow") // 3
+emaSlopeBars = input.int(3, "EMA slope lookback (bars)", group="OrderFlow") // 4
+fvgMinATR = input.float(0.30, "Min FVG size (x ATR)  [0.30]", step=0.05, group="FVG") // 5
+fvgExpiry = input.int(20, "FVG valid for N bars", group="FVG") // 6
+fillFrac  = input.float(1.0, "Price must fill this frac of the FVG  [1.0]", step=0.1, group="FVG") // 7
+entryMode = input.string("close-out", "Trigger", options=["close-out","touch"], group="FVG") // 8
+needAgg   = input.bool(false, "Trigger bar volume > x SMA20", group="FVG") // 9
+aggMlt    = input.float(1.2, "  volume mult", step=0.1, group="FVG") // 10
+needOB    = input.bool(false, "Require order-block overlap with the FVG", group="OB overlap") // 11
+swLen     = input.int(6, "Swing pivot length (BOS + target)", group="OB overlap") // 12
+obScan    = input.int(6, "OB scan-back bars", group="OB overlap") // 13
+rMultiple = input.float(2.4, "Fixed R:R (fallback)  [2.4]", step=0.1, group="Risk") // 14
+minRR     = input.float(1.5, "Min R:R to accept a swing target  [1.5]", step=0.1, group="Risk") // 15
+slBufATR  = input.float(0.75, "Stop buffer beyond structure (x ATR)  [0.75]", step=0.05, group="Risk") // 16
+slFloorATR = input.float(0.5, "Min stop distance (x ATR)", step=0.05, group="Risk") // 17
+maxStopATR = input.float(2.5, "Reject if stop > x ATR (0=off)  [2.5]", step=0.25, group="Risk") // 18
+sessEntry = input.session("0930-1500", "Entry window (IST)", group="Time") // 19
+flatTime  = input.session("1515-1530", "Force-flat window", group="Time") // 20
+coolBars  = input.int(2, "Cooldown bars after exit", group="Time") // 21
+maxPerDay = input.int(6, "Max entries per day", group="Time") // 22
+skipExpiry = input.bool(false, "Skip Thursday", group="Filters") // 23
+beAfterR  = input.float(0.0, "EXP: SL to BE after +R (0=off)", step=0.1, group="Exits") // 24
+useTrail  = input.bool(false, "EXP: trail 0.5xATR after +1R", group="Exits") // 25
+showViz   = input.bool(true, "Visuals", group="Visuals") // 26
+
+// ============ CORE ============
+atr  = ta.atr(atrLen)
+ema  = ta.ema(close, emaLen)
+sgn  = close > open ? 1.0 : close < open ? -1.0 : 0.0
+delta = ta.ema(volume * sgn, ofLen)
+volS  = ta.sma(volume, 20)
+
+emaUp = ema > ema[emaSlopeBars]
+emaDn = ema < ema[emaSlopeBars]
+ofUp = ofMode == "off" ? true : ofMode == "ema" ? emaUp : ofMode == "delta" ? (delta > 0) : (emaUp and delta > 0)
+ofDn = ofMode == "off" ? true : ofMode == "ema" ? emaDn : ofMode == "delta" ? (delta < 0) : (emaDn and delta < 0)
+
+inEntryWin = not na(time(timeframe.period, sessEntry))
+inFlat     = not na(time(timeframe.period, flatTime))
+isThu      = dayofweek == dayofweek.thursday
+dowOK      = not (skipExpiry and isThu)
+aggOK      = not needAgg or volume >= aggMlt * volS
+
+newDay = ta.change(time("D")) != 0
+var int nDay = 0
+if newDay
+    nDay := 0
+
+// ============ SWINGS + OB ============
+ph = ta.pivothigh(high, swLen, swLen)
+pl = ta.pivotlow(low, swLen, swLen)
+var float swHi = na
+var float swLo = na
+if not na(ph)
+    swHi := ph
+if not na(pl)
+    swLo := pl
+bosUp = not na(swHi) and close > swHi and close[1] <= swHi
+bosDn = not na(swLo) and close < swLo and close[1] >= swLo
+var float obUpLo = na
+var float obUpHi = na
+var float obDnLo = na
+var float obDnHi = na
+if bosUp
+    float _l = na
+    float _h = na
+    for i = 1 to obScan
+        if na(_l) and close[i] < open[i]
+            _l := low[i]
+            _h := high[i]
+    if not na(_l)
+        obUpLo := _l
+        obUpHi := _h
+if bosDn
+    float _l2 = na
+    float _h2 = na
+    for i = 1 to obScan
+        if na(_l2) and close[i] > open[i]
+            _l2 := low[i]
+            _h2 := high[i]
+    if not na(_l2)
+        obDnLo := _l2
+        obDnHi := _h2
+
+// ============ FVG TRACKING ============
+var float fUpLo = na
+var float fUpHi = na
+var int   fUpBar = na
+var bool  fUpUsed = false
+var float fDnLo = na
+var float fDnHi = na
+var int   fDnBar = na
+var bool  fDnUsed = false
+
+bullFVG = low > high[2] and (low - high[2]) >= fvgMinATR * atr
+bearFVG = high < low[2] and (low[2] - high) >= fvgMinATR * atr
+if bullFVG
+    fUpLo := high[2]
+    fUpHi := low
+    fUpBar := bar_index
+    fUpUsed := false
+if bearFVG
+    fDnLo := high
+    fDnHi := low[2]
+    fDnBar := bar_index
+    fDnUsed := false
+if not na(fUpBar) and close < fUpLo
+    fUpBar := na
+if not na(fUpBar) and (bar_index - fUpBar) > fvgExpiry
+    fUpBar := na
+if not na(fDnBar) and close > fDnHi
+    fDnBar := na
+if not na(fDnBar) and (bar_index - fDnBar) > fvgExpiry
+    fDnBar := na
+
+fUpFillLvl = na(fUpBar) ? na : fUpHi - (fUpHi - fUpLo) * fillFrac
+fDnFillLvl = na(fDnBar) ? na : fDnLo + (fDnHi - fDnLo) * fillFrac
+
+obOverlapUp = not needOB or (not na(obUpLo) and obUpHi >= fUpLo and obUpLo <= fUpHi)
+obOverlapDn = not needOB or (not na(obDnLo) and obDnHi >= fDnLo and obDnLo <= fDnHi)
+
+trigUp = not na(fUpBar) and not fUpUsed and low <= fUpFillLvl and close > (entryMode == "close-out" ? fUpHi : fUpLo) and close > open and ofUp and aggOK and obOverlapUp
+trigDn = not na(fDnBar) and not fDnUsed and high >= fDnFillLvl and close < (entryMode == "close-out" ? fDnLo : fDnHi) and close < open and ofDn and aggOK and obOverlapDn
+
+// ============ RISK ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+baseOK = strategy.position_size == 0 and coolOK and inEntryWin and not inFlat and dowOK and nDay < maxPerDay
+
+float slL = na
+float slS = na
+if trigUp
+    _base = math.min(low, low[1], low[2], fUpLo)
+    slL := math.min(_base - slBufATR * atr, close - slFloorATR * atr)
+if trigDn
+    _base = math.max(high, high[1], high[2], fDnHi)
+    slS := math.max(_base + slBufATR * atr, close + slFloorATR * atr)
+rkL = not na(slL) ? close - slL : na
+rkS = not na(slS) ? slS - close : na
+
+float tgtL = na
+float tgtS = na
+if trigUp and not na(rkL) and rkL > 0
+    tgtL := (not na(swHi) and swHi > close + minRR * rkL) ? swHi : close + rMultiple * rkL
+if trigDn and not na(rkS) and rkS > 0
+    tgtS := (not na(swLo) and swLo < close - minRR * rkS) ? swLo : close - rMultiple * rkS
+
+okL = trigUp and not na(rkL) and rkL > 0 and (maxStopATR == 0 or rkL <= maxStopATR * atr) and not na(tgtL) and tgtL > close
+okS = trigDn and not na(rkS) and rkS > 0 and (maxStopATR == 0 or rkS <= maxStopATR * atr) and not na(tgtS) and tgtS < close
+
+// ============ ENTRIES ============
+var float slLv = na
+var float tpLv = na
+var float slSv = na
+var float tpSv = na
+var float riskInit = na
+
+if baseOK and okL
+    strategy.entry("Long", strategy.long)
+    slLv := slL
+    tpLv := tgtL
+    nDay := nDay + 1
+    fUpUsed := true
+if baseOK and okS
+    strategy.entry("Short", strategy.short)
+    slSv := slS
+    tpSv := tgtS
+    nDay := nDay + 1
+    fDnUsed := true
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+if longEntryBar
+    riskInit := strategy.position_avg_price - slLv
+if shortEntryBar
+    riskInit := slSv - strategy.position_avg_price
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    _s = slLv
+    if beAfterR > 0 and not na(riskInit) and high >= strategy.position_avg_price + beAfterR * riskInit
+        _s := math.max(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and high >= strategy.position_avg_price + riskInit
+        _s := math.max(_s, strategy.position_avg_price, high - 0.5 * atr)
+    slLv := _s
+    strategy.exit("Exit L", from_entry="Long", stop=slLv, limit=tpLv)
+    if inFlat
+        strategy.close("Long", comment="EOD")
+if strategy.position_size < 0
+    _s = slSv
+    if beAfterR > 0 and not na(riskInit) and low <= strategy.position_avg_price - beAfterR * riskInit
+        _s := math.min(_s, strategy.position_avg_price)
+    if useTrail and not na(riskInit) and low <= strategy.position_avg_price - riskInit
+        _s := math.min(_s, strategy.position_avg_price, low + 0.5 * atr)
+    slSv := _s
+    strategy.exit("Exit S", from_entry="Short", stop=slSv, limit=tpSv)
+    if inFlat
+        strategy.close("Short", comment="EOD")
+
+// ============ VISUALS ============
+plot(ema, "EMA", color=color.orange, linewidth=1)
+plot(showViz and not na(fUpBar) ? fUpHi : na, "FVG up top", color=color.new(color.teal,0), style=plot.style_linebr)
+plot(showViz and not na(fUpBar) ? fUpLo : na, "FVG up bot", color=color.new(color.teal,40), style=plot.style_linebr)
+plot(showViz and not na(fDnBar) ? fDnHi : na, "FVG dn top", color=color.new(color.red,40), style=plot.style_linebr)
+plot(showViz and not na(fDnBar) ? fDnLo : na, "FVG dn bot", color=color.new(color.red,0), style=plot.style_linebr)
+plotshape(showViz and longEntryBar,  "L", shape.triangleup,   location.belowbar, color.new(color.teal,0), size=size.small, text="L")
+plotshape(showViz and shortEntryBar, "S", shape.triangledown, location.abovebar, color.new(color.red,0),  size=size.small, text="S")
+plot(strategy.position_size > 0 ? tpLv : strategy.position_size < 0 ? tpSv : na, "TP", color=color.new(color.green,0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slLv : strategy.position_size < 0 ? slSv : na, "SL", color=color.new(color.red,0),   style=plot.style_linebr, linewidth=1)
