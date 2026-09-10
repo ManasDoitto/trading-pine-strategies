@@ -108,6 +108,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 13d | + SL cap 120 pts, 6R target, re-entry (**5m**, `v10.5`) | 48% | 3.08 | **all 5 windows +ve; worst trade −134; ~+205 net pts/mo, ~4 tr/mo** |
 | 13e | multi-level rejection fade, higher freq (**5m**, `v11`) | 49% | 1.78 | ~7–15 tr/mo; +ve in 3 of 4 windows, −100 pts/mo in one uptrend; companion to v10.5, not standalone |
 | 13f | confidence score (0–100) → RR by grade (**5m**, `v10.6`) | 48% | 3.08 | score does **not** order outcomes; RR-by-grade ≤ flat 6R; ships useConf **off** = v10.5, A/B/C table is a discretionary dashboard |
+| 13g | **v10.4 core + v11 layer combined** (**5m**, `v12`) | 41% | 1.88 | **deployable: all 5 windows +ve, ~0.5 tr/day (~2.5× v10.4), up windows thin (+12/mo), flat/down strong (+186…+427/mo)** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
@@ -187,12 +188,35 @@ small targets tested and lose.** Still ~4 trades/month — the prior-day-level
 sweep only sets up a few times a month; genuine higher frequency needs a
 different entry model. Research config — paper-trade first.
 
+### `bnf v12` — v10.4 core + v11 layer, one deployable strategy
+
+Combines the two into a single script sharing one position and one risk model:
+**CORE** = the PDH/PDL sweep-fade (always on, dtrend gate only — net-positive in
+every regime on its own); **LAYER** = fade a one-bar rejection at a rolling
+basket of intraday levels (5m swing H/L + opening range), running only while the
+**8-day** daily-SMA slope is not rising (off in sustained uptrends). Shared
+120-pt stop cap, 6R target, 15:15 flat. The scoreboard splits CORE vs LAYER.
+
+| Window | Market | Tr | Tr/day | Win% | Net @20 | Net/mo |
+|---|---|---|---|---|---|---|
+| Apr–Oct 2025 | strong up | 63 | 0.48 | 41% | +83 | +13 |
+| Jun–Dec 2025 | up | 56 | 0.43 | 39% | +72 | +12 |
+| Dec 2025–Apr 2026 | flat | 53 | 0.41 | 28% | +1158 | +186 |
+| Feb–Jun 2026 | down | 71 | 0.54 | 35% | +2657 | +427 |
+| Feb–Sep 2026 | down | 80 | 0.58 | 39% | +2518 | +385 |
+
+**All 5 windows net-positive**, ~0.5 trades/day (~2.5× v10.4). Up-regime windows
+are thin (the CORE carrying, LAYER ~flat); flat/down windows carry the P&L. The
+**8-day** daily-slope lookback is essential — at 3 days, brief pullbacks flip
+the filter and the up windows bleed −110 to −135 pts/month.
+
 **Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
-**5m**, `bnf v10.3`/`v10.4`/`v10.5` (prior-day-level liquidity-sweep fade +
-daily-trend regime gate) is the one family that stays net-positive across up,
-flat and down windows. Use **`v10.5`** for option buying (SL ≤ 120 pts,
-points-scored, ~+205 net pts/month); `v10.4` for the wider-stop points version;
-`v10.3` for the rupee version. A thin, regime-gated edge worth forward-testing,
+**5m**, the prior-day-level liquidity-sweep fade + daily-trend regime gate
+(`v10.3` rupee / `v10.4` points / `v10.5` SL-capped / `v10.6` +score dashboard)
+stays net-positive across up, flat and down windows. **`v12`** bolts on the
+higher-frequency intraday-level layer for ~2.5× the trades while keeping every
+window positive — the most complete deployable version. `v11` is the layer
+standalone (companion only). A thin, regime-gated edge worth forward-testing,
 not yet a proven system. Every other BankNifty file here is a research note.
 CrudeOil v1.0 remains the strongest strategy in the repo (single-window, not
 walk-forward-verified).
