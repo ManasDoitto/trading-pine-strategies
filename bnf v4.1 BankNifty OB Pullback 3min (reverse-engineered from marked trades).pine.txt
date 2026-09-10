@@ -1,0 +1,249 @@
+//@version=5
+// ============================================================================
+//  BankNifty OB Pullback v4.1  --  NSE:BANKNIFTY1!  (3-minute chart)
+//  Reverse-engineered from 9 trades the trader marked by hand (15-20 May 2026),
+//  then tuned via a ~25-config sweep.
+//
+//  METHOD (as confirmed by the trader):
+//    DIRECTION : 15m EMA9 vs EMA21 stack  (request.security, bias only)
+//    OB        : last opposite-colour 3m candle before an impulse that breaks
+//                the prior 3m swing (BOS). Zone = that candle's [low, high].
+//    SETUP     : price WICKS into the OB zone and the SAME candle CLOSES back
+//                OUT of it, in the trend direction -> that candle is the trigger
+//    STOP      : beyond the OB far edge + 0.5x ATR14 buffer  (rejected if the
+//                resulting stop is > 2x ATR14)
+//    TARGET    : next opposing 3m swing ; else a fixed fallback R (see below)
+//    SELECTIVITY: max 2 entries / direction / day ; skip stale OB (>15 bars) ;
+//                skip if the live 15m candle body is >50% against the trade
+//    TIME      : no entries before 09:30, flat by 15:15, 1 position, cooldown 6
+//
+//  ---- SWEEP (25 configs, NSE:BANKNIFTY1! 3m, TradingView tester window ----
+//       buy&hold ~ -180k i.e. a strongly TRENDING-DOWN ~1-month window) ----
+//    The two levers that mattered, from the -8% baseline:
+//      OB-edge stop buffer 0.15 -> 0.30 -> 0.50 x ATR : PF 0.76 -> 1.35 -> 1.85
+//        (wider stop beyond the zone = far fewer whipsaw stop-outs)
+//      Fallback target 2.5R -> 4R -> 5R -> 6R          : PF 0.90 -> 1.75 -> 1.95
+//        (let winners RUN; BankNifty trends hard once it moves)
+//    Hurt it: RSI(3) veto (blocks the continuation entries) ; HTF filter off ;
+//      swLen 5 or 10 (8 is best) ; trailing stop (cuts the big runners).
+//    Near-neutral: maxPerDir 1/2/3, obStaleBars 10-20, 15m-momentum filter.
+//
+//  ADOPTED config: swLen 8 | obBufMlt 0.50 | maxStopATR 2.0 | rFallback 5.0
+//    | minRR 2.0 | coolBars 6 | maxPerDir 2 | htf ema-stack | RSI veto off
+//    RESULT: 59 tr | 44% win | PF 1.85 | net +20.0% | MaxDD 3.7% | Sharpe 0.73
+//            | avg Rs.1,697/tr | largest win 21,188 vs largest loss 5,776 (3.7:1)
+//
+//  !!! ROBUSTNESS CAVEAT !!!  This is ONE window, and a strongly trending one.
+//  The 5R fallback target is exactly the lever that exploits a trend - on a
+//  chop/range month it will not fire and the edge likely collapses. The wide
+//  OB-edge stop is more likely to generalise. Before trading: run this on at
+//  least 6-10 separate months (mix of trend + range) and confirm PF stays > 1.3.
+//  The earlier BankNifty strategies in this repo all looked good on one window
+//  and failed on the next - assume the same here until proven otherwise.
+// ============================================================================
+strategy("BankNifty OB Pullback v4.1", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=5, max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============  (// N = sweep index ; [ ] = adopted value)
+emaFast   = input.int(9,  "EMA fast", group="HTF direction")   // 0
+emaMed    = input.int(21, "EMA med",  group="HTF direction")   // 1
+htfTF     = input.timeframe("15", "HTF timeframe", group="HTF direction") // 2
+htfNeed   = input.string("ema-stack", "HTF filter", options=["ema-stack","ema9-only","off"], group="HTF direction") // 3
+
+swLen       = input.int(8, "Swing pivot length (BOS + target)", group="Structure") // 4
+obScanBars  = input.int(8, "OB: scan back N bars from BOS for last opp. candle", group="Structure") // 5
+obStaleBars = input.int(15, "Skip OB older than N bars", group="Structure") // 6
+entryReclaim = input.bool(true, "Trigger candle must also be in-direction (green/red)", group="Structure") // 7
+
+sessEntry = input.session("0930-1500", "Entry window (IST)", group="Time")   // 8
+flatTime  = input.session("1515-1530", "Force-flat window", group="Time")    // 9
+
+rFallback = input.float(5.0, "Fallback R:R if no swing target  [tuned 5.0]", step=0.1, group="Risk") // 10
+minRR     = input.float(2.0, "Min R:R to accept a swing target  [tuned 2.0]", step=0.1, group="Risk") // 11
+obBufMlt  = input.float(0.50, "Stop buffer beyond OB edge (x ATR14)  [tuned 0.50]", step=0.05, group="Risk") // 12
+maxStopATR = input.float(2.0, "Reject setup if stop > x ATR14 (0=off)", step=0.25, group="Risk") // 13
+coolBars  = input.int(6, "Cooldown bars after exit  [tuned 6]", group="Risk") // 14
+atrMinPts = input.float(0.0, "Min ATR14 pts to trade (0=off)", step=5, group="Risk") // 15
+beAfterR  = input.float(0.0, "EXP: SL to breakeven after +R (0=off)", step=0.1, group="Exits") // 16
+useTrail  = input.bool(false, "EXP: trail 0.5xATR after +1R (tested: HURTS)", group="Exits") // 17
+rsiLen    = input.int(3, "RSI length", group="Filters") // 18
+rsiMaxLong = input.int(90, "No long if RSI(3) >  (veto OFF - tested: HURTS)", group="Filters") // 19
+rsiMinShort = input.int(10, "No short if RSI(3) <", group="Filters") // 20
+skipExpiry = input.bool(false, "EXP: skip Thursday", group="Filters") // 21
+showZones = input.bool(true, "Show OB zones", group="Visuals") // 22
+showMarks = input.bool(true, "Entry/exit marks", group="Visuals") // 23
+maxPerDir = input.int(2, "Max entries per direction per day", group="Selectivity") // 24
+useMtfMom = input.bool(true, "Skip if live 15m candle pushes hard against", group="Selectivity") // 25
+mtfMomFrac = input.float(0.5, "  15m opposing body >= x of its range = skip", step=0.05, group="Selectivity") // 26
+
+// ============ INDICATORS ============
+ema9c  = ta.ema(close, emaFast)
+ema21c = ta.ema(close, emaMed)
+atr14  = ta.atr(14)
+rsi3   = ta.rsi(close, rsiLen)
+
+[he9, he21, h_o, h_c, h_rng] = request.security(syminfo.tickerid, htfTF, [ta.ema(close, emaFast), ta.ema(close, emaMed), open, close, high - low], lookahead=barmerge.lookahead_off)
+htfBull = htfNeed == "off" ? true : htfNeed == "ema9-only" ? (close > he9) : (he9 > he21)
+htfBear = htfNeed == "off" ? true : htfNeed == "ema9-only" ? (close < he9) : (he9 < he21)
+_hr = math.max(h_rng, syminfo.mintick)
+mtfMomOKL = not useMtfMom or h_c >= h_o or (h_o - h_c) <= mtfMomFrac * _hr
+mtfMomOKS = not useMtfMom or h_c <= h_o or (h_c - h_o) <= mtfMomFrac * _hr
+
+inEntryWin = not na(time(timeframe.period, sessEntry))
+inFlat     = not na(time(timeframe.period, flatTime))
+atrOK      = atrMinPts == 0 or atr14 >= atrMinPts
+isThu      = dayofweek == dayofweek.thursday
+dowOK      = not (skipExpiry and isThu)
+
+// ============ DAILY COUNTERS ============
+newDay = ta.change(time("D")) != 0
+var int nLongDay = 0
+var int nShortDay = 0
+if newDay
+    nLongDay := 0
+    nShortDay := 0
+
+// ============ SWINGS + BOS ============
+ph = ta.pivothigh(high, swLen, swLen)
+pl = ta.pivotlow(low, swLen, swLen)
+var float swHi = na
+var float swLo = na
+if not na(ph)
+    swHi := ph
+if not na(pl)
+    swLo := pl
+bosUp = not na(swHi) and close > swHi and close[1] <= swHi
+bosDn = not na(swLo) and close < swLo and close[1] >= swLo
+
+// ============ ORDER BLOCK ============
+var float obLow  = na
+var float obHigh = na
+var int   obBar  = na
+var int   obDir  = 0
+var bool  obUsed = false
+
+if bosUp
+    float _l = na
+    float _h = na
+    int   _b = na
+    for i = 1 to obScanBars
+        if na(_l) and close[i] < open[i]
+            _l := low[i]
+            _h := high[i]
+            _b := bar_index - i
+    if not na(_l)
+        obLow := _l
+        obHigh := _h
+        obBar := _b
+        obDir := 1
+        obUsed := false
+
+if bosDn
+    float _l2 = na
+    float _h2 = na
+    int   _b2 = na
+    for i = 1 to obScanBars
+        if na(_l2) and close[i] > open[i]
+            _l2 := low[i]
+            _h2 := high[i]
+            _b2 := bar_index - i
+    if not na(_l2)
+        obLow := _l2
+        obHigh := _h2
+        obBar := _b2
+        obDir := -1
+        obUsed := false
+
+if obDir == 1 and close < obLow
+    obDir := 0
+if obDir == -1 and close > obHigh
+    obDir := 0
+if obDir != 0 and not na(obBar) and (bar_index - obBar) > obStaleBars
+    obDir := 0
+
+obActiveL = obDir == 1 and not obUsed
+obActiveS = obDir == -1 and not obUsed
+// wick INTO the zone, same candle CLOSES back OUT in trend direction
+trigL = obActiveL and low <= obHigh and close > obHigh and (not entryReclaim or close > open)
+trigS = obActiveS and high >= obLow and close < obLow and (not entryReclaim or close < open)
+
+// ============ COOLDOWN ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+
+// ============ ENTRIES ============
+var float slL = na
+var float tpL = na
+var float slS = na
+var float tpS = na
+var float riskL0 = na
+
+baseOK = strategy.position_size == 0 and coolOK and inEntryWin and not inFlat and atrOK and dowOK
+
+if baseOK and trigL and htfBull and mtfMomOKL and nLongDay < maxPerDir and rsi3 < rsiMaxLong
+    _sl = obLow - obBufMlt * atr14
+    _rk = close - _sl
+    if _rk > 0 and (maxStopATR == 0 or _rk <= maxStopATR * atr14)
+        _tgt = (not na(swHi) and swHi > close + minRR * _rk) ? swHi : close + rFallback * _rk
+        strategy.entry("Long", strategy.long)
+        slL := _sl
+        tpL := _tgt
+        obUsed := true
+        nLongDay := nLongDay + 1
+
+if baseOK and trigS and htfBear and mtfMomOKS and nShortDay < maxPerDir and rsi3 > rsiMinShort
+    _sl = obHigh + obBufMlt * atr14
+    _rk = _sl - close
+    if _rk > 0 and (maxStopATR == 0 or _rk <= maxStopATR * atr14)
+        _tgt = (not na(swLo) and swLo < close - minRR * _rk) ? swLo : close - rFallback * _rk
+        strategy.entry("Short", strategy.short)
+        slS := _sl
+        tpS := _tgt
+        obUsed := true
+        nShortDay := nShortDay + 1
+
+// ============ EXITS ============
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+if longEntryBar
+    riskL0 := strategy.position_avg_price - slL
+if shortEntryBar
+    riskL0 := slS - strategy.position_avg_price
+
+if strategy.position_size > 0
+    _sl = slL
+    if beAfterR > 0 and not na(riskL0) and high >= strategy.position_avg_price + beAfterR * riskL0
+        _sl := math.max(_sl, strategy.position_avg_price)
+    if useTrail and not na(riskL0) and high >= strategy.position_avg_price + riskL0
+        _sl := math.max(_sl, strategy.position_avg_price, high - 0.5 * atr14)
+    slL := _sl
+    strategy.exit("Exit L", from_entry="Long", stop=slL, limit=tpL)
+    if inFlat
+        strategy.close("Long", comment="EOD")
+if strategy.position_size < 0
+    _sl = slS
+    if beAfterR > 0 and not na(riskL0) and low <= strategy.position_avg_price - beAfterR * riskL0
+        _sl := math.min(_sl, strategy.position_avg_price)
+    if useTrail and not na(riskL0) and low <= strategy.position_avg_price - riskL0
+        _sl := math.min(_sl, strategy.position_avg_price, low + 0.5 * atr14)
+    slS := _sl
+    strategy.exit("Exit S", from_entry="Short", stop=slS, limit=tpS)
+    if inFlat
+        strategy.close("Short", comment="EOD")
+
+// ============ VISUALS ============
+bgcolor(htfBull ? color.new(color.green, 94) : htfBear ? color.new(color.red, 94) : na)
+plot(showZones and obDir != 0 ? obHigh : na, "OB high", color=color.new(color.gray,0), style=plot.style_linebr)
+plot(showZones and obDir != 0 ? obLow  : na, "OB low",  color=color.new(color.gray,0), style=plot.style_linebr)
+plot(ema9c,  "EMA9",  color=color.aqua,   linewidth=1)
+plot(ema21c, "EMA21", color=color.orange, linewidth=1)
+plotshape(showMarks and longEntryBar,  "L", shape.triangleup,   location.belowbar, color.new(color.teal,0), size=size.small, text="L")
+plotshape(showMarks and shortEntryBar, "S", shape.triangledown, location.abovebar, color.new(color.red,0),  size=size.small, text="S")
+plot(strategy.position_size > 0 ? tpL : strategy.position_size < 0 ? tpS : na, "TP", color=color.new(color.green,0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slL : strategy.position_size < 0 ? slS : na, "SL", color=color.new(color.red,0),   style=plot.style_linebr, linewidth=1)
