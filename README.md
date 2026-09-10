@@ -104,6 +104,7 @@ Mean PF ≈ 0.94 — a net loser. The tune result was regime luck.
 | 12 | Pure SMC (OB+FVG+structure, clean chart) | 33% | 0.71 | loser |
 | 13 | Sweep + CHoCH + prior-day levels + premium/discount (3m) | 26% | 0.40 | loser |
 | 13b | Sweep fade + daily-trend regime gate (**5m**, `v10.3`) | 50% | 1.97 | **regime-robust: +ve/breakeven in 4 of 5 windows, worst −2.2%** |
+| 13c | + strict gate, points-scored for options (**5m**, `v10.4`) | 59% | 2.71 | **net-positive pts in all 5 windows; ~+190 net pts/mo** |
 
 ¹ tuned on one favourable window; ² tiny sample.
 
@@ -135,9 +136,33 @@ smaller worst case). **Research config, not a validated system — paper-trade f
 It will not deliver the "50% win / 70% PnL" naked-option-buying target: real R:R
 is ≈ 1:2–1:3 at ≈ 40% win, so expectancy is only ≈ +0.3R per trade.
 
+### `bnf v10.4` — same engine, POINTS-first for option buying
+
+`v10.4` re-scores `v10.3` in **BankNifty index points** (what an option buyer
+actually needs) instead of rupees, drops the meaningless futures commission, and
+tightens one knob: `regimeSlack 0.0 → −1.5` (fade a high only when 5m price is
+≥ 1.5×avgRange **below** the 8-day daily SMA). That single change makes **every**
+walk-forward window net-positive after a 20-pt/round-trip option-friction charge:
+
+| Window | Market | Tr | Win% | Total pts | Pts/tr | PF | Net @20/rt |
+|---|---|---|---|---|---|---|---|
+| Apr–Oct 2025 | strong up | 23 | 43.5% | +792 | +34 | 1.64 | +332 |
+| Jun–Dec 2025 | up | 20 | 40% | +521 | +26 | 1.55 | +121 |
+| Dec 2025–Apr 2026 | flat | 16 | 43.8% | +1117 | +70 | 1.74 | +797 |
+| Feb–Jun 2026 | down | 17 | 58.8% | +2365 | +139 | 2.52 | +2025 |
+| Feb–Sep 2026 | down | 21 | 52.4% | +2564 | +122 | 2.71 | +2144 |
+
+Non-overlapping (rows 1,2,3,5): **+4994 gross pts / ~18 mo ≈ +277 pts/month
+gross, ~+190 net**. Avg win ~+200–370 pts, avg loss ~−80–220 pts. Caveats:
+~3 trades/month; ~2.5-hour holds (theta drag on weekly options — the 20-pt
+charge is optimistic on slow days); the down-month totals lean on 1–2 big
+runners; capping hold time kills the edge; single vendor, ~18 months. The
+on-chart POINTS SCOREBOARD table shows all of this live. **Paper-trade first.**
+
 **Bottom line:** No mechanical BankNifty **3m** edge survived walk-forward. On
-**5m**, `bnf v10.3` (prior-day-level liquidity-sweep fade + daily-trend regime
-gate) is the one config that stays positive-or-breakeven across up, flat and
-down windows — a thin, regime-gated edge worth forward-testing, not yet a proven
-system. Every other BankNifty file here is a research note. CrudeOil v1.0 remains
-the strongest strategy in the repo (single-window, not walk-forward-verified).
+**5m**, `bnf v10.3`/`v10.4` (prior-day-level liquidity-sweep fade + daily-trend
+regime gate) is the one config that stays net-positive across up, flat and down
+windows — a thin, regime-gated edge worth forward-testing, not yet a proven
+system. Use `v10.4` for point-based (option-buying) evaluation. Every other
+BankNifty file here is a research note. CrudeOil v1.0 remains the strongest
+strategy in the repo (single-window, not walk-forward-verified).
