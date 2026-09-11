@@ -1,0 +1,276 @@
+//@version=5
+// ============================================================================
+//  VARIANT LAB v1 -- research indicator, not a strategy.
+//  Simulates 32 intraday strategy variants side by side on the same bars and
+//  prints raw per-variant totals in a table, so one chart load scores all 32.
+//  Sim rules (match the Strategy Tester as closely as Pine allows):
+//    - qty 1, results in POINTS, cost 0.02% of price per side
+//    - signal on bar close, fill at the next bar's open
+//    - SL/TP fixed at signal time from the signal bar's close
+//    - intrabar order = TradingView broker-emulator heuristic (if the high
+//      is nearer the open than the low: open->high->low->close)
+//    - gaps through SL/TP fill at the open
+//    - indices are always flat by 15:24 IST (intraday); crude variants
+//      either hold overnight (like v3.0) or flatten at 23:24 IST
+//  Windowing: trades are counted only from `countFrom` = the first UTC
+//  midnight after `warm` bars, so replay windows started at the previous
+//  window's countFrom date tile the history exactly with no double count.
+//  Families:
+//    1 SHA + RSI(3) pullback (v3.0)      2 EMA9/22 touch pullback (crude v1)
+//    3 SHA colour flip                   4 Donchian breakout (+SHA)
+//    5 RSI(3) extreme snap-back          6 liquidity-sweep fade (BN v13 /
+//                                          Nifty v2 concept)
+//  Row format: Vnn|trades|wins|sumWinPts|sumLossPts|costPts|maxDDpts|
+//              sumDailyPnl^2|userTradesCaught(crude only)
+// ============================================================================
+indicator("VARIANT LAB v1 (32 variants)", overlay=true, max_bars_back=500)
+
+costPct = input.float(0.02, "Cost % per side")
+warm    = input.int(400, "Warm-up bars before counting")
+
+NV = 32
+tz = "Asia/Kolkata"
+isCrude = str.contains(syminfo.root, "CRUDE")
+entSess = isCrude ? "0915-2330" : "0920-1500"
+inSess  = not na(time(timeframe.period, entSess))
+cutoff  = timestamp(tz, year(time, tz), month(time, tz), dayofmonth(time, tz), isCrude ? 23 : 15, 24)
+eodBar  = time_close >= cutoff
+newDay  = ta.change(time("D")) != 0
+tfMs    = timeframe.in_seconds() * 1000
+
+// ---- shared series ----
+o1 = ta.ema(open, 10)
+c1 = ta.ema(close, 10)
+h1 = ta.ema(high, 10)
+l1 = ta.ema(low, 10)
+haC = (o1 + h1 + l1 + c1) / 4
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+shaUp = ta.ema(haC, 10) > ta.ema(haO, 10)
+var int flipBar = 0
+if shaUp != shaUp[1]
+    flipBar := bar_index
+shaAge = bar_index - flipBar
+shaFlipUp = shaUp and not shaUp[1]
+shaFlipDn = not shaUp and shaUp[1]
+e9   = ta.ema(close, 9)
+e22  = ta.ema(close, 22)
+e200 = ta.ema(close, 200)
+atr  = ta.atr(14)
+rsi  = ta.rsi(close, 3)
+rsiPrev = rsi[1]
+rsiMa = ta.sma(rsi, 14)
+xUpMa = ta.crossover(rsi, rsiMa)
+xDnMa = ta.crossunder(rsi, rsiMa)
+xUp50 = ta.crossover(rsi, 50)
+xDn50 = ta.crossunder(rsi, 50)
+hiBrk = close > high[1]
+loBrk = close < low[1]
+swLo = ta.lowest(low, 10)
+swHi = ta.highest(high, 10)
+hi20p = ta.highest(high, 20)[1]
+lo20p = ta.lowest(low, 20)[1]
+hi10p = ta.highest(high, 10)[1]
+lo10p = ta.lowest(low, 10)[1]
+bsTouchL = ta.barssince(low <= e22)
+bsTouchS = ta.barssince(high >= e22)
+
+// ---- variant definitions (V01..V32) ----
+var fam    = array.from(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 2,2,2, 3,3,3, 4,4,4, 5,5, 6,6,6,6, 1)
+var vOS    = array.from(30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,20.0,40.0,30.0,30.0,30.0,30.0,30.0,30.0, 0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0, 10.0,5.0, 0.0,0.0,0.0,0.0, 30.0)
+var vOB    = array.from(70.0,70.0,70.0,70.0,70.0,70.0,70.0,70.0,80.0,60.0,70.0,70.0,70.0,70.0,70.0,70.0, 0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0, 90.0,95.0, 0.0,0.0,0.0,0.0, 70.0)
+var vPB    = array.from(12,12,12,12,12,12,12,12,12,12,12,12,12,6,12,12, 3,3,3, 0,0,0, 20,20,10, 0,0, 20,20,20,20, 12)
+var vTrig  = array.from(0,0,0,0,0,0,1,2,0,0,0,0,0,0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0, 0,0,0,0, 0)
+var vEma   = array.from(1,1,1,1,1,2,1,1,1,1,1,1,1,1,0,1, 1,1,1, 1,1,2, 1,1,1, 0,0, 0,0,0,0, 1)
+var vShaF  = array.from(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,1,0, 0,0,0, 1,1,1, 0,0, 0,0,0,1, 0)
+var vMinSL = array.from(2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,1.2,2.0,2.0,2.0,2.0,2.0, 1.2,1.5,1.2, 1.5,1.5,1.5, 1.5,1.5,1.5, 1.5,1.5, 1.0,1.0,1.0,1.0, 1.5)
+var vRR    = array.from(2.4,2.4,1.5,2.0,3.0,2.4,2.4,2.4,2.4,2.4,2.4,2.4,2.4,2.4,2.4,2.0, 2.0,2.4,1.5, 2.0,3.0,2.0, 2.0,3.0,2.0, 1.0,1.5, 2.0,3.0,6.0,2.0, 2.0)
+var vSha   = array.from(3,3,3,3,3,3,3,3,3,3,3,3,0,3,3,3, 0,0,0, 0,0,0, 0,0,0, 0,0, 0,0,0,0, 3)
+var vEod   = array.from(0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1, 0,0,1, 0,0,0, 0,0,0, 0,0, 0,0,0,0, 1)
+var vMpd   = array.from(0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,2, 0,0,0, 0,0,0, 0,0,0, 0,0, 0,0,0,0, 0)
+maxSLx = 3.0
+
+// ---- user's marked CrudeOil trades (for the "caught" column) ----
+var uT = array.from(1744641900,1744650300,1744700400,1744705800,1744723800,1744730400,1744779900,1744791600,1744809900,1756100400,1756109100,1770008100,1770092400,1770142200,1770277500,1770304200,1770351900,1770366000,1770369000,1772543400,1773378300,1773381600,1773412500,1773835200,1773911700,1777546800,1777564500,1777640700,1778832000,1778856000,1779082800,1780637400,1788276600,1788360300,1788424200,1788507000)
+var uS = array.from(-1,-1,1,-1,1,-1,-1,1,1,1,1,-1,-1,1,1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,1,1,-1,-1,1,1,1,-1)
+
+// ---- per-variant state ----
+var pos  = array.new_int(NV, 0)
+var pend = array.new_int(NV, 0)
+var eP   = array.new_float(NV, na)
+var eTm  = array.new_int(NV, 0)
+var sl   = array.new_float(NV, na)
+var tp   = array.new_float(NV, na)
+var lOS  = array.new_int(NV, -100000)
+var lOB  = array.new_int(NV, -100000)
+var lEx  = array.new_int(NV, -1)
+var dCnt = array.new_int(NV, 0)
+var mN   = array.new_int(NV, 0)
+var mW   = array.new_int(NV, 0)
+var mSW  = array.new_float(NV, 0.0)
+var mSL  = array.new_float(NV, 0.0)
+var mC   = array.new_float(NV, 0.0)
+var mEq  = array.new_float(NV, 0.0)
+var mPk  = array.new_float(NV, 0.0)
+var mDD  = array.new_float(NV, 0.0)
+var dP   = array.new_float(NV, 0.0)
+var sD2  = array.new_float(NV, 0.0)
+var caught = array.new_bool(NV * 36, false)
+var int nD = 0
+var int dayStart = 0
+var int firstT = time
+var int countFrom = na
+if bar_index == warm
+    countFrom := (math.floor(time / 86400000.0) + 1) * 86400000
+
+// ---- day roll: push the finished day's P&L (daily Sharpe) ----
+if newDay
+    if not na(countFrom) and dayStart >= countFrom
+        nD += 1
+        for v = 0 to NV - 1
+            d = array.get(dP, v)
+            array.set(sD2, v, array.get(sD2, v) + d * d)
+    for v = 0 to NV - 1
+        array.set(dP, v, 0.0)
+        array.set(dCnt, v, 0)
+    dayStart := time
+
+for v = 0 to NV - 1
+    f  = array.get(fam, v)
+    os = array.get(vOS, v)
+    ob = array.get(vOB, v)
+    if f == 1
+        if rsi < os
+            array.set(lOS, v, bar_index)
+        if rsi > ob
+            array.set(lOB, v, bar_index)
+    eodV = array.get(vEod, v) == 1 or not isCrude
+    p = array.get(pos, v)
+    // pending entry fills at this bar's open
+    if array.get(pend, v) != 0
+        p := array.get(pend, v)
+        array.set(pos, v, p)
+        array.set(pend, v, 0)
+        array.set(eP, v, open)
+        array.set(eTm, v, time)
+        if isCrude and not na(countFrom) and time >= countFrom
+            for i = 0 to 35
+                if math.abs(array.get(uT, i) * 1000 - time) <= 6 * tfMs and array.get(uS, i) == p
+                    array.set(caught, v * 36 + i, true)
+    // exits
+    if p != 0
+        slv = array.get(sl, v)
+        tpv = array.get(tp, v)
+        float xp = na
+        hf = (high - open) < (open - low)
+        if p == 1
+            if open <= slv
+                xp := open
+            else if open >= tpv
+                xp := open
+            else if low <= slv and high >= tpv
+                xp := hf ? tpv : slv
+            else if high >= tpv
+                xp := tpv
+            else if low <= slv
+                xp := slv
+        else
+            if open >= slv
+                xp := open
+            else if open <= tpv
+                xp := open
+            else if high >= slv and low <= tpv
+                xp := hf ? slv : tpv
+            else if low <= tpv
+                xp := tpv
+            else if high >= slv
+                xp := slv
+        if na(xp) and eodV and eodBar
+            xp := close
+        if not na(xp)
+            ep = array.get(eP, v)
+            c = costPct / 100 * (ep + xp)
+            pts = p * (xp - ep) - c
+            if not na(countFrom) and array.get(eTm, v) >= countFrom
+                array.set(mN, v, array.get(mN, v) + 1)
+                if pts > 0
+                    array.set(mW, v, array.get(mW, v) + 1)
+                    array.set(mSW, v, array.get(mSW, v) + pts)
+                else
+                    array.set(mSL, v, array.get(mSL, v) + pts)
+                array.set(mC, v, array.get(mC, v) + c)
+                eq = array.get(mEq, v) + pts
+                array.set(mEq, v, eq)
+                array.set(mPk, v, math.max(array.get(mPk, v), eq))
+                array.set(mDD, v, math.max(array.get(mDD, v), array.get(mPk, v) - eq))
+                array.set(dP, v, array.get(dP, v) + pts)
+            array.set(pos, v, 0)
+            array.set(lEx, v, bar_index)
+            p := 0
+    // new signals (flat only)
+    mpd = array.get(vMpd, v)
+    if p == 0 and inSess and not (eodV and eodBar) and (mpd == 0 or array.get(dCnt, v) < mpd)
+        e  = array.get(vEma, v)
+        tL = e == 0 or (e9 > e22 and (e == 1 or close > e200))
+        tS = e == 0 or (e9 < e22 and (e == 1 or close < e200))
+        sf = array.get(vShaF, v) == 1
+        pb = array.get(vPB, v)
+        bool sL = false
+        bool sS = false
+        if f == 1
+            held = array.get(vSha, v) == 0 or shaAge >= array.get(vSha, v)
+            tr = array.get(vTrig, v)
+            trL = tr == 0 ? xUpMa : tr == 1 ? xUp50 : hiBrk
+            trS = tr == 0 ? xDnMa : tr == 1 ? xDn50 : loBrk
+            lx = array.get(lEx, v)
+            sL := shaUp and held and tL and bar_index - array.get(lOS, v) <= pb and array.get(lOS, v) > lx and trL
+            sS := not shaUp and held and tS and bar_index - array.get(lOB, v) <= pb and array.get(lOB, v) > lx and trS
+        else if f == 2
+            sL := tL and bsTouchL <= pb - 1 and close > e9 and close > open and (not sf or shaUp)
+            sS := tS and bsTouchS <= pb - 1 and close < e9 and close < open and (not sf or not shaUp)
+        else if f == 3
+            sL := shaFlipUp and tL
+            sS := shaFlipDn and tS
+        else if f == 4
+            sL := close > (pb == 20 ? hi20p : hi10p) and tL and (not sf or shaUp)
+            sS := close < (pb == 20 ? lo20p : lo10p) and tS and (not sf or not shaUp)
+        else if f == 5
+            sL := rsiPrev < os and rsi >= os and tL
+            sS := rsiPrev > ob and rsi <= ob and tS
+        else
+            sL := low < lo20p and close > lo20p and tL and (not sf or shaUp)
+            sS := high > hi20p and close < hi20p and tS and (not sf or not shaUp)
+        mn = array.get(vMinSL, v) * atr
+        rL = math.max(close - (swLo - 0.1 * atr), mn)
+        rS = math.max((swHi + 0.1 * atr) - close, mn)
+        r = array.get(vRR, v)
+        if sL and rL <= maxSLx * atr
+            array.set(pend, v, 1)
+            array.set(sl, v, close - rL)
+            array.set(tp, v, close + r * rL)
+            array.set(dCnt, v, array.get(dCnt, v) + 1)
+        else if sS and rS <= maxSLx * atr
+            array.set(pend, v, -1)
+            array.set(sl, v, close + rS)
+            array.set(tp, v, close - r * rS)
+            array.set(dCnt, v, array.get(dCnt, v) + 1)
+
+plot(close, "close", display=display.none)
+
+if barstate.islast
+    var table t = table.new(position.top_right, 1, NV + 1, bgcolor=color.new(color.black, 10))
+    uIn = 0
+    for i = 0 to 35
+        ut = array.get(uT, i) * 1000
+        if isCrude and not na(countFrom) and ut >= countFrom and ut <= time
+            uIn += 1
+    inclLast = not na(countFrom) and dayStart >= countFrom
+    table.cell(t, 0, 0, "LAB|" + syminfo.ticker + "|" + timeframe.period + "|first=" + str.tostring(firstT) + "|from=" + str.tostring(countFrom) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(nD + (inclLast ? 1 : 0)) + "|uIn=" + str.tostring(uIn), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
+    for v = 0 to NV - 1
+        cN = 0
+        for i = 0 to 35
+            if array.get(caught, v * 36 + i)
+                cN += 1
+        d = inclLast ? array.get(dP, v) : 0.0
+        row = "V" + (v < 9 ? "0" : "") + str.tostring(v + 1) + "|" + str.tostring(array.get(mN, v)) + "|" + str.tostring(array.get(mW, v)) + "|" + str.tostring(array.get(mSW, v), "#.#") + "|" + str.tostring(array.get(mSL, v), "#.#") + "|" + str.tostring(array.get(mC, v), "#.#") + "|" + str.tostring(array.get(mDD, v), "#.#") + "|" + str.tostring(array.get(sD2, v) + d * d, "#.#") + "|" + str.tostring(cN)
+        table.cell(t, 0, v + 1, row, text_color=color.white, text_size=size.tiny, text_halign=text.align_left)

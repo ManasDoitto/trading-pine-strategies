@@ -1185,3 +1185,103 @@ user's 78% win rate comes from. Use v3.0 as a signal generator to review. It
 is not an autonomous system. Marking more trades, especially ones the user
 **skipped** despite a setup, is the most useful next input: that would show
 what the selection filter actually is.
+
+---
+
+## Variant lab: 32 strategy variations x 3 scripts x 3m/5m, all available history
+
+**Why a lab:** one indicator
+(`variant lab v1 (32 intraday variants, 6 families, scored side by side in one pass).pine.txt`)
+simulates 32 variants on the same bars at once, so every variant sees exactly
+the same data. Each variant covers one of 6 strategy families that this repo
+has tried:
+
+- **A** SHA+RSI(3) pullback (v3.0 and 16 variations)
+- **B** EMA9/22 touch pullback (crude v1 idea)
+- **C** SHA colour flip
+- **D** Donchian breakout + SHA
+- **E** RSI(3) extreme snap-back
+- **F** liquidity-sweep fade (BN v13 / Nifty v2 idea)
+
+It was walked back through **42 replay windows** that tile the history
+exactly, each counting trades from its own UTC midnight so nothing is
+double-counted:
+
+| Script / TF | History | Windows |
+|---|---|---|
+| CrudeOil 5m | Mar 2024-Sep 2026 | 11 |
+| CrudeOil 3m | Mar 2025-Sep 2026 | 11 |
+| BankNifty 5m | Mar 2024-Sep 2026 | 5 |
+| BankNifty 3m | Mar 2025-Sep 2026 | 5 |
+| Nifty 50 spot 5m | Jan 2024-Sep 2026 | 5 |
+| Nifty 50 spot 3m | Feb 2025-Sep 2026 | 5 |
+
+Two windows were discarded because replay clamps at its floor and they would
+have overlapped. Raw dumps, aggregation scripts, the full CSV and the full
+192-row comparison are in `variant_lab_v1/`.
+
+**Sim rules** (mirror the Strategy Tester):
+- qty 1, points, cost 0.02% of price per side
+- signal on close, fill at the next open, fixed SL/TP
+- TradingView's intrabar-path heuristic
+- indices are always flat by 15:24 IST, so V01 = V02 on indices
+- sanity check: V01 = 184 trades vs the real v3.0 strategy's 189 on the same crude 5m window
+
+### Best variant per script/TF (ranked by daily Sharpe, net of costs)
+
+| Script / TF | Best variant | Trades | Win% | PF | Net pts | Gross pts | Sharpe | +windows | v3.0 (V01) net |
+|---|---|---|---|---|---|---|---|---|---|
+| Crude 5m | V21 SHA flip, RR 1:3 | 838 | 28.2 | 1.10 | **+2,240** | +4,401 | **+0.53** | 6/11 | -2,587 |
+| Crude 3m | V07 v3.0 with RSI>50 trigger | 2,253 | 31.6 | 1.00 | -144 | +5,770 | -0.04 | 4/11 | -723 |
+| BankNifty 5m | V22 SHA flip + EMA200, RR 1:2 | 393 | 39.7 | 0.88 | -3,289 | +5,184 | -0.63 | 1/5 | -29,037 |
+| BankNifty 3m | V24 Donchian20 + SHA, RR 1:3 | 517 | 33.7 | 0.75 | -10,939 | +762 | -2.12 | 1/5 | -24,830 |
+| Nifty 5m | V22 SHA flip + EMA200, RR 1:2 | 374 | 39.6 | 0.84 | -1,846 | +1,766 | -0.89 | 0/5 | -8,372 |
+| Nifty 3m | V21 SHA flip, RR 1:3 | 425 | 31.5 | 0.73 | -3,430 | +743 | -2.06 | 0/5 | -7,741 |
+
+### Family ranking (best member's daily Sharpe)
+
+| Family | Crude 5m | Crude 3m | BN 5m | BN 3m | Nifty 5m | Nifty 3m |
+|---|---|---|---|---|---|---|
+| C SHA flip | **+0.53** | -0.11 | **-0.63** | -3.05 | **-0.89** | **-2.06** |
+| D Breakout | -0.11 | -0.64 | -1.66 | **-2.12** | -1.44 | -2.20 |
+| A SHA+RSI3 pullback (v3.0) | -0.34 | **-0.04** | -2.36 | -3.08 | -1.85 | -2.66 |
+| B EMA-touch | -0.49 | -1.09 | -3.97 | -4.13 | -2.89 | -4.76 |
+| F Sweep-fade | -0.76 | -1.47 | -1.41 | -2.26 | -2.23 | -3.90 |
+| E RSI3 snap-back | -2.48 | -3.43 | -4.37 | -5.78 | -3.83 | -4.66 |
+
+### Cost drag: profitable before vs after costs (of 32 variants)
+
+| Script / TF | Cost per trade | Gross-profitable | Net-profitable |
+|---|---|---|---|
+| Crude 5m | 2.6 pts | 26 | 1 |
+| Crude 3m | 2.6 pts | 24 | 0 |
+| BankNifty 5m | 21.7 pts | 5 | 0 |
+| BankNifty 3m | 22.6 pts | 4 | 0 |
+| Nifty 5m | 9.7 pts | 20 | 0 |
+| Nifty 3m | 9.8 pts | 12 | 0 |
+
+**Verdict (honest):**
+
+1. **Only 1 of 192 variant/script/TF combinations is net-profitable:** SHA flip
+   with RR 1:3 on CrudeOil 5m (+2,240 pts over 2.5 years, PF 1.10, daily
+   Sharpe 0.53, 6/11 windows positive). With 192 attempts, one such result can
+   appear by chance. Treat it as a lead to forward-test, not an edge.
+2. **Costs are the main killer on crude.** 26 of 32 variants make money before
+   costs but lose after them. The crude signals have a small real gross edge,
+   about 1-3 bps per trade, which 0.04% round-trip costs erase.
+3. **Indices at 3m/5m have no edge in any family**, even before costs, for
+   most variants. BankNifty's ~22-point round trip is decisive.
+4. **Trend-following (SHA flip, breakout) beats mean-reversion everywhere.**
+   Fading RSI extremes and fading sweeps are the worst families on all 6
+   script/TFs. Fewer, longer trades with RR >= 2 do best.
+5. **v3.0 (tuned to the user's marks) is net-negative on every script/TF.**
+   On crude it is gross-positive but net-negative. It catches 10-11 of the
+   user's 36 marked trades. EMA-touch variants catch the most (up to 16/36 on
+   crude 3m) but lose more money.
+6. The lab's sweep-fade is a simplified version of BN v13 / Nifty v2, so it
+   does not replace those scripts' own walk-forward numbers above.
+
+**What would actually help next:** cut trade frequency, costs per trade, or
+both. For example, trade SHA flip only in the direction of a higher-timeframe
+trend, or use limit entries. Forward-test V21 on CrudeOil 5m on paper before
+risking capital.
