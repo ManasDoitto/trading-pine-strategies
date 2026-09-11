@@ -1063,6 +1063,25 @@ than exit engineering on a marginal edge. Still a research lead, not a
 proven edge: same single-vendor, in-sample, never-forward-tested caveat as
 everything else in this repo.
 
+> ⚠️ **CORRECTION — the v2.3 HTF filter is NOT doing what its name implies.**
+> Found on visual inspection of the marked-up 5m chart: a **daily** EMA20 is
+> far too slow for a 5-minute strategy. After crude's ~11% rally in early
+> Sep 2026 (8,700 → 9,700 in ~4 days), the daily EMA20 sat ~950 points
+> *below* price, so `close > dailyEMA` stayed TRUE continuously —
+> **every one of the last 10 trades on the chart is a LONG; there is not a
+> single short.** The gate is not behaving as "trade with the daily trend";
+> it behaves as a **slow one-directional switch** that blocks one entire
+> side of the market for weeks at a time.
+>
+> That materially weakens the claimed improvement above. The worst window's
+> gain (−49.3% → −17.2%) may simply be "it happened to block the losing
+> direction in that window", not genuine multi-timeframe confluence — and
+> with only ~2.5 years and 6 windows, a directional-bias filter can look
+> good by luck very easily. **Treat the v2.3 numbers as unexplained until
+> re-tested with a responsive HTF gate** (e.g. a 1-hour EMA, or the *slope*
+> of the daily EMA rather than price-vs-level, which would not pin to one
+> direction for weeks). That re-test has not been done.
+
 ## Three-instrument, three-timeframe final recommendation
 
 *(This section covers the original 15m-inclusive picture. For the current
