@@ -414,11 +414,39 @@ review; `nifty v2 Sweep-Fade 15min` is the shipped default for manual entry/SL/
 exit review (fixed SL/target at entry, no trailing, no breakeven-move, so you
 can check the plan against what actually happened on every trade).
 
+### Extended walk-forward — as far back as data goes (~Apr 2019, ~7.5 years)
+
+| Window (~6mo) | Trades | Win% | PF | Net/mo |
+|---|---|---|---|---|
+| ~Dec 2018–Apr 2019 (data start, partial) | 53 | 39.6% | 1.30 | −10 |
+| ~Dec 2019–Jun 2020 (COVID crash) | 53 | 43.4% | 1.77 | +16 |
+| ~Dec 2020–Jun 2021 | 32 | 31.3% | 1.73 | +20 |
+| ~Dec 2021–Jun 2022 | 41 | 26.8% | 1.20 | −4 |
+| ~Dec 2022–Jun 2023 | 56 | 30.4% | 1.23 | −4 |
+| ~Oct 2023–Apr 2024 (worst window found) | 40 | 30.0% | **0.70** | **−40** |
+| ~Apr–Oct 2024 | 34 | 41.2% | 1.36 | −1 |
+| ~Apr–Oct 2025 | 49 | 44.9% | 2.25 | +50 |
+| ~Oct 2025–Apr 2026 | 65 | 43.1% | 2.71 | +119 |
+| ~Feb–Sep 2026 (full, most recent) | 75 | 42.7% | 3.08 | +178 |
+
+**Honest read: 5 of 10 windows are net-negative**, one clearly so (Oct 2023–Apr
+2024, PF 0.70, −40/mo — a real loser, not just thin). But **no window is a
+disaster on the scale seen everywhere else in this repo** (BankNifty windows ran
+to −250 to −350/mo) — the worst Nifty case is −40/mo. There's also a visible
+*improving* trend from 2024 into 2025–26 that deserves suspicion rather than
+excitement: this whole concept was originally **found by searching against
+2025–26 data**, so outperformance there is partly what you'd expect from the
+search process itself, not necessarily a strengthening edge. The pre-2024 years
+(2019–2023) are the truer out-of-sample test, and they show a mixed, modest
+picture — roughly flat to small-positive on average, one real loser, never
+catastrophic. **Treat this as "doesn't blow up" evidence, not "proven
+profitable" evidence.**
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
 |---|---|---|---|
-| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned | Only config to survive 2024 net-non-negative; PF 1.4–3.1 across 4 windows | **Most promising — start here** |
+| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned | Never catastrophic across 10 windows / 7.5yr (worst −40/mo vs BankNifty's −350/mo), but 5 of 10 windows net-negative and recent outperformance may be search bias | **Most promising, still not proven — start here** |
 | **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
 | **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | Best (only) candidate tested; breakeven-to-losing 3 of 4 windows, +61% in 1 | Single-window edge, weakest of the three |
 

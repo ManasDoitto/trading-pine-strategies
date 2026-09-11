@@ -32,9 +32,37 @@
 //  strict improvement: v1 still books more total points if you want frequency.
 //  This file (v2) is the one to use for manual entry/SL/exit review.
 //
-//  Still only 4 windows, ~18 months, single data vendor, 41-45% win rate (a
-//  handful of larger winners carry the average) - promising, NOT proven.
-//  Paper-trade before risking capital.
+//  ---------------------------------------------------------------------------
+//  EXTENDED WALK-FORWARD - as far back as NSE:NIFTY 15m data goes (~Apr 2019).
+//  10 x ~6-month windows, ~7.5 years:
+//    Window                     Trades  Win%   PF    Net/mo
+//    ~Dec 2018-Apr 2019 (data start, partial)  53  39.6%  1.30   -10
+//    ~Dec 2019-Jun 2020 (COVID crash)          53  43.4%  1.77   +16
+//    ~Dec 2020-Jun 2021                        32  31.3%  1.73   +20
+//    ~Dec 2021-Jun 2022                        41  26.8%  1.20    -4
+//    ~Dec 2022-Jun 2023                        56  30.4%  1.23    -4
+//    ~Oct 2023-Apr 2024 (worst window found)   40  30.0%  0.70   -40
+//    ~Apr-Oct 2024                             34  41.2%  1.36    -1
+//    ~Apr-Oct 2025                             49  44.9%  2.25   +50
+//    ~Oct 2025-Apr 2026                        65  43.1%  2.71  +119
+//    ~Feb-Sep 2026 (full, most recent)         75  42.7%  3.08  +178
+//
+//  HONEST READ: 5 of 10 windows are net-negative, one clearly so (Oct 2023-Apr
+//  2024, PF 0.70, -40/mo - a real loser, not just thin). BUT no window is a
+//  disaster on the scale seen everywhere else in this repo (BankNifty windows
+//  ran to -250..-350/mo) - the worst Nifty case is -40/mo. There is also a
+//  visible IMPROVING trend from 2024 into 2025-26 that should be read with
+//  suspicion: this whole concept was originally found by searching against
+//  2025-26 data, so outperformance there is partly what you'd expect from the
+//  search process itself, not necessarily a strengthening edge. The pre-2024
+//  years (2019-2023) are the truer out-of-sample test and show a MIXED,
+//  modest picture - roughly flat to small-positive on average, one real
+//  loser, never catastrophic. Treat this as "doesn't blow up" evidence, not
+//  "proven profitable" evidence.
+//
+//  Still single data vendor, 41-45% win rate typical (a handful of larger
+//  winners carry the average) - promising, NOT proven. Paper-trade before
+//  risking capital.
 //
 //  Chart: green/red background = daily-trend regime (price vs 8-day daily
 //  SMA). BUY/SELL shapes mark entries. STOP-LOSS / TARGET lines plot live -
