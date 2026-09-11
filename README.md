@@ -341,13 +341,67 @@ walk-forward support — treat it as regime-conditional (works when the market
 drifts down or sideways, bleeds in a sustained uptrend), paper-trade it, and
 size for the drawdowns shown above, not the best-window headline numbers.
 
+## Cross-instrument x cross-timeframe matrix (2 concepts x 3 instruments x 3m/5m/15m)
+
+Took the two strongest concepts in the repo (`v13` sweep-fade and the CrudeOil
+`v1.0` EMA 9/22 pullback) and ran each on **every instrument at every
+timeframe** — 18 cells, single recent window (un-tuned `stopCapPts`, not
+instrument-optimised — a triage pass, not a final backtest):
+
+**`v13` sweep-fade** — PF / net-points-per-month:
+
+| Instrument | 3m | 5m | 15m |
+|---|---|---|---|
+| BankNifty1! | 0.89 / −254 | 0.99 / −137 | 0.93 / −67 |
+| **NIFTY (spot)** | 0.71 / −211 | 1.08 / −89 | **2.99 / +233** |
+| CrudeOil1! | 0.64 / −94 | 1.17 / −57 | 1.99 / +48 |
+
+**EMA 9/22 pullback** — PF / net-points-per-month (all 9 cells negative):
+
+| Instrument | 3m | 5m | 15m |
+|---|---|---|---|
+| BankNifty1! | 0.77 / −1114 | 0.98 / −383 | 0.97 / −179 |
+| NIFTY (spot) | 0.73 / −714 | 0.69 / (single-window, ~−0.4%) | 1.16 / −44 |
+| CrudeOil1! | 1.51 / −398 | 0.69–1.89 (window-dependent) | 0.91 / −181 |
+
+**One cell stood out: `v13` sweep-fade on NIFTY spot, 15-minute.** Walk-forwarded
+it across the same four windows used everywhere else in this repo:
+
+| Window | Trades | Win% | PF | Net pts | Net/mo |
+|---|---|---|---|---|---|
+| ~Apr–Oct 2024 (the window that breaks every other config) | 45 | 46.7% | 1.22 | −134 | −7 |
+| ~Apr–Oct 2025 | 64 | 45.3% | 2.04 | +1407 | +69 |
+| ~Oct 2025–Apr 2026 | 83 | 48.2% | 2.90 | +3858 | +189 |
+| ~Feb–Sep 2026 (full) | 90 | 45.6% | 2.99 | +4733 | +233 |
+
+**This is the first config in the entire project — across ~25 BankNifty
+concept families, CrudeOil, and Nifty — to survive the 2024 trending-year
+stress test without going net negative.** Every other config broke on 2024;
+this one goes to roughly breakeven (−7 pts/month) instead of −150 to −350.
+Saved as `nifty v1 Sweep-Fade 15min`, built for manual review: green/red
+background = daily-trend regime (price vs 8-day daily SMA), BUY/SELL shapes on
+every entry, STOP-LOSS/TARGET lines plotted live, on-chart points scoreboard.
+
+**Caveats — promising, not proven:** only 4 windows (~18 months), single data
+vendor, 45–48% win rate (a handful of big winners carry the average), and this
+emerged from an un-tuned parameter set carried over from BankNifty rather than
+optimised for Nifty specifically — the real test is tuning it properly and then
+walk-forwarding again, plus extending further back than 2024 if data allows.
+
+## Three-instrument, three-timeframe final recommendation
+
+| Instrument | Best strategy found | Why | Status |
+|---|---|---|---|
+| **Nifty (spot), 15m** | `v13` sweep-fade "bear" | Only config to survive 2024 net-non-negative; PF 1.2–3.0 across 4 windows | **Most promising — start here** |
+| **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
+| **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | Best (only) candidate tested; breakeven-to-losing 3 of 4 windows, +61% in 1 | Single-window edge, weakest of the three |
+
 **Bottom line on the whole repo:** No mechanical BankNifty **3m** edge survived
-walk-forward. On **5m**, the prior-day-level sweep-fade family (`v10.3`–`v13`) is
-net-positive only on the Apr 2025→Sep 2026 sample and loses through 2024;
-`v13` "bear" is the least-bad but still not multi-year-robust. CrudeOil v1.0's
-edge is also a single favourable window and does not survive extended
-walk-forward. Nifty spot fails on all three of the best-tested concepts in
-every window. **None of the three instruments has produced a validated,
-durable mechanical strategy.** Everything here is research, not a system —
-forward-test on paper before risking capital, and expect regime-conditional
-performance at best.
+walk-forward. `v13` "bear" is BankNifty's least-bad 5m config but not
+multi-year-robust; ported to **Nifty spot at 15m it becomes the strongest result
+in the repo**, surviving all four walk-forward windows. CrudeOil v1.0's edge is
+a single favourable window and does not survive extended walk-forward on 3m/5m/
+15m or on other instruments. **Nothing here is a validated, durable mechanical
+strategy** — the Nifty 15m result is a genuine lead worth manually refining
+(entry/SL/exit marked on chart for exactly that); everything else is a research
+note. Forward-test on paper before risking capital.
