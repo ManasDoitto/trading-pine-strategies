@@ -298,11 +298,56 @@ trend-run). Strip the one CrudeOil blow-out window and the combined book is
 ≈ flat over 18 months. The book is smoother than either piece alone but is
 **not a tradeable system** — its positive total rests on one lucky window.
 
+## Nifty 50 (NSE:NIFTY spot index, 5-minute) — the 3 best-tested concepts, all fail
+
+Took the 3 concept families that performed best elsewhere in this repo —
+`v13` sweep-fade (BankNifty's least-bad), the CrudeOil v1.0 EMA 9/22 pullback,
+and ORB continuation (the least-bad momentum concept) — and ran each fresh on
+Nifty spot across the same ~6-month windows used everywhere else. Points =
+index points (qty=1 "unit"), 10-pt/round-trip option-cost charge, no commission.
+
+| Concept | Full window | ~Apr–Oct 2024 | ~Apr–Oct 2025 | ~Oct 2025–Apr 2026 |
+|---|---|---|---|---|
+| `v13` sweep-fade (bear) | +204 gross, 29% win, PF 1.09 → **net −546** | +94 gross, 39% win → **net −136** | −251 gross, 30% win → **net −691** | −595 gross, 21% win → **net −1225** |
+| EMA 9/22 pullback (CrudeOil logic) | PF 0.69, 31% win, **−0.42%** | PF 1.06, 42% win, **+0.05%** | PF 0.62, 35% win, **−0.45%** | PF 0.90, 40% win, **−0.14%** |
+| ORB continuation | PF 0.78, 24% win, **net −752** | PF 1.08, 28% win, **net +236 gross → net negative after cost** | — | — |
+
+**All three lose in every window, several worse than on BankNifty.** Nifty is a
+diversified large-cap index — lower intraday volatility and more efficient than
+BankNifty (which is dominated by a handful of high-beta financials), so the
+same point-based sweep/pullback/breakout triggers have even less to work with.
+Re-tuning parameters specifically for Nifty was not attempted: given that
+BankNifty's own "edge" collapsed the moment the walk-forward window was
+extended (see above), and that the same three concepts independently fail on
+two different instruments, further Nifty-specific curve-fitting would very
+likely just manufacture another regime artifact rather than find a real one.
+
+## Three-instrument scoreboard — the honest comparison
+
+| Instrument | Best strategy | 2025–26 result | Extended (2024+) result | Verdict |
+|---|---|---|---|---|
+| **BankNifty** | `v13` sweep-fade, mode "bear" | +12% to +19% per 6mo window, PF 1.1–2.3 | 1 of 4 windows negative (−2%), rest positive | **Least-bad of the three** — regime-conditional, not durable |
+| **CrudeOil** | `v1.0` EMA 9/22 pullback | +41.6% single tuned window (PF 1.89) | Breakeven-to-losing 3 of 4 windows (−6.1% to −6.7%); +61% in 1 window | Single-window edge, not reproducible on demand |
+| **Nifty** | none of the 3 tested | all net-negative after cost, every window | all net-negative after cost, every window | **No candidate found** |
+
+**There are not three winning strategies per instrument.** Across BankNifty (~20
+concept families), CrudeOil (1 strategy, re-tested), and Nifty (the 3 best
+candidates from the other two), the search converges on the same result: no
+mechanical intraday strategy in this rule space (price-action pullback,
+breakout, fade/sweep, mean-reversion, SMC/order-block, VWAP, gap, EMA-stack,
+momentum) holds up once tested across more than one favourable window. If you
+want to trade any of these, `v13`-bear on BankNifty is the one with the most
+walk-forward support — treat it as regime-conditional (works when the market
+drifts down or sideways, bleeds in a sustained uptrend), paper-trade it, and
+size for the drawdowns shown above, not the best-window headline numbers.
+
 **Bottom line on the whole repo:** No mechanical BankNifty **3m** edge survived
 walk-forward. On **5m**, the prior-day-level sweep-fade family (`v10.3`–`v13`) is
 net-positive only on the Apr 2025→Sep 2026 sample and loses through 2024;
 `v13` "bear" is the least-bad but still not multi-year-robust. CrudeOil v1.0's
 edge is also a single favourable window and does not survive extended
-walk-forward. **Neither instrument has produced a validated, durable mechanical
-strategy.** Everything here is research, not a system — forward-test on paper
-before risking capital, and expect regime-conditional performance.
+walk-forward. Nifty spot fails on all three of the best-tested concepts in
+every window. **None of the three instruments has produced a validated,
+durable mechanical strategy.** Everything here is research, not a system —
+forward-test on paper before risking capital, and expect regime-conditional
+performance at best.
