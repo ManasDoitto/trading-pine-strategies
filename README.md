@@ -979,6 +979,50 @@ direct, mechanical reason results look worse under the new constraint — not
 a regression in the work, but the cost of excluding the one timeframe where
 Nifty actually has an edge.
 
+### Trying to enhance Sharpe with price-action risk management
+
+User request: *"how can you enhance sharpe... use your professional trader
+mindset along with price action trading skill to improve it further."*
+Tested three classic professional exit-management techniques on the
+CrudeOil `v2.1` pick (Sharpe −0.13 in its worst window), isolating each
+before combining:
+
+1. **Move stop to breakeven after +1R** (protect capital once a trade
+   proves itself) — alone: barely moved Sharpe in the worst window
+   (−0.13 → −0.11) and actively *hurt* the best window (0.22 → 0.16, since
+   it can shake a real trend out on a normal pullback).
+2. **Partial profit-take 50% at +1R, let the rest run to full target** (bank
+   a "single," professional risk-reduction) — this was the one lever that
+   moved the needle: worst window Sharpe **−0.13 → −0.09**, win rate
+   **33% → 52%**, max drawdown cut by ~45%. But in the best (trending)
+   window it capped upside: Sharpe **0.22 → 0.16**, net return **+159% →
+   +71%** — cutting a winner in half before a strong trend paid out in full.
+3. **Trail the stop to the EMA9 (the same MA the entry pulled back to)
+   after +1R**, instead of a fixed target — a genuine price-action idea
+   (ride the trend, exit only when structure breaks). Tested alone and
+   combined with #2: **no measurable improvement over #2 alone** in either
+   window — the trail never got a chance to bind before the fixed target
+   or the partial-exit already closed the trade out. Checked a 4th window
+   (Dec 2024–Jun 2025): Sharpe **worsened** to −0.19 with the combo despite
+   win rate rising to 46% — PF fell to 0.54 because winners shrank more than
+   losses were avoided.
+
+**Honest professional read: none of these are a clean fix.** Every lever
+that raises Sharpe/win-rate/consistency in one window does so by capping
+winners, and pays for it in whichever window has the real trend that this
+strategy actually needs to be profitable overall. This is not a coding
+gap — it is the fundamental trade-off between **smoothing an equity curve**
+(better Sharpe, lower variance, more "professional-looking" trade sequence)
+and **capturing full trend extension** (better raw return, worse Sharpe on
+paper) that every trend/pullback strategy faces, and it cannot be solved by
+exit-mechanism tuning alone when the underlying edge is this thin and
+regime-dependent. **The binding constraint is entry-signal quality, not
+exit management** — a genuinely higher-Sharpe version of this strategy
+would need a better filter for *which* pullbacks are worth taking (e.g.
+higher-timeframe trend confluence, or volatility-regime gating), not a
+better way to exit the ones it already takes. That is a new research
+direction, not a tuning pass, and has not been attempted.
+
 ## Three-instrument, three-timeframe final recommendation
 
 *(This section covers the original 15m-inclusive picture. For the current
