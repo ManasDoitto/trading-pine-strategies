@@ -1,0 +1,247 @@
+//@version=5
+// ============================================================================
+//  CrudeOil SHA-Trend RSI(3) Pullback v3.0  --  MCX:CRUDEOIL1! (5-minute)
+//  ---------------------------------------------------------------------------
+//  Built from the user's own 36 hand-marked trades (TradingView long/short
+//  position drawings, read programmatically), not from a parameter search.
+//  What the user's entries had in common (27 clean trades, 21 TP / 6 SL):
+//    - Smoothed Heikin Ashi (EMA10/EMA10) colour on the trade's side (20/27)
+//    - EMA9 vs EMA22 aligned with the trade (24/27)
+//    - EVERY long had RSI(3) < 30 within the prior ~11 bars; every short had
+//      RSI(3) > 70 within ~18 bars -> they buy pullbacks in an uptrend,
+//      they do not chase breakouts
+//    - SL ~2x ATR, placed just beyond the recent 10-bar swing
+//    - fixed R:R target (2.4 in the Feb 2026 forward test, 3-5 later)
+//    - they never exit on an SHA flip (SHA often flipped against them
+//      25-35 bars in, and the trade still hit TP much later)
+//  Rules encoded here:
+//    trend   : SHA colour + EMA9/22 (+ optional close vs EMA200)
+//    setup   : RSI(3) beyond rsiOS/rsiOB within pbWin bars (the pullback)
+//    trigger : RSI(3) crosses back over its 14-SMA (the yellow line)
+//    stop    : beyond the swLen-bar swing + swBuf*ATR, clamped to
+//              [minSL, maxSL] x ATR (skip the trade if wider than maxSL)
+//    target  : rr x risk, no trailing, no SHA-flip exit
+//    anti-churn: one position at a time AND a brand-new pullback is needed
+//              after every exit (fixes "multiple trades inside my mark");
+//              optional max entries/day, cooldown, min SHA-colour age
+//  A table scores the strategy against the user's marks: how many of the
+//  user's trades it catches (same direction within +-30 min), and how many
+//  extra entries it takes inside a user trade.
+//  ---------------------------------------------------------------------------
+//  Tuned defaults (single-variable steps, scored vs the user's marks in the
+//  29-Dec-25..25-Mar-26 window): minSL 2.0 ATR, EMA200 filter OFF, RSI(3)
+//  30/70, pbWin 12, R:R 2.4, 10-bar swing SL, SHA colour held >= 3 bars.
+//  Walk-forward (qty 1, 0.02% commission, tester INR / points):
+//    Jun-Aug 2025     170 tr  31% win  PF 0.89  -35.6k  (+38 pts)   0/2 caught
+//    Dec25-Mar26 *    189 tr  35% win  PF 1.54 +285.7k (+3338 pts)  6/14 caught
+//    Mar-Jun 2026     203 tr  35% win  PF 1.17 +190.6k (+2654 pts)  5/9 caught
+//    Jun-Sep 2026     189 tr  30% win  PF 0.94  -36.5k  (+222 pts)  0/4 caught
+//    (* = tuning window). 2 of 4 windows lose after costs. It catches 9 of
+//    the user's 27 clean trades but takes ~190 trades a quarter; the user's
+//    discretionary selectivity (77.8% win on their own marks) is NOT captured.
+//    Research tool / signal generator for review -- not a validated system.
+// ============================================================================
+strategy("CRUDE 5m v3.0 SHA-RSI3 pullback (user-tuned)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500)
+
+shaLen1   = input.int(10, "SHA pre-smooth EMA", group="Trend")
+shaLen2   = input.int(10, "SHA post-smooth EMA", group="Trend")
+useEmaAl  = input.bool(true, "Require EMA9 vs EMA22 alignment", group="Trend")
+use200    = input.bool(false, "Require close vs EMA200", group="Trend")
+rsiLen    = input.int(3, "RSI length", group="Pullback")
+rsiOS     = input.float(30, "Long: RSI dipped below", group="Pullback")
+rsiOB     = input.float(70, "Short: RSI spiked above", group="Pullback")
+pbWin     = input.int(12, "Pullback within N bars", group="Pullback")
+trigMode  = input.string("rsiXma", "Entry trigger", options=["rsiXma", "rsi50", "hiBreak"], group="Pullback")
+rsiMaLen  = input.int(14, "RSI MA length (yellow line)", group="Pullback")
+swLen     = input.int(10, "SL swing lookback (bars)", group="Risk")
+swBuf     = input.float(0.1, "SL buffer beyond swing (x ATR)", step=0.05, group="Risk")
+minSL     = input.float(2.0,"SL min distance (x ATR)", step=0.1, group="Risk")
+maxSL     = input.float(3.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
+rr        = input.float(2.4, "Target R:R", step=0.1, group="Risk")
+freshPB   = input.bool(true, "Need a NEW pullback after each exit (anti-churn)", group="Risk")
+useSess   = input.bool(true, "Session filter", group="Time")
+sess      = input.session("0915-2330", "Entry session", group="Time")
+showMarks = input.bool(true, "Entry / SL / TP marks", group="Visuals")
+showMatch = input.bool(true, "Match table vs user trades", group="Visuals")
+maxPerDay = input.int(0, "Max entries per day (0=off)", group="Anti-churn")
+coolBars  = input.int(0, "Cooldown bars after exit (0=off)", group="Anti-churn")
+minShaBars= input.int(3,"SHA colour held >= N bars (0=off)", group="Anti-churn")
+
+// ---- Smoothed Heikin Ashi (same maths as the public SHA indicator) ----
+o1 = ta.ema(open, shaLen1)
+c1 = ta.ema(close, shaLen1)
+h1 = ta.ema(high, shaLen1)
+l1 = ta.ema(low, shaLen1)
+haC = (o1 + h1 + l1 + c1) / 4
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+shaO = ta.ema(haO, shaLen2)
+shaC = ta.ema(haC, shaLen2)
+shaUp = shaC > shaO
+var int shaFlip = 0
+if shaUp != shaUp[1]
+    shaFlip := bar_index
+shaHeld = minShaBars == 0 or bar_index - shaFlip >= minShaBars
+
+e9   = ta.ema(close, 9)
+e22  = ta.ema(close, 22)
+e200 = ta.ema(close, 200)
+atr  = ta.atr(14)
+rsi  = ta.rsi(close, rsiLen)
+rsiMa = ta.sma(rsi, rsiMaLen)
+xUpMa = ta.crossover(rsi, rsiMa)
+xDnMa = ta.crossunder(rsi, rsiMa)
+xUp50 = ta.crossover(rsi, 50)
+xDn50 = ta.crossunder(rsi, 50)
+swLo = ta.lowest(low, swLen)
+swHi = ta.highest(high, swLen)
+
+trendUp = shaUp and (not useEmaAl or e9 > e22) and (not use200 or close > e200)
+trendDn = (not shaUp) and (not useEmaAl or e9 < e22) and (not use200 or close < e200)
+
+// ---- pullback tracking + anti-churn ----
+var int lastOS = na
+var int lastOB = na
+if rsi < rsiOS
+    lastOS := bar_index
+if rsi > rsiOB
+    lastOB := bar_index
+var int lastExit = -1
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExit := bar_index
+pbL = not na(lastOS) and bar_index - lastOS <= pbWin and (not freshPB or lastOS > lastExit)
+pbS = not na(lastOB) and bar_index - lastOB <= pbWin and (not freshPB or lastOB > lastExit)
+var int dayCount = 0
+if ta.change(time("D")) != 0
+    dayCount := 0
+dayOK  = maxPerDay == 0 or dayCount < maxPerDay
+coolOK = coolBars == 0 or bar_index - lastExit > coolBars
+
+trigL = trigMode == "rsiXma" ? xUpMa : trigMode == "rsi50" ? xUp50 : close > high[1]
+trigS = trigMode == "rsiXma" ? xDnMa : trigMode == "rsi50" ? xDn50 : close < low[1]
+inSess = not useSess or not na(time(timeframe.period, sess))
+flat = strategy.position_size == 0
+
+riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
+riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
+baseOK = flat and inSess and dayOK and coolOK and shaHeld
+okL = baseOK and trendUp and pbL and trigL and riskL <= maxSL * atr
+okS = baseOK and trendDn and pbS and trigS and riskS <= maxSL * atr and not okL
+
+var float slPx = na
+var float tpPx = na
+if okL
+    slPx := close - riskL
+    tpPx := close + rr * riskL
+    dayCount += 1
+    strategy.entry("L", strategy.long)
+    strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+    if showMarks
+        label.new(bar_index, low - atr, "▲ LONG " + str.tostring(close, "#") + "\nSL " + str.tostring(slPx, "#") + "  (" + str.tostring(riskL, "#") + " pts)\nTP " + str.tostring(tpPx, "#") + "  (" + str.tostring(rr * riskL, "#") + " pts)\nR:R 1:" + str.tostring(rr, "#.#"), style=label.style_label_up, color=color.new(color.teal, 10), textcolor=color.white, size=size.small, textalign=text.align_left)
+if okS
+    slPx := close + riskS
+    tpPx := close - rr * riskS
+    dayCount += 1
+    strategy.entry("S", strategy.short)
+    strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+    if showMarks
+        label.new(bar_index, high + atr, "▼ SHORT " + str.tostring(close, "#") + "\nSL " + str.tostring(slPx, "#") + "  (" + str.tostring(riskS, "#") + " pts)\nTP " + str.tostring(tpPx, "#") + "  (" + str.tostring(rr * riskS, "#") + " pts)\nR:R 1:" + str.tostring(rr, "#.#"), style=label.style_label_down, color=color.new(color.red, 10), textcolor=color.white, size=size.small, textalign=text.align_left)
+
+plot(showMarks and strategy.position_size != 0 ? strategy.position_avg_price : na, "ENTRY", color=color.new(color.white, 0), style=plot.style_linebr, linewidth=1)
+plot(showMarks and strategy.position_size != 0 ? slPx : na, "STOP-LOSS", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=2)
+plot(showMarks and strategy.position_size != 0 ? tpPx : na, "TARGET", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=2)
+bgcolor(showMarks and trendUp ? color.new(color.green, 93) : showMarks and trendDn ? color.new(color.red, 93) : na, title="Trend (SHA+EMA)")
+
+// ---- points scoreboard ----
+var float sumPts = 0.0
+var int nTr = 0
+var int nWin = 0
+var float sWin = 0.0
+var float sLoss = 0.0
+nc = strategy.closedtrades - strategy.closedtrades[1]
+if nc > 0
+    for k = 0 to nc - 1
+        i = strategy.closedtrades - 1 - k
+        d = strategy.closedtrades.size(i) > 0 ? 1.0 : -1.0
+        p = (strategy.closedtrades.exit_price(i) - strategy.closedtrades.entry_price(i)) * d
+        sumPts += p
+        nTr += 1
+        if p >= 0
+            nWin += 1
+            sWin += p
+        else
+            sLoss += p
+
+// ---- entries log, for matching against the user's marks ----
+var eT = array.new_int(0)
+var eS = array.new_int(0)
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    array.push(eT, time)
+    array.push(eS, 1)
+if strategy.position_size < 0 and strategy.position_size[1] >= 0
+    array.push(eT, time)
+    array.push(eS, -1)
+
+var uT = array.from(1744641900,1744650300,1744700400,1744705800,1744723800,1744730400,1744779900,1744791600,1744809900,1756100400,1756109100,1770008100,1770092400,1770142200,1770277500,1770304200,1770351900,1770366000,1770369000,1772543400,1773378300,1773381600,1773412500,1773835200,1773911700,1777546800,1777564500,1777640700,1778832000,1778856000,1779082800,1780637400,1788276600,1788360300,1788424200,1788507000)
+var uS = array.from(-1,-1,1,-1,1,-1,-1,1,1,1,1,-1,-1,1,1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,1,1,-1,-1,1,1,1,-1)
+var uX = array.from(1744647000,1744651800,1744704000,1744711200,1744726500,1744737300,1744782900,1744793700,1744814400,1756102500,1756116900,1770052200,1770110100,1770225900,1770296400,1770305700,1770363000,1770367500,1770372300,1772546700,1773379800,1773385800,1773418800,1773839700,1773913500,1777548300,1777567800,1777644600,1778838300,1778860200,1779085200,1780649100,1788280200,1788406200,1788430800,1788526200)
+// user review spans (whole days the user stepped through and marked)
+var spA = array.from(1770003000, 1773372600, 1788233400)
+var spB = array.from(1770402300, 1773426300, 1788546300)
+var spN = array.from("Feb 2-6 '26", "Mar 13 '26", "Sep 1-4 '26")
+var int firstT = time
+
+if (barstate.islastconfirmedhistory or barstate.islast) and showMatch
+    var table mt = table.new(position.bottom_right, 1, 45, bgcolor=color.new(color.black, 10))
+    barMs = timeframe.in_seconds() * 1000
+    ne = array.size(eT)
+    nU = 0
+    nC = 0
+    nCh = 0
+    rows = array.new_string(0)
+    for i = 0 to 35
+        ut = array.get(uT, i) * 1000
+        ux = math.max(array.get(uX, i) * 1000, ut + 6 * barMs)
+        if ut >= firstT and ux <= time
+            nU += 1
+            us = array.get(uS, i)
+            caught = false
+            ch = 0
+            if ne > 0
+                for j = 0 to ne - 1
+                    et = array.get(eT, j)
+                    if et >= ut - 6 * barMs and et <= ut + 6 * barMs and array.get(eS, j) == us
+                        caught := true
+                    if et > ut + 6 * barMs and et <= ux
+                        ch += 1
+            nC += caught ? 1 : 0
+            nCh += ch
+            array.push(rows, "#" + str.tostring(i + 1) + " " + (us == 1 ? "L " : "S ") + str.format_time(ut, "dd-MMM-yy HH:mm", "Asia/Kolkata") + "  caught=" + (caught ? "YES" : "no") + "  extra-entries-inside=" + str.tostring(ch))
+    spTxt = ""
+    for s = 0 to 2
+        a = array.get(spA, s) * 1000
+        b = array.get(spB, s) * 1000
+        if a >= firstT and b <= time
+            nu = 0
+            for i = 0 to 35
+                ut = array.get(uT, i) * 1000
+                if ut >= a and ut <= b
+                    nu += 1
+            ns = 0
+            if ne > 0
+                for j = 0 to ne - 1
+                    et = array.get(eT, j)
+                    if et >= a and et <= b
+                        ns += 1
+            spTxt := spTxt + array.get(spN, s) + ": you " + str.tostring(nu) + " / strategy " + str.tostring(ns) + "   "
+    pf = sLoss < 0 ? sWin / (-sLoss) : na
+    table.cell(mt, 0, 0, "v3.0 from " + str.format_time(firstT, "dd-MMM-yy", "Asia/Kolkata") + " | trades " + str.tostring(nTr) + " win " + str.tostring(nTr > 0 ? 100.0 * nWin / nTr : 0, "#.#") + "% PF " + str.tostring(pf, "#.##") + " | net " + str.tostring(sumPts, "#") + " pts | avgW " + str.tostring(nWin > 0 ? sWin / nWin : 0, "#") + " avgL " + str.tostring(nTr - nWin > 0 ? sLoss / (nTr - nWin) : 0, "#"), text_color=color.white, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(mt, 0, 1, "USER MATCH: your trades in range " + str.tostring(nU) + " | caught " + str.tostring(nC) + " (same dir, +-30m) | extra entries inside your trades " + str.tostring(nCh) + " | " + spTxt, text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
+    if array.size(rows) > 0
+        for r = 0 to array.size(rows) - 1
+            table.cell(mt, 0, r + 2, array.get(rows, r), text_color=color.white, text_size=size.tiny, text_halign=text.align_left)

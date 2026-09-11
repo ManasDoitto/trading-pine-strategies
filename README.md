@@ -1111,3 +1111,77 @@ across both its available timeframes. **Nothing here is a validated, durable
 mechanical strategy** — the Nifty 15m result is a genuine lead worth manually refining
 (entry/SL/exit marked on chart for exactly that); everything else is a research
 note. Forward-test on paper before risking capital.
+
+---
+
+## Tuning to the user's own marked trades (CrudeOil 5m, v3.0)
+
+**What changed in approach:** instead of a parameter search, the user marked
+their own trades on the MCX:CRUDEOIL1! 5m chart (TradingView long/short
+position tools, replay forward test from Feb 2026). They were read off the
+chart programmatically into `user_marked_trades_crudeoil_5m.csv` (36 trades).
+Trades #1-9 (Apr 2025) are timing-only: the chart is back-adjusted (B-ADJ), so
+their price levels sit ~200-300 pts away from the current bars.
+
+**The user's own 27 clean trades (#10-36):** 21 TP / 6 SL, **77.8% win,
+~+2,626 pts, points PF ~9.6**. That is the benchmark.
+
+**What their entries had in common** (from
+`user trade diag (...).pine.txt`, which dumps indicator state at each entry):
+
+- Smoothed Heikin Ashi (EMA10/EMA10) colour on the trade's side: 20/27
+- EMA9 vs EMA22 aligned with the trade: 24/27
+- every long had RSI(3) < 30 within ~11 bars; every short had RSI(3) > 70
+  within ~18 bars. They buy pullbacks and don't chase breakouts.
+- SL ~2x ATR, just beyond the 10-bar swing; fixed R:R (2.4 in Feb, 3-5 later)
+- they never exit on an SHA flip
+
+These became the rules of
+`v3.0 crudeoil strategy 5min (SHA + RSI3 pullback, tuned to user's 36 marked trades).pine.txt`.
+It has an anti-churn rule (a brand-new pullback is needed after every exit),
+added because of the user's feedback: "multiple trades inside my mark". A
+table on the chart scores it against the marks. A trade counts as **caught**
+when the strategy enters the same direction within ±30 min of the user's
+entry. **Extra** counts strategy entries inside the user's trade after that.
+
+### Single-variable tuning (window 29-Dec-25 → 25-Mar-26, 14 user trades #12-25)
+
+| Step | Trades | Win% | PF (pts) | Net pts | Caught /14 | Extra inside | Feb 2-6 (user: 8) | Kept? |
+|---|---|---|---|---|---|---|---|---|
+| Baseline (minSL 1.2, EMA200 on, RSI 30/70, RR 2.4) | 166 | 30.1 | 1.24 | +1,129 | 6 | 5 | 13 | start |
+| minSL 2.0 ATR | 156 | — | 1.29 | +1,423 | 5 | 8 | — | yes |
+| + max 2 entries/day | — | — | 0.81 | −739 | 4 | — | — | no |
+| + EMA200 filter off | 191 | 35.1 | 1.70 | +3,528 | 5 | 7 | 14 | yes |
+| trigger = high-break | 208 | — | 1.43 | +2,700 | — | 13 | 20 | no |
+| cooldown 6 bars | — | — | 1.56 | +2,889 | 4 | — | — | no |
+| RSI 20/80 | 124 | 29 | 1.33 | +1,231 | 3 | 0 | 4 | no |
+| RSI 25/75 | 161 | 29.8 | 1.42 | +1,949 | 5 | 4 | 11 | no |
+| R:R 3.0 | 180 | 27.8 | 1.39 | +2,150 | 4 | 11 | 17 | no |
+| **SHA colour held ≥ 3 bars** | **189** | **35.4** | **1.66** | **+3,338** | **6** | **7** | **14** | **final** |
+| SL beyond 20-bar swing | 126 | 28.6 | 1.15 | +652 | 4 | 6 | 12 | no |
+| pullback window 18 | 198 | 35.4 | 1.59 | +3,149 | 6 | 8 | 15 | no |
+
+Deeper RSI thresholds remove the churn but also remove the edge. A wider R:R
+or a wider SL makes the churn worse, because trades stay open longer and more
+get stopped out.
+
+### Walk-forward of the final config (qty 1, 0.02% commission)
+
+| Window (5m bars loaded) | Trades | Win% | Tester PF | Net ₹ | Net pts | Sharpe | User trades caught | Extra inside |
+|---|---|---|---|---|---|---|---|---|
+| 02-Jun → 28-Aug 2025 | 170 | 31.2 | 0.89 | −35,600 | +38 | −0.04 | 0 / 2 | 1 |
+| 29-Dec-25 → 25-Mar-26 *(tuning)* | 189 | 35.4 | 1.54 | +285,743 | +3,338 | −0.08 | 6 / 14 | 7 |
+| 16-Mar → 10-Jun 2026 | 203 | 35.5 | 1.17 | +190,592 | +2,654 | +0.17 | 5 / 9 | 3 |
+| 22-Jun → 12-Sep 2026 (live) | 189 | 30.2 | 0.94 | −36,532 | +222 | +0.04 | 0 / 4 | 3 |
+
+**Verdict (honest):** v3.0 is profitable in the volatile Jan-Jun 2026 regime
+and roughly breakeven-to-slightly-negative after costs in the quieter
+mid-2025 and Jun-Sep 2026 windows (2 of 4 windows lose money). It catches
+**9 of the user's 27 clean trades** (#13, 14, 16, 20, 24, 25, 26, 28, 32). It
+still takes ~190 trades a quarter against the user's handful. On Sep 1-4 2026
+it fired 18 times; the user took 4. The mechanical rules reproduce the *setup*
+the user trades, but not their *selection*, and the selection is where the
+user's 78% win rate comes from. Use v3.0 as a signal generator to review. It
+is not an autonomous system. Marking more trades, especially ones the user
+**skipped** despite a setup, is the most useful next input: that would show
+what the selection filter actually is.
