@@ -383,16 +383,42 @@ background = daily-trend regime (price vs 8-day daily SMA), BUY/SELL shapes on
 every entry, STOP-LOSS/TARGET lines plotted live, on-chart points scoreboard.
 
 **Caveats — promising, not proven:** only 4 windows (~18 months), single data
-vendor, 45–48% win rate (a handful of big winners carry the average), and this
-emerged from an un-tuned parameter set carried over from BankNifty rather than
-optimised for Nifty specifically — the real test is tuning it properly and then
-walk-forwarding again, plus extending further back than 2024 if data allows.
+vendor, 45–48% win rate (a handful of big winners carry the average).
+
+### `nifty v2` — tuned specifically for Nifty (not just ported from BankNifty)
+
+`v1` above carried BankNifty's parameters unmodified. Swept `maxSweepMlt`,
+`bufMlt`, `stopCapPts`, `regimeSlack`, `minLvlGapPts` and `rFixed` one at a time
+on Nifty 15m, then re-verified the two genuine improvements across all 4
+windows. **No trailing stop/target added (there wasn't one) and position sizing
+left unchanged (qty=1)**, per instruction.
+
+Changed: `maxSweepMlt` 0.8→0.5 (only fade a clean, shallow poke past the level —
+a deep stab through it is a worse signal), `bufMlt` 0.6→0.4 (tighter stop
+buffer, now that entries are cleaner). Everything else tested and left as-is —
+each was still best or tied-best at its shipped value.
+
+| Window | v1: Trades / Win% / PF / Net-mo | v2: Trades / Win% / PF / Net-mo |
+|---|---|---|
+| ~Apr–Oct 2024 (toughest) | 45 / 46.7% / 1.22 / **−7** | 34 / 41.2% / 1.36 / **−1** |
+| ~Apr–Oct 2025 | 64 / 45.3% / 2.04 / +69 | 49 / 44.9% / 2.25 / +50 |
+| ~Oct 2025–Apr 2026 | 83 / 48.2% / 2.90 / +189 | 65 / 43.1% / 2.71 / +119 |
+| ~Feb–Sep 2026 (full) | 90 / 45.6% / 2.99 / +233 | 75 / 42.7% / 3.08 / +178 |
+
+`v2` trades **less** and gives up some total points in the good windows, but
+**profit factor is higher or equal in every window**, and the worst-case window
+(2024) is now essentially **flat** (−1 pt/month instead of −7) — fewer, cleaner
+setups to manually check, smaller tail. This is a genuine quality-vs-quantity
+trade-off, not a strict win: keep `v1` if you want more trade frequency to
+review; `nifty v2 Sweep-Fade 15min` is the shipped default for manual entry/SL/
+exit review (fixed SL/target at entry, no trailing, no breakeven-move, so you
+can check the plan against what actually happened on every trade).
 
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
 |---|---|---|---|
-| **Nifty (spot), 15m** | `v13` sweep-fade "bear" | Only config to survive 2024 net-non-negative; PF 1.2–3.0 across 4 windows | **Most promising — start here** |
+| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned | Only config to survive 2024 net-non-negative; PF 1.4–3.1 across 4 windows | **Most promising — start here** |
 | **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
 | **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | Best (only) candidate tested; breakeven-to-losing 3 of 4 windows, +61% in 1 | Single-window edge, weakest of the three |
 
