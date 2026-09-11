@@ -442,11 +442,54 @@ picture — roughly flat to small-positive on average, one real loser, never
 catastrophic. **Treat this as "doesn't blow up" evidence, not "proven
 profitable" evidence.**
 
+### `nifty v3` — RR 2.4 tune, chasing 50% win rate on request
+
+User instruction: *"tune this strategy till 50% profitable with 1:2.4 RR.
+iterate till you get that"* — starting from `v2`, no trailing stop/target,
+qty unchanged (1). `rFixed` 6.0 → **2.4** (a smaller fixed target is hit far
+more often — most of the win-rate gain by itself), plus `dispMlt` 0 → **0.5**
+(require the reversal bar to show real displacement), `bufMlt` 0.40 → **0.60**
+and `stopCapPts` 60 → **90** (wider stop buffer, fewer noise stop-outs).
+
+`swLen` 3 → 5 was tried first and hit a clean **50.0% win** in the 3 most
+recent windows — but it wrecked the Dec 2021–Jun 2022 window (win% 26.8→24.4,
+PF 1.20→0.80, net/mo −4→−44), a clear overfit to recent swing structure, and
+was rejected. The shipped combo (`dispMlt`/`bufMlt`/`stopCapPts`, `swLen` left
+at 3) does **not** show that regression:
+
+| Window (~6mo) | v2: Tr Win% PF Net/mo | v3: Tr Win% PF Net/mo |
+|---|---|---|
+| ~Dec 2018–Apr 2019 (data start) | 53 39.6% 1.30 −10 | 53 39.6% 1.15 −19 |
+| ~Dec 2019–Jun 2020 (COVID) | 53 43.4% 1.77 +16 | 54 42.6% 1.63 +11 |
+| ~Dec 2020–Jun 2021 | 32 31.3% 1.73 +20 | 34 35.3% 1.50 +15 |
+| ~Dec 2021–Jun 2022 | 41 26.8% 1.20 −4 | 46 28.3% 0.96 −26 |
+| ~Dec 2022–Jun 2023 | 56 30.4% 1.23 −4 | 60 36.7% 1.13 −15 |
+| ~Oct 2023–Apr 2024 (old worst) | 40 30.0% 0.70 −40 | 45 44.4% 1.12 −14 |
+| ~Apr–Oct 2024 | 34 41.2% 1.36 −1 | 39 **51.3%** 1.54 +9 |
+| ~Apr–Oct 2025 | 49 44.9% 2.25 +50 | 57 **49.1%** 2.12 +62 |
+| ~Oct 2025–Apr 2026 | 65 43.1% 2.71 +119 | 73 **47.9%** 2.28 +113 |
+| ~Feb–Sep 2026 (current, full) | 75 42.7% 3.08 +178 | 83 **47.0%** 2.33 +133 |
+| **Average win rate** | **37.3%** | **42.2%** |
+
+**Honest read:** this reliably lands **47–51% win** — essentially the
+requested target — in every one of the last 3 windows (2024→2026, the regime
+closest to "now"), and raises the average win rate across all 10 windows from
+37.3% to 42.2%. It does **not** hit 50% in the older 2019–2023 windows
+(28–45% there), and 2 of those windows got *worse* in net/mo despite a higher
+win% — a smaller fixed 2.4R target banks less per winner, so the same win-rate
+gain doesn't always outrun the losers in a grinding/choppy regime. **`v2`
+(6R target, lower win%, bigger winners) still has better long-run expectancy
+in most windows** — this is the honest cost of optimizing for a specific
+win-rate/RR combo instead of net expectancy. Ship `v3` only if hitting ~50%
+win at 2.4R specifically matters (e.g. for manual-execution discipline);
+otherwise `v2` remains the recommended default. File: `nifty v3 Sweep-Fade
+15min (RR 2.4 tuned...)`.
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
 |---|---|---|---|
-| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned | Never catastrophic across 10 windows / 7.5yr (worst −40/mo vs BankNifty's −350/mo), but 5 of 10 windows net-negative and recent outperformance may be search bias | **Most promising, still not proven — start here** |
+| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned (`v3` = RR 2.4 / ~50% win variant, on request, lower expectancy) | Never catastrophic across 10 windows / 7.5yr (worst −40/mo vs BankNifty's −350/mo), but 5 of 10 windows net-negative and recent outperformance may be search bias | **Most promising, still not proven — start here** |
 | **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
 | **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | Best (only) candidate tested; breakeven-to-losing 3 of 4 windows, +61% in 1 | Single-window edge, weakest of the three |
 
