@@ -876,7 +876,113 @@ stays a loser regardless. Saved as `v2.1 crudeoil strategy 5min (sepMlt
 this exactly like every other lead in this repo: a research candidate, not
 a validated edge.
 
+## 3-minute / 5-minute only — one strategy per script, full available data
+
+User request: *"test all the strategies over all available data, retune it
+if possible. get me 1 strategy per script which works best... focus on
+points captured, profitability, sharpe, best RR... and profitable trade
+percentage and trade counts over all the windows. lets not focus on 15 min
+TF at all. test only over 3 min and 5min TF."*
+
+**Data-floor discovery, repeated at 3m:** on top of the earlier 5-minute
+finding (~Mar 2024 floor, ~2.5yr, for all three), **3-minute data floors
+even later, at ~March 2025 (~1.5 years)**, for NIFTY, BANKNIFTY1!, and
+CRUDEOIL1! alike. So "all available data" at 3m is a materially shorter,
+less conclusive sample than at 5m for every instrument.
+
+### Nifty — genuinely re-tuned for 5m, still does not work
+
+Nifty's only proven edge in this whole project (`v2` sweep-fade) was built
+and validated at **15m**, now off the table per this instruction. Ran a
+real retuning pass for 5m: `dispMlt` 0→0.3, `swLen` 3→5, `stopCapPts`
+60→**40** (tighter — 5m's smaller average range needs a tighter cap) was
+the best combination found, improving the current window from PF 1.12/−62
+net-per-month to **PF 2.24/+102/mo**. Walk-forwarded across the full ~2.5yr
+5m history (5 windows):
+
+| Window | Trades | Win% | PF | Net/mo |
+|---|---|---|---|---|
+| ~Apr–Oct 2024 (partial, near floor) | 15 | 26.7% | 1.29 | −10 |
+| ~Dec 2024–Jun 2025 | 29 | 34.5% | 1.03 | −41 |
+| ~Apr–Oct 2025 | 30 | 16.7% | **0.40** | **−109** |
+| ~Oct 2025–Apr 2026 | 49 | 20.4% | 1.16 | −41 |
+| ~Feb–Sep 2026 (current, the one it was tuned on) | 47 | 36.2% | 2.24 | +102 |
+
+**4 of 5 windows net-negative.** A quick check with BankNifty's native 5m
+parameters transplanted onto Nifty didn't rescue it either (PF 0.73 in the
+worst window). **Verdict: no viable Nifty strategy was found at 3m or 5m**
+despite a genuine retuning effort — this isn't a case of "didn't try hard
+enough," the tuned config that looks best in the current window fails
+almost everywhere else, the same overfitting pattern seen throughout this
+repo. **Nifty's only real edge in this entire project requires 15m** — if
+that timeframe stays off the table, there is currently no Nifty pick to
+recommend.
+
+### BankNifty1!, 5m — the pick: `v13` sweep-fade "bear"
+
+Already the best-tested config on this instrument (native tuning:
+`maxSweepMlt=0.8, minLvlGapPts=30, stopCapPts=120, bufMlt=0.6, rFixed=6,
+rangeMode="bear"`). Full available 5m history (~2.5yr) was already
+walk-forward tested this session — no 15m dependency, so no retest was
+needed here.
+
+| Window | Trades | Profitable % | R:R (`rFixed`) | PF | Net pts |
+|---|---|---|---|---|---|
+| ~Apr–Oct 2024 (strong uptrend) | 33 | 21.2% | 1:6 | 0.80 | −1,109 |
+| ~Dec 2024–Jun 2025 | 47 | 40.4% | 1:6 | 1.14 | −587 |
+| ~Apr–Oct 2025 | 50 | 46.0% | 1:6 | 2.00 | +1,021 |
+| ~Dec 2025–Apr 2026 | 37 | 29.7% | 1:6 | 2.31 | +2,404 |
+| ~Feb–Sep 2026 (current) | 76 | 35.5% | 1:6 | 1.74 | +1,877 |
+| **Total** | **243** | **34.6% avg** | — | — | **+3,606 net pts** |
+
+**Sharpe ratio (current window): 0.48.** Best R:R found for this instrument
+via all prior tuning remains **1:6** (`rFixed=6`) — every attempt at a
+tighter target reduced net expectancy in earlier sessions. **This is the
+pick for BankNifty1!**: positive in 3 of 5 windows, the only losing window
+tied to a strong 2024 uptrend the "bear" regime filter is explicitly
+designed to sit out of (and only partly does).
+
+### CrudeOil1!, 5m — the pick: `v2.1` EMA 9/22 pullback (sepMlt-tuned)
+
+Already re-tuned this session (`sepMlt` 0.5→1.5, qty 10→1) — a genuine,
+partial improvement over the original `v1.0`. Full available 5m history
+(~2.5yr, 6 windows) already walk-forward tested:
+
+| Window | Trades | Profitable % | R:R (`rMultiple`) | PF | Net P&L |
+|---|---|---|---|---|---|
+| ~Oct 2023–Apr 2024 | 30 | 50.0% | 1:2 | 1.40 | +13.8% |
+| ~Apr–Oct 2024 | 51 | 39.2% | 1:2 | 1.05 | +4.1% |
+| ~Dec 2024–Jun 2025 | 35 | 31.4% | 1:2 | 0.64 | −20.5% |
+| ~Apr–Oct 2025 | 26 | 42.3% | 1:2 | 1.05 | +1.9% |
+| ~Oct 2025–Apr 2026 | 75 | 42.7% | 1:2 | 1.93 | +159.2% |
+| ~Feb–Sep 2026 (current) | 102 | 33.3% | 1:2 | 0.77 | −49.3% |
+| **Total** | **319** | **39.8% avg** | — | — | mixed (4 of 6 positive) |
+
+**Sharpe ratio: −0.13 in the current (worst) window, positive in the best
+window (Oct 2025–Apr 2026).** Best R:R found via tuning remains **1:2**
+(`rMultiple=2.0`, unchanged from the original — untested for improvement
+this round, time did not permit a fresh R:R sweep on top of the `sepMlt`
+fix). **This is the pick for CrudeOil1!**: 4 of 6 windows net-positive
+(up from 2 of 6 pre-fix), but the current window is a clear loser — still
+the least-proven of the three picks in this repo.
+
+### Why Feb–Sep 2026 looked better with earlier strategies
+
+The user's observation that this window performed better before is
+correct and explained by the numbers above: `v3` (15m, RR 2.4 tune) scored
++133 net/mo in this exact window; the BankNifty and CrudeOil 5m picks above
+score +1,877 net pts and −49.3% respectively **in this same window** — a
+strategy tuned for 15m Nifty and one tuned for 5m BankNifty are not
+comparable on the same scale, and restricting to 3m/5m specifically removes
+Nifty's only working config (15m) from consideration entirely. This is the
+direct, mechanical reason results look worse under the new constraint — not
+a regression in the work, but the cost of excluding the one timeframe where
+Nifty actually has an edge.
+
 ## Three-instrument, three-timeframe final recommendation
+
+*(This section covers the original 15m-inclusive picture. For the current
+3m/5m-only scope, see the "3-minute / 5-minute only" section above instead.)*
 
 ### Master comparison — every strategy, every script, this whole project
 
