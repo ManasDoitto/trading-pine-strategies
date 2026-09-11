@@ -780,20 +780,95 @@ regime overlay targeting the still-unexplained tough-window loss, tested
 against this same 4-index panel to see if it helps consistently rather than
 just on Nifty again.
 
+### "All-season, one strategy for all 3 scripts" search — result
+
+User request: *"do not explore or test on anything other than banknifty,
+nifty50 and crude. simulate through every parameter to find out an all
+season strategy which can work on these 3 scripts."* Note on scope: "every
+parameter" across a 20+ input strategy is an infinite search space, so this
+was a **systematic, structured sweep** (candidate parameter bundles and
+targeted single-variable tests aimed at cross-instrument consistency, not a
+literal exhaustive search) — flagged upfront rather than silently narrowed.
+
+**Data-floor discovery (changes what "all available data" means per
+instrument):** checked exact history depth on this account for each
+instrument/timeframe combo:
+- **15-minute**: NSE:NIFTY, NSE:BANKNIFTY1!, and MCX:CRUDEOIL1! all floor at
+  **~April 2019** (~7.5 years) — confirmed by clamped `replay_start` requests.
+- **5-minute**: NSE:BANKNIFTY1! and MCX:CRUDEOIL1! floor at **~March 2024**
+  (~2.5 years) — a hard vendor/retention limit, not a choice. 15-minute data
+  is available for far longer than 5-minute data for both of these.
+- This means "backtest all available data" is asymmetric by construction:
+  Nifty has ~7.5yr at its native 15m; BankNifty's proven edge only exists at
+  5m, capping its true full-history test at ~2.5yr; CrudeOil can be tested at
+  15m for the full ~7.5yr, which is what made the "CrudeOil sweep-fade" test
+  below possible.
+
+**Attempt 1 — BankNifty's regime engine at 15m (its own native tuning):**
+current window only: 89 trades, 37.1% win, PF 1.05, **−70/mo**. Fails — this
+concept needs 5m to work at all on BankNifty; 15m does not carry the edge.
+
+**Attempt 2 — Nifty v2's exact params, unmodified, on CrudeOil1! 15m, full
+~7.5yr history (10 windows):**
+
+| Window | Trades | Win% | PF | Net/mo |
+|---|---|---|---|---|
+| ~Dec 2018–Apr 2019 (partial) | 17 | 58.8% | 2.83 | −17 |
+| ~Dec 2019–Jun 2020 (COVID) | 24 | 41.7% | 1.18 | −54 |
+| ~Dec 2020–Jun 2021 | 10 | 40.0% | 1.29 | −22 |
+| ~Dec 2021–Jun 2022 | 17 | 29.4% | 0.69 | −56 |
+| ~Dec 2022–Jun 2023 | 42 | 28.6% | 0.63 | −137 |
+| ~Oct 2023–Apr 2024 | 22 | 45.5% | 1.93 | −34 |
+| ~Apr–Oct 2024 (worst) | 21 | **9.5%** | **0.23** | **−83** |
+| ~Apr–Oct 2025 | 25 | 24.0% | 0.92 | −66 |
+| ~Oct 2025–Apr 2026 | 20 | 20.0% | 0.54 | −65 |
+| ~Feb–Sep 2026 (current) | 25 | 36.0% | 1.92 | −6 |
+
+**9 of 10 windows net-negative.** The sweep-fade concept does not transfer
+to CrudeOil — confirming and extending the earlier single-window/triage
+note in this repo ("CrudeOil1! 15m mildly positive on one window but failed
+2 of 3 older windows") with a full 10-window picture. Combined with the
+already-documented EMA-9/22-pullback failure (also 4 of 6 windows negative,
+see above), **CrudeOil has now failed walk-forward under two different
+concept families** tested against it this session.
+
+**Verdict: no single "all-season" configuration was found that works
+acceptably on all three scripts.** BankNifty and CrudeOil each need their
+own timeframe and tuning to show any edge at all (5m and — per this test —
+nothing, respectively), and even Nifty's own config, unmodified, does not
+survive contact with CrudeOil's full history. This is consistent with, not
+contradictory to, the cross-instrument generalization test earlier in this
+doc (Nifty's edge partially transfers to *sibling equity indices*, but nothing
+here suggests it should transfer to a commodity with fundamentally different
+drivers). **There is no evidence, after this search, that a single unified
+strategy across Nifty + BankNifty + CrudeOil exists in this concept family.**
+The realistic path forward is what the final table below already reflects:
+three separate, differently-tuned strategies, one of which (Nifty) is a
+genuine lead and two of which are not yet validated.
+
 ## Three-instrument, three-timeframe final recommendation
 
-| Instrument | Best strategy found | Why | Status |
-|---|---|---|---|
-| **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned (`v3` = RR 2.4 / ~50% win variant, on request, lower expectancy) | Never catastrophic across 10 windows / 7.5yr (worst −40/mo vs BankNifty's −350/mo), but 5 of 10 windows net-negative and recent outperformance may be search bias | **Most promising, still not proven — start here** |
-| **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
-| **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | **Now walk-forward tested (6 windows): 4 of 6 net losers, PF<1, three losing more than starting capital at qty=10** | **Failed walk-forward — no longer recommended as-is** |
+### Master comparison — every strategy, every script, this whole project
+
+| Instrument | Timeframe | Strategy / version | History tested | Trades | Win% | PF | Net result | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| **Nifty (spot)** | 15m | `v2` sweep-fade, Nifty-tuned | 10 windows, ~7.5yr (Apr19–Sep26) | 497 | 37.7% avg | 0.70–3.08 by window | **+1,709 net pts** (5/10 windows negative, worst −808) | **Best result in repo — promising, not proven** |
+| Nifty (spot) | 15m | `v3` RR-2.4 tune (on request) | Same 10 windows | 544 | 42.2% avg | 0.96–2.55 | Net pts not separately tallied per-window; net/mo positive in last 3 windows, hits ~50% win rate there | Lower expectancy than v2 in most windows; ships only if hitting a specific win-rate matters |
+| Nifty (spot) | 15m | Unmodified `v2` on FinNifty/Sensex/Midcap | 3 windows each | — | — | 0.69–3.08 | FinNifty & Sensex positive-directional; **Midcap fails all 3** | Partial generalization — real but modest, Nifty-family-specific |
+| **BankNifty1!** | 5m | `v13` sweep-fade "bear", native tuning | 5 windows, ~2.5yr (full 5m history — hard data-retention floor) | 243 | 34.6% avg | 0.80–2.31 | **+3,606 net pts** (1/5 windows negative, that one −1,109 in a strong 2024 uptrend) | Regime-conditional — good outside strong trends, untested pre-2024 (no 5m data exists) |
+| BankNifty1! | 15m | `v13` engine, native params | Current window only | 89 | 37.1% | 1.05 | **−70/mo** | **Fails — this concept needs 5m, not 15m** |
+| **CrudeOil1!** | 5m | `v1.0` EMA 9/22 pullback, qty=10 (production) | 6 windows, ~2.5yr (full 5m history) | 832 | ~38% avg | 0.69–1.73 | Wild swings −305% to +3,056% | **Fails — the +41.6% original number was one lucky window** |
+| CrudeOil1! | 5m | `v1.0` same, qty=1 (de-leveraged) | Same 6 windows | 832 | ~38% avg | 0.69–1.73 (unchanged) | Same swings ÷10: −30.5% to +305.6% | **Still fails — leverage wasn't the problem, the entry logic is** |
+| CrudeOil1! | 15m | Sweep-fade, Nifty `v2` params (unmodified) | 10 windows, ~7.5yr (full 15m history) | 223 | ~33% avg | 0.23–2.83 | 9 of 10 windows net-negative | **Fails — concept does not transfer to crude at all** |
 
 **Bottom line on the whole repo:** No mechanical BankNifty **3m** edge survived
-walk-forward. `v13` "bear" is BankNifty's least-bad 5m config but not
-multi-year-robust; ported to **Nifty spot at 15m it becomes the strongest result
-in the repo**, surviving all four walk-forward windows. CrudeOil v1.0's edge is
-a single favourable window and does not survive extended walk-forward on 3m/5m/
-15m or on other instruments. **Nothing here is a validated, durable mechanical
-strategy** — the Nifty 15m result is a genuine lead worth manually refining
+walk-forward. `v13` "bear" is BankNifty's least-bad config but not
+multi-year-robust (and its only provable window is the last 2.5 years — that's
+all the 5m data that exists); ported to **Nifty spot at 15m it becomes the
+strongest result in the repo**, the only config that's never catastrophic
+across a full 7.5-year sample. **CrudeOil has now failed walk-forward twice**,
+under both concept families tested against it (EMA-pullback and sweep-fade),
+across both its available timeframes. **Nothing here is a validated, durable
+mechanical strategy** — the Nifty 15m result is a genuine lead worth manually refining
 (entry/SL/exit marked on chart for exactly that); everything else is a research
 note. Forward-test on paper before risking capital.
