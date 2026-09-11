@@ -721,6 +721,65 @@ account-wiping/lottery-ticket *scale* of the numbers was a leverage artifact
 and is now gone, but the *sign* and *consistency* problem — PF below 1 in
 two-thirds of windows — is the concept, and remains.
 
+### Cross-instrument generalization test — is Nifty v2's edge real or overfit?
+
+Every result in this repo up to now was found by tuning separately per
+instrument — which makes it impossible to tell whether an edge is real or
+just curve-fit to that instrument's specific price history. The most
+diagnostic test not yet run: take `v2`'s exact parameters **completely
+unmodified** (no re-tuning, same code) and run them on sibling Indian
+indices it has never seen. If the same untouched config holds up elsewhere,
+that's real evidence of edge; if it falls apart, the whole result is
+probably noise fitted to Nifty's particular path.
+
+Tested on 15m, 3 comparable windows each (current/~Feb-Sep 2026, the
+toughest window from Nifty's own walk-forward/~Oct 2023-Apr 2024, and the
+best recent window/~Oct 2025-Apr 2026), **zero parameter changes**:
+
+| Instrument | Window | Trades | Win% | PF | Net pts |
+|---|---|---|---|---|---|
+| **Nifty (reference)** | Current | 75 | 42.7% | 3.08 | **+3,618** |
+| | Tough (Oct23-Apr24) | 40 | 30.0% | 0.70 | **−808** |
+| | Recent (Oct25-Apr26) | 65 | 43.1% | 2.71 | **+2,418** |
+| **FinNifty** (NSE:CNXFINANCE) | Current | 70 | 34.3% | 1.51 | **+908** |
+| | Tough | 62 | 30.6% | 0.72 | **−1,403** |
+| | Recent | 67 | 37.3% | 1.62 | **+1,047** |
+| **Nifty Midcap Select** (NSE:NIFTY_MID_SELECT) | Current | 59 | 35.6% | 1.15 | **−299** |
+| | Tough | 24 | 33.3% | 0.78 | **−333** |
+| | Recent | 66 | 36.4% | 1.21 | **−254** |
+| **Sensex** (BSE:SENSEX) | Current | 73 | 28.8% | 1.51 | **+1,683** |
+| | Tough | 54 | 18.5% | 0.86 | **−1,095** |
+| | Recent | 68 | 25.0% | 1.29 | **+509** |
+
+**Read:**
+- **All four instruments lose in the same "tough" window.** That's the
+  strongest signal in this test — the regime filter (daily-SMA trend/bear
+  gate) is picking up a genuine broad Indian-equity-market condition that
+  hurts this concept everywhere, not a Nifty-specific artifact. A pure
+  overfit to Nifty's price path would not be expected to fail on the same
+  calendar dates across four different indices.
+- **FinNifty and Sensex generalize directionally**: net-positive in both the
+  current and recent windows, net-negative in the tough window — same
+  *pattern* as Nifty, just weaker (lower PF/win% than Nifty itself in every
+  window). This is moderate evidence of a real, modest, regime-linked
+  effect rather than noise.
+- **Nifty Midcap Select does NOT generalize** — net-negative in all three
+  windows tested, including the two where every other index (Nifty
+  included) was solidly positive. Midcap's smaller-cap, less-liquid
+  constituents likely have a different microstructure (fewer/noisier PDH/PDL
+  sweeps, different swing-level behavior) that this concept doesn't suit.
+
+**Verdict: partial generalization.** This is not a strong, universal edge —
+it's clearly Nifty-flavored (every sibling index underperforms Nifty
+itself) and it outright fails on Midcap. But it is also not pure overfit
+noise: 3 of 4 indices show the same directional pattern, on the same
+calendar dates, with unmodified parameters. That's more consistent with a
+real (if modest and index-family-specific) effect than with curve-fitting.
+Reasonable next step per the earlier recommendation list: a volatility-
+regime overlay targeting the still-unexplained tough-window loss, tested
+against this same 4-index panel to see if it helps consistently rather than
+just on Nifty again.
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
