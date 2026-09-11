@@ -531,6 +531,48 @@ setup (e.g. a shorter-hold mean-reversion/scalp on 1–3m bars) rather than
 tuning this one further — no parameter combination found here reaches volume
 without giving up the edge.
 
+### Running in parallel across Nifty + BankNifty + CrudeOil — the volume answer
+
+User request: *"run it in parallel across Nifty, BankNifty and CrudeOil."*
+Since no single strategy reaches 200 trades/6mo without giving up its edge
+(see above), checked whether running each instrument's own best, already-
+vetted strategy **simultaneously** sums to the target without diluting any
+one of them individually.
+
+| Instrument | Strategy | Trades/6mo | Win% | PF | Basis |
+|---|---|---|---|---|---|
+| Nifty (spot), 15m | `v2` sweep-fade | ~50–75 (avg of last 3 windows: 63) | 43–45% | 2.1–2.7 | 10-window walk-forward table above |
+| BankNifty1!, 5m | `v13` sweep-fade "bear" | ~58 (9.7/mo × 6, live default window) | 34.4% | 1.56 | Fresh read via the script's own "Trades/month" stat |
+| CrudeOil1!, 5m | `v1.0` EMA 9/22 pullback | ~122 (203 trades / ~10mo backtest) | 49% | 1.89 | Original v1.0 backtest (frozen, production) |
+| **Combined (3 instruments)** | — | **~240–255** | ~44% (trade-weighted) | — | Sum of the three, run as separate positions |
+
+**This clears the 200-trades/6mo bar** — comfortably, without loosening any
+single strategy's filters or diluting its individual edge. The trade-off from
+the earlier single-instrument tests goes away because the extra volume comes
+from **adding independent instruments**, not from forcing more (worse)
+signals out of one.
+
+**Caveats to run this honestly:**
+- These are **three separate positions on three separate instruments/
+  contracts**, not one merged strategy — each needs its own capital
+  allocation, margin, and order execution; nothing here nets them into a
+  single account-level number automatically.
+- **Correlation risk is not accounted for.** All three are Indian equity/
+  index/commodity instruments that can all draw down on the same bad days
+  (e.g. a market-wide risk-off event) — the ~240 trades are not 240
+  independent bets.
+- Each leg still carries its own **already-documented caveat**: Nifty v2 is
+  "never catastrophic but 5 of 10 windows net-negative"; BankNifty v13-bear
+  is "not robust across a full multi-year sample, loses ~-100 to -300/mo in
+  strong-trend years"; CrudeOil v1.0 is a **single-window backtest, unverified
+  by walk-forward**. Combining them for volume does not fix any of those
+  individually — it only adds up their trade counts.
+- The BankNifty and CrudeOil figures above come from different sample
+  windows/methodologies (a live default-view read and an old 10-month
+  backtest respectively) than Nifty's rigorous 10-window walk-forward, so the
+  ~240-trade combined total is a reasonable estimate, not an apples-to-apples
+  guarantee.
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
