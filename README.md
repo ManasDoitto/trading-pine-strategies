@@ -689,12 +689,37 @@ concept needs, the same way the +3,056% window did here.
 
 **Bottom line: CrudeOil v1.0 is downgraded from "the strong one" (its
 original README billing) to "not robust — fails walk-forward," the same
-verdict every BankNifty config reached in this repo.** The underlying
-entry/SL logic may still have merit, but not at this position size: a
-lower-leverage re-test (e.g. qty=1, matching how `bnf`/Nifty scripts are
-already sized) would be needed before drawing any conclusion about the
-concept itself, separate from the leverage that is currently blowing up its
-equity curve in both directions. That re-test has not been done.
+verdict every BankNifty config reached in this repo.**
+
+### CrudeOil v1.0 at qty=1 — same edge, sane leverage
+
+User request: *"re-test CrudeOil at qty=1."* Same throwaway-copy method (the
+original file was never reloaded/recompiled), same 6 windows, only
+`default_qty_value` changed 10 → 1:
+
+| Window | Trades | Win% | PF | qty=10 P&L | **qty=1 P&L** |
+|---|---|---|---|---|---|
+| ~Oct 2023–Apr 2024 | 79 | 40.5% | 0.86 | −150.6% | **−15.1%** |
+| ~Apr–Oct 2024 | 132 | 39.4% | 0.97 | −61.6% | **−6.2%** |
+| ~Dec 2024–Jun 2025 | 98 | 36.7% | 0.85 | −224.7% | **−22.5%** |
+| ~Apr–Oct 2025 | 71 | 31.0% | 0.69 | −304.7% | **−30.5%** |
+| ~Oct 2025–Apr 2026 | 199 | 46.7% | 1.73 | +3,056.4% | **+305.6%** |
+| ~Feb–Sep 2026 (current) | 253 | 37.2% | 1.00 | +17.6% | **+1.8%** |
+
+**Trades, win%, and PF are unchanged — qty is a pure position-size scalar,
+it does not change which trades the strategy takes.** As expected, every P&L
+number scales down by exactly 10x (qty=10 → qty=1 removes one zero). This
+confirms the earlier read: leverage was never masking or revealing a
+different *entry/SL* edge, it was only stretching the same win/loss sequence
+into unrealistic swings. **De-leveraged, this is still 4 of 6 windows net
+losers with PF < 1** — including one real loser (−30.5% in ~Apr–Oct 2025,
+still a serious single-window drawdown for real capital) — against one large
+winning window (+305.6%) and a flat-ish current window (+1.8%). **The
+qty=1 re-test does not rescue the strategy: the underlying entry/SL concept
+itself is what fails walk-forward, not merely its position sizing.** The
+account-wiping/lottery-ticket *scale* of the numbers was a leverage artifact
+and is now gone, but the *sign* and *consistency* problem — PF below 1 in
+two-thirds of windows — is the concept, and remains.
 
 ## Three-instrument, three-timeframe final recommendation
 
