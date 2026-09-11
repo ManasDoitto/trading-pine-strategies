@@ -485,6 +485,52 @@ win at 2.4R specifically matters (e.g. for manual-execution discipline);
 otherwise `v2` remains the recommended default. File: `nifty v3 Sweep-Fade
 15min (RR 2.4 tuned...)`.
 
+### Trade-frequency check — can this hit 200 trades / 6 months?
+
+User request: *"trade count is very less and i need at least 200 trades per 6
+months."* Tested whether the sweep-fade concept can be pushed to that volume
+without simply breaking it. Switched to **5-minute** (3x more bars than 15m)
+and loosened, in stages, every frequency-limiting input on `v3`: `relaxTrig`
+on (drop momentum confirmation), `dispMlt` 0 (drop displacement filter),
+`maxSweepMlt` 0.5→0.8, `swLen` 3→2, `minLvlGapPts` 15→2–5, `maxLevels` 24→40–
+60, `maxPerDay` 6→20–30, `allowReentry` 1→4–8, `coolBars` 1→0, plus loosening
+or fully dropping the regime filters (`dirFilter`, `rangeMode`, `dayTrendFilt`,
+`regimeSlack`, `rangeMaxSlope`). Measured with `replay_start` over a clean
+~6-month window (2025-03-15 → ~Sep 2025) each time, so all counts below are
+directly comparable, real 6-month figures:
+
+| Config (5-minute) | Trades/6mo | Win% | PF |
+|---|---|---|---|
+| Level/count loosened only, regime filters (dtrend+bear) still on | ~80–90 | 34–36% | 0.97–1.03 |
+| + `dayTrendFilt` off, regime filters still on | ~160–180 | 35–36% | 1.01–1.08 |
+| + `rangeMode` off (dtrend only, slack −0.5) | ~257 | 32% | 0.87 |
+| All regime filters off (`dirFilter`+`rangeMode` off) | ~330–400 | 30–31% | 0.74–0.75 |
+
+**Honest read: there is no config that is both ≥200 trades/6mo and
+profitable.** Trade count and edge trade off directly and predictably — every
+lever that adds volume also dilutes signal quality, with no exception found.
+The ~160–180/mo range (just under the ask) is the best *near-breakeven* point;
+pushing past 200 requires dropping the regime filter chain almost entirely,
+which lands at PF 0.87 (still a net loser after the 10pt/trade cost estimate)
+and gets materially worse from there. This matches the standing repo finding
+for this whole strategy family (see `bnf` notes above): a PDH/PDL and
+swing-level rejection-fade has a **structural ceiling of roughly 0.5–1 genuinely
+quality signal per day** on Nifty/BankNifty intraday data — there simply
+aren't 1.5+/day real sweep-and-reject setups in this instrument at this kind
+of statistical edge. Forcing volume past that ceiling doesn't reveal more
+edge, it just adds noise trades.
+
+**If 200+ trades/6mo is a hard requirement, this strategy *type* is the wrong
+tool for it** — options going forward: (a) accept a lower, honest trade count
+(~150–200/6mo, near-breakeven) if the goal is manual practice rather than a
+live edge; (b) run this same setup on **multiple instruments/timeframes in
+parallel** (e.g. Nifty + BankNifty + CrudeOil at once) to sum to higher
+combined volume without individually forcing any one of them past its natural
+ceiling; or (c) design a genuinely different, naturally higher-frequency
+setup (e.g. a shorter-hold mean-reversion/scalp on 1–3m bars) rather than
+tuning this one further — no parameter combination found here reaches volume
+without giving up the edge.
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
