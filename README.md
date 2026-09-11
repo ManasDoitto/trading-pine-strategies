@@ -21,7 +21,7 @@ and **honest** backtest metrics (profit factor, win%, drawdown, trade count).
 
 ---
 
-## CrudeOil (MCX:CRUDEOIL1!, 5-minute) — the strong one
+## CrudeOil (MCX:CRUDEOIL1!, 5-minute) — ⚠️ downgraded, failed walk-forward
 
 EMA 9/22 pullback-continuation. Enter on the reclaim-candle high after a pullback
 to EMA9 in an established trend; structure stop; fixed R target.
@@ -33,6 +33,12 @@ to EMA9 in an established trend; structure stop; fixed R target.
 | v2.0 | byte-identical snapshot of v1.0 | — |
 
 **v1.0 is the production strategy.** Entry/SL logic is frozen (validated by the user).
+**Update: walk-forward tested (see "CrudeOil v1.0 walk-forward" section
+below) — the +41.6% number was a single favourable in-sample window and does
+NOT hold up. 4 of 6 out-of-sample windows are net losers (PF < 1, three of
+them losing more than the entire starting capital at the current qty=10
+sizing), against one wildly good outlier window. No longer "the strong one";
+downgraded to the same "not robust" verdict as every BankNifty config.**
 
 ---
 
@@ -543,8 +549,8 @@ one of them individually.
 |---|---|---|---|---|---|
 | Nifty (spot), 15m | `v2` sweep-fade | ~50–75 (avg of last 3 windows: 63) | 43–45% | 2.1–2.7 | 10-window walk-forward table above |
 | BankNifty1!, 5m | `v13` sweep-fade "bear" | ~58 (9.7/mo × 6, live default window) | 34.4% | 1.56 | Fresh read via the script's own "Trades/month" stat |
-| CrudeOil1!, 5m | `v1.0` EMA 9/22 pullback | ~122 (203 trades / ~10mo backtest) | 49% | 1.89 | Original v1.0 backtest (frozen, production) |
-| **Combined (3 instruments)** | — | **~240–255** | ~44% (trade-weighted) | — | Sum of the three, run as separate positions |
+| CrudeOil1!, 5m | `v1.0` EMA 9/22 pullback | ~122 (203 trades / ~10mo backtest) | 49% | 1.89 | Original v1.0 backtest — **⚠️ since shown to fail walk-forward, see below; do not rely on this row's PF/win%** |
+| **Combined (3 instruments)** | — | **~240–255** | ~44% (trade-weighted, pre-CrudeOil-downgrade) | — | Sum of the three, run as separate positions |
 
 **This clears the 200-trades/6mo bar** — comfortably, without loosening any
 single strategy's filters or diluting its individual edge. The trade-off from
@@ -564,9 +570,11 @@ signals out of one.
 - Each leg still carries its own **already-documented caveat**: Nifty v2 is
   "never catastrophic but 5 of 10 windows net-negative"; BankNifty v13-bear
   is "not robust across a full multi-year sample, loses ~-100 to -300/mo in
-  strong-trend years"; CrudeOil v1.0 is a **single-window backtest, unverified
-  by walk-forward**. Combining them for volume does not fix any of those
-  individually — it only adds up their trade counts.
+  strong-trend years"; CrudeOil v1.0 — **now confirmed by walk-forward (see
+  below) to fail outright: 4 of 6 windows net losers, PF<1, three losing more
+  than starting capital at its current qty=10 sizing.** Combining them for
+  volume does not fix any of those individually — it only adds up their trade
+  counts, and the CrudeOil leg specifically should not be run live as-is.
 - The BankNifty and CrudeOil figures above come from different sample
   windows/methodologies (a live default-view read and an old 10-month
   backtest respectively) than Nifty's rigorous 10-window walk-forward, so the
@@ -623,23 +631,70 @@ BankNifty's lot size was not re-verified this session. Note the first window
 net-positive.
 
 **CrudeOil v1.0 EMA 9/22 pullback, 5m** — this script tracks **₹ return, not
-a points scoreboard** (unlike the other two), and per the standing hard
-constraint it was **not** re-loaded or re-tested this session (avoided a
-"save before add to chart" prompt that risked touching the protected asset —
-cancelled it). Reusing its existing, single-window ~10-month backtest:
-**203 trades, 49% win, PF 1.89, MaxDD 0.55%, net +41.6%** on ₹100,000 initial
-capital at qty=10 → **≈ +₹41,600 net** over ~10 months. This is the frozen
-production number, not re-verified here, and — as flagged everywhere else in
-this repo — it is a **single in-sample window, never walk-forward tested**,
-so treat it as far less certain than the Nifty/BankNifty figures above.
+a points scoreboard** (unlike the other two). At the time this section was
+first written, it was **not yet re-tested** this session (the original,
+frozen ~10-month backtest was quoted as-is: 203 trades, 49% win, PF 1.89,
+net +41.6% ≈ +₹41,600). **That has since changed — see the "CrudeOil v1.0
+walk-forward" section immediately below, which found the +41.6% number does
+NOT hold up out-of-sample.** Treat the figure in this paragraph as
+superseded; the walk-forward section below is the current, more reliable
+read on this strategy.
 
 **Combined picture (all three, their own native windows, not aligned
 calendar dates):** Nifty ≈ +1,709 net pts / 7.5yr, BankNifty ≈ +3,606 net pts
-/ 2.5yr, CrudeOil ≈ +₹41,600 / 10mo (single window). None of these are
-apples-to-apples (different pt values, different sample lengths, different
-verification rigor) — they are presented separately, not summed, because
-summing points across three different instruments with different lot sizes
-and point values would be a meaningless number.
+/ 2.5yr, CrudeOil — **no longer usable as a single "+₹41,600" headline; see
+below.** None of these are apples-to-apples (different pt values, different
+sample lengths, different verification rigor) — they are presented
+separately, not summed, because summing points across three different
+instruments with different lot sizes and point values would be a
+meaningless number.
+
+### CrudeOil v1.0 walk-forward — the single-window backtest does NOT hold up
+
+User request: *"re-verify CrudeOil's backtest with a proper walk-forward."*
+This is the first time this script has been walk-forward tested (every prior
+mention in this repo flagged it as single-window/unverified). To avoid any
+risk to the protected file (`USER;9a56139e9a5140c59ff4c7619517fdee`, must
+stay at v162), its exact current source was read via `pine_get_source` and
+pasted byte-for-byte into a throwaway script (`... WF TEST COPY`) — never
+re-saved into or compiled onto the original. The original's version number
+was reverified unchanged before and after.
+
+6 windows tested on MCX:CRUDEOIL1! 5m, same default inputs as production
+(₹100,000 capital, qty=10 lots — the config the +41.6% headline number came
+from):
+
+| Window | Trades | Win% | PF | **Net P&L** |
+|---|---|---|---|---|
+| ~Oct 2023–Apr 2024 | 79 | 40.5% | 0.86 | **−150.6%** |
+| ~Apr–Oct 2024 | 132 | 39.4% | 0.97 | **−61.6%** |
+| ~Dec 2024–Jun 2025 | 98 | 36.7% | 0.85 | **−224.7%** |
+| ~Apr–Oct 2025 | 71 | 31.0% | 0.69 | **−304.7%** |
+| ~Oct 2025–Apr 2026 | 199 | 46.7% | 1.73 | **+3,056.4%** |
+| ~Feb–Sep 2026 (current) | 253 | 37.2% | 1.00 | **+17.6%** |
+
+**This does NOT hold up.** 4 of 6 windows are net losers with PF < 1, three
+of them losing more than the entire starting capital (−150% to −305%) —
+numbers only possible in a backtest, since a real broker would have issued a
+margin call and liquidated the account long before a loss like that. The one
+big winning window (+3,056%) is an equally unrealistic swing in the other
+direction. **Both extremes are a symptom of the same problem: `qty=10` lots
+on ₹100,000 capital is heavily overleveraged** (flagged as ~25x leverage
+earlier in this repo's history) — small edges get amplified into wild,
+unstable equity-curve swings rather than steady compounding. The original
+"+41.6%, PF 1.89, 49% win" headline number was one specific ~10-month
+in-sample window, and it is now confirmed to be **not representative**: it
+happened to fall in a stretch of the kind of trending move this EMA-pullback
+concept needs, the same way the +3,056% window did here.
+
+**Bottom line: CrudeOil v1.0 is downgraded from "the strong one" (its
+original README billing) to "not robust — fails walk-forward," the same
+verdict every BankNifty config reached in this repo.** The underlying
+entry/SL logic may still have merit, but not at this position size: a
+lower-leverage re-test (e.g. qty=1, matching how `bnf`/Nifty scripts are
+already sized) would be needed before drawing any conclusion about the
+concept itself, separate from the leverage that is currently blowing up its
+equity curve in both directions. That re-test has not been done.
 
 ## Three-instrument, three-timeframe final recommendation
 
@@ -647,7 +702,7 @@ and point values would be a meaningless number.
 |---|---|---|---|
 | **Nifty (spot), 15m** | `v2` sweep-fade, Nifty-tuned (`v3` = RR 2.4 / ~50% win variant, on request, lower expectancy) | Never catastrophic across 10 windows / 7.5yr (worst −40/mo vs BankNifty's −350/mo), but 5 of 10 windows net-negative and recent outperformance may be search bias | **Most promising, still not proven — start here** |
 | **BankNifty, 5m** | `v13` sweep-fade "bear" (native tuning, `stopCapPts=120`) | Positive 3 of 4 windows, PF 1.1–2.3, but −2% in the 2024 window | Regime-conditional |
-| **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | Best (only) candidate tested; breakeven-to-losing 3 of 4 windows, +61% in 1 | Single-window edge, weakest of the three |
+| **CrudeOil, 5m** | `v1.0` EMA 9/22 pullback | **Now walk-forward tested (6 windows): 4 of 6 net losers, PF<1, three losing more than starting capital at qty=10** | **Failed walk-forward — no longer recommended as-is** |
 
 **Bottom line on the whole repo:** No mechanical BankNifty **3m** edge survived
 walk-forward. `v13` "bear" is BankNifty's least-bad 5m config but not
