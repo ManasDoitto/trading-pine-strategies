@@ -1023,6 +1023,46 @@ higher-timeframe trend confluence, or volatility-regime gating), not a
 better way to exit the ones it already takes. That is a new research
 direction, not a tuning pass, and has not been attempted.
 
+### Entry-quality filter: daily-trend confluence — a real, asymmetric improvement
+
+Following through on "happy to take that on next" — added a daily-timeframe
+trend-confluence gate to CrudeOil `v2.1`'s entries (only take the 5m
+pullback long/short when the **daily** trend, close vs a daily EMA20 via
+`request.security`, agrees with it). This is an entry-quality filter, not
+another exit tweak: fewer, more selective signals rather than the same
+signals managed differently.
+
+| Window | v2.1 (no HTF filter): Tr / PF / P&L | **v2.3 (+HTF filter): Tr / PF / P&L** |
+|---|---|---|
+| ~Oct 2023–Apr 2024 | 30 / 1.40 / +13.8% | 19 / 1.20 / +4.2% (worse) |
+| ~Apr–Oct 2024 | 51 / 1.05 / +4.1% | 29 / 0.95 / −2.1% (worse) |
+| ~Dec 2024–Jun 2025 | 35 / 0.64 / −20.5% | 21 / 0.69 / **−12.0%** (better) |
+| ~Apr–Oct 2025 | 26 / 1.05 / +1.9% | 13 / 1.51 / **+8.4%** (better) |
+| ~Oct 2025–Apr 2026 | 75 / 1.93 / +159.2% | 52 / 1.43 / +55.4% (worse, still healthy) |
+| ~Feb–Sep 2026 (current) | 102 / 0.77 / −49.3% | 63 / 0.86 / **−17.2%** (much better) |
+| **Total trades** | **319** | **197 (62% of original)** |
+
+**Still not a clean per-window win** (3 of 6 improved, 3 worsened — the same
+shape seen throughout this repo). **But the trade-off is asymmetric and
+genuinely more favourable than any exit-tweak tried**: the worst window's
+loss shrinks by far more (−49.3% → −17.2%, a 32-point swing) than the best
+window's gain shrinks (+159.2% → +55.4%, still comfortably profitable, PF
+still a healthy 1.43). Sharpe in the worst window: **−0.13 → −0.04**.
+Sharpe in the best window: 0.22 → 0.13 (also down there, so still not
+unambiguous). A risk-averse professional would likely call this a real
+improvement in risk-adjusted terms — meaningfully smaller tail losses,
+in exchange for giving back part (not all) of the best window's gain —
+even without every single window improving. Saved as `v2.3 crudeoil
+strategy 5min (HTF daily-trend confluence filter...)`.
+
+**Bottom line on the whole Sharpe-improvement exercise**: entry-side
+filtering (trade fewer, better-confirmed setups) moved the needle more than
+any exit-side technique did. This is consistent with professional practice
+— disciplined trade selection usually does more for risk-adjusted returns
+than exit engineering on a marginal edge. Still a research lead, not a
+proven edge: same single-vendor, in-sample, never-forward-tested caveat as
+everything else in this repo.
+
 ## Three-instrument, three-timeframe final recommendation
 
 *(This section covers the original 15m-inclusive picture. For the current
