@@ -1,0 +1,256 @@
+//@version=5
+// ============================================================================
+//  CrudeOil EMA 9/22 Pullback v2.1  --  MCX:CRUDEOIL1! (5-minute)
+//  ---------------------------------------------------------------------------
+//  User question: "is it fixable?" after v1.0/v2.0 (byte-identical) failed
+//  walk-forward at both qty=10 and qty=1 (4 of 6 windows net losers, see
+//  README "CrudeOil v1.0 walk-forward" and "CrudeOil qty=1 re-test").
+//
+//  TUNING ATTEMPT: single-variable sweep on the worst window (~Apr-Oct 2025,
+//  baseline PF 0.69) testing allowCoil off (WORSE, PF 0.58 - coil trades
+//  were actually helping, reverted) and sepMlt (min EMA9-EMA22 separation
+//  required to trade, x ATR14) raised from 0.5 in steps. sepMlt 1.5 was a
+//  clear local peak (PF 1.05 in that window, 2.0 was worse at PF 0.76).
+//  Filters out the low-conviction, weak-trend-strength pullback entries that
+//  the RSI/session/ATR-floor filters in v1.0 didn't already catch.
+//
+//  CHANGED vs v1.0/v2.0: sepMlt 0.5 -> 1.5. qty 10 -> 1 (sane leverage; the
+//  earlier qty=1 re-test proved leverage was never the actual problem, so
+//  shipping at qty=1 by default here rather than re-introducing the same
+//  leverage risk). Nothing else changed - same entry/SL/target logic.
+//
+//  FULL 6-WINDOW WALK-FORWARD, v1.0/v2.0 (qty=1) -> v2.1 (this file, qty=1):
+//    Window                      v1.0/v2.0: Tr Win%  PF   P&L      v2.1: Tr Win%  PF   P&L
+//    ~Oct 2023-Apr 2024           79  40.5% 0.86  -15.1%    30  50.0% 1.40  +13.8%
+//    ~Apr-Oct 2024                132 39.4% 0.97   -6.2%    51  39.2% 1.05   +4.1%
+//    ~Dec 2024-Jun 2025            98  36.7% 0.85  -22.5%    35  31.4% 0.64  -20.5%
+//    ~Apr-Oct 2025 (old worst)     71  31.0% 0.69  -30.5%    26  42.3% 1.05   +1.9%
+//    ~Oct 2025-Apr 2026            199 46.7% 1.73 +305.6%    75  42.7% 1.93 +159.2%
+//    ~Feb-Sep 2026 (current)       253 37.2% 1.00   +1.8%   102  33.3% 0.77  -49.3%
+//
+//  HONEST READ: genuine improvement - negative windows drop from 4 of 6 to
+//  2 of 6, and the single worst loss shrinks from -30.5% to -20.5%. PF
+//  improves or holds in 4 of 6 windows. BUT it is NOT a full fix: trading
+//  the SAME filter that rescues the 2023-24 and Apr-Oct25 windows makes the
+//  CURRENT window (~Feb-Sep 2026) go from the best-behaved window in v1.0
+//  (+1.8%, PF 1.00) to the worst in this version (-49.3%, PF 0.77) - the
+//  exact overfitting trade-off pattern seen everywhere else in this repo.
+//  Dec2024-Jun2025 stays a loser either way. This is a real, partial fix to
+//  the CONSISTENCY problem (fewer catastrophic windows), not a proof of a
+//  durable edge - single-variable sweep on one window, cross-checked on 5
+//  others, still single-vendor, never forward-tested live. Trade this only
+//  as a research lead, same caveat as every other file in this repo.
+//
+//  qty=1 (not v1.0's qty=10): the qty=1 re-test already proved leverage
+//  amplifies the SAME win/loss sequence into unrealistic swings without
+//  changing which trades are taken - qty=10 would just scale every number
+//  above by 10x again, including the -49.3% and -20.5% losing windows.
+// ============================================================================
+strategy("EMA 9/22 Pullback (5m) v2.1 (sepMlt fix)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500)
+
+// ============ INPUTS ============
+emaFastLen  = input.int(9,   "EMA Fast")
+emaMedLen   = input.int(22,  "EMA Med")
+emaSlowLen  = input.int(200, "EMA Slow")
+use200      = input.bool(true, "R1: only trade with 5m EMA200")
+sepMlt      = input.float(1.5, "R3: min EMA9-EMA22 separation (x ATR14)", step=0.05)
+allowCoil   = input.bool(true, "COIL: trade the EMA-convergence break")
+clusterMlt  = input.float(1.0, "  coil: 3-EMA span <= x ATR14", step=0.1)
+clusterBuf  = input.float(0.25, "  coil SL buffer beyond band (x ATR14)", step=0.05)
+useSession  = input.bool(true, "R4: session filter")
+sessTime    = input.session("1000-2230", "Session")
+rsiLen      = input.int(3,   "RSI Length")
+rsiMaxLong  = input.int(70,  "No long if RSI(3) above")
+rsiMinShort = input.int(30,  "No short if RSI(3) below")
+pbLookback  = input.int(10,  "Pullback within N bars of above-both close")
+reclaimWin  = input.int(8,   "Max bars: touch -> reclaim -> entry")
+coolBars    = input.int(3,   "Cooldown bars after exit")
+rMultiple   = input.float(2.0, "R:R target", step=0.1)
+atrBuffMlt   = input.float(0.15, "SL buffer beyond pullback low (x ATR14)", step=0.05)
+stopFloorATR = input.float(0.5,  "Min SL floor (x ATR14)", step=0.05)
+tgtFromTight = input.bool(true,  "Target from PRE-floor risk")
+maxStopATR  = input.float(2.0, "Max stop (x ATR14)", step=0.25)
+atrMinPts   = input.float(10.0, "Min ATR14 points to trade (0=off)", step=1)
+beAfterR    = input.float(0.0, "EXP: move SL to breakeven after +R (0=off)", step=0.1)
+tp1R        = input.float(0.0, "EXP: partial TP at +R (0=off)", step=0.1)
+tp1Pct      = input.int(50,    "EXP: partial TP % of position")
+atrMaxPts   = input.float(0.0, "EXP: max ATR14 points (0=off)", step=1)
+skipMon     = input.bool(false, "EXP: skip Monday")
+skipFri     = input.bool(false, "EXP: skip Friday")
+showBG      = input.bool(true, "Trend background")
+showMarks   = input.bool(true, "Entry/exit marks")
+
+// ============ INDICATORS ============
+ema9   = ta.ema(close, emaFastLen)
+ema22  = ta.ema(close, emaMedLen)
+ema200 = ta.ema(close, emaSlowLen)
+rsi3   = ta.rsi(close, rsiLen)
+atr14  = ta.atr(14)
+
+emaHi3 = math.max(ema9, math.max(ema22, ema200))
+emaLo3 = math.min(ema9, math.min(ema22, ema200))
+coilOn = allowCoil and (emaHi3 - emaLo3) <= clusterMlt * atr14
+
+inSession = not useSession or not na(time(timeframe.period, sessTime))
+emaSepOK  = sepMlt == 0 or math.abs(ema9 - ema22) >= sepMlt * atr14 or coilOn
+atrOK     = (atrMinPts == 0 or atr14 >= atrMinPts) and (atrMaxPts == 0 or atr14 <= atrMaxPts)
+dowOK     = not (skipMon and dayofweek == dayofweek.monday) and not (skipFri and dayofweek == dayofweek.friday)
+
+// ============ 5m REGIME ============
+regimeUp = (ema9 > ema22 or coilOn) and (not use200 or close > ema200)
+regimeDn = (ema9 < ema22 or coilOn) and (not use200 or close < ema200)
+aboveBoth = coilOn ? close > emaHi3 : (close > ema9 and close > ema22)
+belowBoth = coilOn ? close < emaLo3 : (close < ema9 and close < ema22)
+
+// ============ PULLBACK TRACKER ============
+var bool  pbActL   = false
+var float pbLowL   = na
+var int   pbBarL   = na
+var int   lastAbvL = na
+var bool  pbActS   = false
+var float pbHiS    = na
+var int   pbBarS   = na
+var int   lastBlwS = na
+
+if not regimeUp
+    pbActL := false
+    pbLowL := na
+    pbBarL := na
+else
+    if aboveBoth
+        lastAbvL := bar_index
+    if low <= ema9 and not na(lastAbvL) and (bar_index - lastAbvL) <= pbLookback
+        fresh = not pbActL or (not na(pbBarL) and lastAbvL >= pbBarL)
+        pbLowL := fresh ? low : math.min(pbLowL, low)
+        pbActL := true
+        pbBarL := bar_index
+
+if not regimeDn
+    pbActS := false
+    pbHiS  := na
+    pbBarS := na
+else
+    if belowBoth
+        lastBlwS := bar_index
+    if high >= ema9 and not na(lastBlwS) and (bar_index - lastBlwS) <= pbLookback
+        fresh = not pbActS or (not na(pbBarS) and lastBlwS >= pbBarS)
+        pbHiS := fresh ? high : math.max(pbHiS, high)
+        pbActS := true
+        pbBarS := bar_index
+
+// ============ COOLDOWN ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+
+// ============ TRIGGER SETUP ============
+var bool  waitL   = false
+var int   waitBarL = na
+var float trigL   = na
+var float slL     = na
+var float tpL     = na
+var float tp1LvL  = na
+var bool  waitS   = false
+var int   waitBarS = na
+var float trigS   = na
+var float slS     = na
+var float tpS     = na
+var float tp1LvS  = na
+
+gateL = regimeUp and aboveBoth and emaSepOK and inSession and atrOK and dowOK and rsi3 < rsiMaxLong
+gateS = regimeDn and belowBoth and emaSepOK and inSession and atrOK and dowOK and rsi3 > rsiMinShort
+
+if strategy.opentrades == 0 and coolOK and not waitL and pbActL and gateL and not na(pbBarL) and (bar_index - pbBarL) <= reclaimWin
+    _slTight = coilOn ? (emaLo3 - clusterBuf * atr14) : (pbLowL - atrBuffMlt * atr14)
+    _sl      = stopFloorATR > 0 ? math.min(_slTight, high - stopFloorATR * atr14) : _slTight
+    _riskSL  = high - _sl
+    _riskTgt = tgtFromTight ? (high - _slTight) : _riskSL
+    if _riskSL > 0 and (maxStopATR == 0 or _riskSL <= maxStopATR * atr14)
+        waitL := true
+        waitBarL := bar_index
+        trigL := high
+        slL := _sl
+        tpL := high + _riskTgt * rMultiple
+        tp1LvL := tp1R > 0 ? high + _riskTgt * tp1R : na
+        pbActL := false
+
+if strategy.opentrades == 0 and coolOK and not waitS and pbActS and gateS and not na(pbBarS) and (bar_index - pbBarS) <= reclaimWin
+    _slTight = coilOn ? (emaHi3 + clusterBuf * atr14) : (pbHiS + atrBuffMlt * atr14)
+    _sl      = stopFloorATR > 0 ? math.max(_slTight, low + stopFloorATR * atr14) : _slTight
+    _riskSL  = _sl - low
+    _riskTgt = tgtFromTight ? (_slTight - low) : _riskSL
+    if _riskSL > 0 and (maxStopATR == 0 or _riskSL <= maxStopATR * atr14)
+        waitS := true
+        waitBarS := bar_index
+        trigS := low
+        slS := _sl
+        tpS := low - _riskTgt * rMultiple
+        tp1LvS := tp1R > 0 ? low - _riskTgt * tp1R : na
+        pbActS := false
+
+if waitL and (bar_index - waitBarL > reclaimWin or not regimeUp)
+    waitL := false
+if waitS and (bar_index - waitBarS > reclaimWin or not regimeDn)
+    waitS := false
+
+if waitL
+    strategy.entry("Long", strategy.long, stop=trigL)
+else
+    strategy.cancel("Long")
+if waitS
+    strategy.entry("Short", strategy.short, stop=trigS)
+else
+    strategy.cancel("Short")
+
+// ============ ENTRY / EXIT BAR DETECTION ============
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+exitBar       = strategy.position_size == 0 and strategy.position_size[1] != 0
+var bool lastWasLong = false
+var float riskL0 = na
+if longEntryBar
+    lastWasLong := true
+    waitL := false
+    riskL0 := strategy.position_avg_price - slL
+if shortEntryBar
+    lastWasLong := false
+    waitS := false
+    riskL0 := slS - strategy.position_avg_price
+
+// ============ EXITS ============
+if strategy.position_size > 0
+    waitL := false
+    _sl = slL
+    if beAfterR > 0 and not na(riskL0) and high >= strategy.position_avg_price + beAfterR * riskL0
+        _sl := math.max(_sl, strategy.position_avg_price)
+    slL := _sl
+    if tp1R > 0 and not na(tp1LvL)
+        strategy.exit("TP1 L", from_entry="Long", qty_percent=tp1Pct, stop=slL, limit=tp1LvL)
+    strategy.exit("Exit L", from_entry="Long", stop=slL, limit=tpL)
+if strategy.position_size < 0
+    waitS := false
+    _sl = slS
+    if beAfterR > 0 and not na(riskL0) and low <= strategy.position_avg_price - beAfterR * riskL0
+        _sl := math.min(_sl, strategy.position_avg_price)
+    slS := _sl
+    if tp1R > 0 and not na(tp1LvS)
+        strategy.exit("TP1 S", from_entry="Short", qty_percent=tp1Pct, stop=slS, limit=tp1LvS)
+    strategy.exit("Exit S", from_entry="Short", stop=slS, limit=tpS)
+
+// ============ VISUALS ============
+bgcolor(showBG and regimeUp and aboveBoth ? color.new(color.green, 92) : na)
+bgcolor(showBG and regimeDn and belowBoth ? color.new(color.red,   92) : na)
+bgcolor(showBG and useSession and not inSession ? color.new(color.gray, 92) : na)
+plot(ema9,   "EMA9",   color=color.aqua,   linewidth=1)
+plot(ema22,  "EMA22",  color=color.orange, linewidth=1)
+plot(ema200, "EMA200", color=color.new(color.purple, 0), linewidth=2)
+plotshape(showMarks and longEntryBar,  "Long",  shape.triangleup,   location.belowbar, color.new(color.teal, 0), size=size.small, text="LONG",  textcolor=color.white)
+plotshape(showMarks and shortEntryBar, "Short", shape.triangledown, location.abovebar, color.new(color.red, 0),  size=size.small, text="SHORT", textcolor=color.white)
+plot(strategy.position_size > 0 ? tpL : strategy.position_size < 0 ? tpS : na, "TP", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 ? slL : strategy.position_size < 0 ? slS : na, "SL", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=1)

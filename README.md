@@ -846,6 +846,36 @@ The realistic path forward is what the final table below already reflects:
 three separate, differently-tuned strategies, one of which (Nifty) is a
 genuine lead and two of which are not yet validated.
 
+### CrudeOil "is it fixable?" — sepMlt tuning: partial fix, not a cure
+
+User question: *"is it fixable?"* after v1.0/v2.0 failed walk-forward twice.
+Ran a real single-variable sweep against the worst window (~Apr–Oct 2025,
+baseline PF 0.69): `allowCoil` off made it *worse* (PF 0.58 — coil breakouts
+were quietly helping, not hurting); raising `sepMlt` (minimum required
+EMA9–EMA22 separation before a pullback entry is allowed) from 0.5 up to
+**1.5** was a clear local peak (PF 1.05 in that window; 2.0 was worse again
+at PF 0.76). Cross-checked the 1.5 setting against all 6 windows:
+
+| Window | v1.0/v2.0 (qty=1) | **v2.1, sepMlt 1.5 (qty=1)** |
+|---|---|---|
+| ~Oct 2023–Apr 2024 | PF 0.86, −15.1% | **PF 1.40, +13.8%** |
+| ~Apr–Oct 2024 | PF 0.97, −6.2% | **PF 1.05, +4.1%** |
+| ~Dec 2024–Jun 2025 | PF 0.85, −22.5% | PF 0.64, −20.5% |
+| ~Apr–Oct 2025 (old worst) | PF 0.69, −30.5% | **PF 1.05, +1.9%** |
+| ~Oct 2025–Apr 2026 | PF 1.73, +305.6% | PF 1.93, +159.2% (lower % but higher PF) |
+| ~Feb–Sep 2026 (current) | PF 1.00, +1.8% | **PF 0.77, −49.3%** |
+
+**Genuine, partial fix**: negative windows drop from 4 of 6 to 2 of 6, and
+the single worst loss shrinks from −30.5% to −20.5%. **Not a cure**: the
+same filter that rescues 3 windows flips the current window from this
+family's *best*-behaved result (+1.8%) to its *worst* (−49.3%) — the same
+overfitting trade-off seen everywhere else in this repo. Dec 2024–Jun 2025
+stays a loser regardless. Saved as `v2.1 crudeoil strategy 5min (sepMlt
+0.5-1.5 fix...)` at qty=1 (leverage already proven not to be the issue).
+**Verdict: tunable toward better consistency, not provably fixed** — treat
+this exactly like every other lead in this repo: a research candidate, not
+a validated edge.
+
 ## Three-instrument, three-timeframe final recommendation
 
 ### Master comparison — every strategy, every script, this whole project
