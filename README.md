@@ -573,6 +573,74 @@ signals out of one.
   ~240-trade combined total is a reasonable estimate, not an apples-to-apples
   guarantee.
 
+### Points captured per window — detailed results, all three legs
+
+User request: *"show me detailed results, include how many points can be
+captured under each strategy over 3 scripts"* / *"i want to see how each
+strategy worked across different windows."* Fresh live reads (not re-derived
+from earlier net/mo figures) of each script's own points scoreboard, window
+by window.
+
+**Nifty v2 sweep-fade, 15m — 10 windows, ~7.5 years (fresh re-read):**
+
+| Window | Trades | Win% | PF | **Net pts** |
+|---|---|---|---|---|
+| ~Dec 2018–Apr 2019 | 53 | 39.6% | 1.30 | **−199** |
+| ~Dec 2019–Jun 2020 (COVID) | 53 | 43.4% | 1.77 | **+334** |
+| ~Dec 2020–Jun 2021 | 32 | 31.3% | 1.73 | **+381** |
+| ~Dec 2021–Jun 2022 | 41 | 26.8% | 1.20 | **−88** |
+| ~Dec 2022–Jun 2023 | 56 | 30.4% | 1.23 | **−87** |
+| ~Oct 2023–Apr 2024 (worst) | 40 | 30.0% | 0.70 | **−808** |
+| ~Apr–Oct 2024 | 33 | 42.4% | 1.50 | **+85** |
+| ~Apr–Oct 2025 | 49 | 44.9% | 2.25 | **+1,025** |
+| ~Oct 2025–Apr 2026 | 65 | 43.1% | 2.71 | **+2,418** |
+| ~Feb–Sep 2026 (current) | 75 | 42.7% | 3.08 | **+3,618** |
+| **10-window total** | **497** | **37.7% avg** | — | **+6,679 gross pts** |
+
+That's raw index points, not ₹ — converting to ₹ needs the current Nifty lot
+size (which changes periodically; not verified here, so no ₹ figure is
+quoted). After the 10 pt/trade cost estimate (497 trades × 10 = 4,970 pts),
+net is **+1,709 pts** over the full 7.5-year sample — and unevenly earned:
+the first 6 windows (through mid-2024) net to roughly **−467 pts combined**,
+all of the gain is concentrated in the last 3 (recent) windows.
+
+**BankNifty v13 sweep-fade "bear", 5m — 5 windows, ~2.5 years (fresh live read
+via the script's own points scoreboard):**
+
+| Window | Trades | Win% | PF | Total pts | **Net pts (after 20/rt)** |
+|---|---|---|---|---|---|
+| ~Apr–Oct 2024 (strong uptrend) | 33 | 21.2% | 0.80 | −449 | **−1,109** |
+| ~Dec 2024–Jun 2025 | 47 | 40.4% | 1.14 | +353 | **−587** |
+| ~Apr–Oct 2025 | 50 | 46.0% | 2.00 | +2,021 | **+1,021** |
+| ~Dec 2025–Apr 2026 | 37 | 29.7% | 2.31 | +3,144 | **+2,404** |
+| ~Feb–Sep 2026 (current) | 76 | 35.5% | 1.74 | +3,397 | **+1,877** |
+| **5-window total** | **243** | **34.6% avg** | — | **+8,466 gross** | **+3,606 net pts** |
+
+As with Nifty, this is raw index points — no ₹ conversion is quoted since
+BankNifty's lot size was not re-verified this session. Note the first window
+(strong 2024 uptrend) alone cost −1,109 net pts, confirming the file's own
+"not robust in trending years" warning; the next four windows are all
+net-positive.
+
+**CrudeOil v1.0 EMA 9/22 pullback, 5m** — this script tracks **₹ return, not
+a points scoreboard** (unlike the other two), and per the standing hard
+constraint it was **not** re-loaded or re-tested this session (avoided a
+"save before add to chart" prompt that risked touching the protected asset —
+cancelled it). Reusing its existing, single-window ~10-month backtest:
+**203 trades, 49% win, PF 1.89, MaxDD 0.55%, net +41.6%** on ₹100,000 initial
+capital at qty=10 → **≈ +₹41,600 net** over ~10 months. This is the frozen
+production number, not re-verified here, and — as flagged everywhere else in
+this repo — it is a **single in-sample window, never walk-forward tested**,
+so treat it as far less certain than the Nifty/BankNifty figures above.
+
+**Combined picture (all three, their own native windows, not aligned
+calendar dates):** Nifty ≈ +1,709 net pts / 7.5yr, BankNifty ≈ +3,606 net pts
+/ 2.5yr, CrudeOil ≈ +₹41,600 / 10mo (single window). None of these are
+apples-to-apples (different pt values, different sample lengths, different
+verification rigor) — they are presented separately, not summed, because
+summing points across three different instruments with different lot sizes
+and point values would be a meaningless number.
+
 ## Three-instrument, three-timeframe final recommendation
 
 | Instrument | Best strategy found | Why | Status |
