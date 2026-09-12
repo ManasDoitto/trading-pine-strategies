@@ -1695,3 +1695,148 @@ trades, +3,751 pts) came from the buggy version and is **withdrawn**.
 
 The final pick per script, with full rules, is in
 `BEST STRATEGY PER SCRIPT (BankNifty, Nifty 50, CrudeOil - 3m-5m).md`.
+
+---
+
+## Full audit: every BankNifty and CrudeOil strategy, re-run on all 3m/5m history (12 Sep 2026)
+
+**Why this was run.** Some earlier strategies were reported with bigger point
+totals than the current picks. So every strategy file was re-run on:
+- all history TradingView replay allows at 3m and 5m
+- the same non-overlapping windows
+- the same costs: qty 1, 0.02% commission per side, no extra slippage
+
+How it was done:
+- `strategy_audit_2026_09/audit_gen.py` makes an audit copy of each script
+  with a tiled-window scoreboard added.
+- Later files that expose an older version's settings were used to reproduce
+  that version by changing inputs:
+  - v10.5 covers v10.3, v10.4 and v10.6
+  - v13 covers v12
+  - v0.4 covers v0.3, and approximately v0.1
+  - v1.1 covers v1.0
+  - crude v2.3 covers v2.1, v2.0, v1.0-tuned, v1.0-pure / v0.7,
+    v1.1 / v0.8, v0.6 and v0.5
+- Raw rows, the aggregator and summaries are in `strategy_audit_2026_09/`.
+
+### Why the earlier totals were bigger
+
+| Strategy | Earlier headline | Full-history result (same costs as every row here) |
+|---|---|---|
+| BankNifty v13 "bear" | +3,606 pts | **+914** |
+| BankNifty v10.4 | +4,994 pts gross | **−119** |
+| BankNifty v10.5 | +5,693 pts gross | **−1,551** |
+| BankNifty combined v1 | +3,751 (live window, buggy build) | **+1,438** (bug fixed) |
+| Crude v1.0 | +41.6%, one +3,056% window (qty 10) | **+2,155** best config (v1.0-tuned / v2.0 settings) |
+
+The big numbers came from five things:
+- overlapping windows that counted the strong 2025-26 period twice
+- zero commission with a flat per-trade deduction
+- gross rather than net figures
+- a single in-sample window
+- qty 10
+
+Every BankNifty sweep version made about +2,000 pts in Mar-Sep 2026 alone.
+That one window is what those headlines were built on.
+
+### BankNifty 5m: 5 windows, Mar 2024 - Sep 2026 (30 months)
+
+| Strategy | Trades/mo | Win% | PF | Net pts | Max DD | + windows |
+|---|---|---|---|---|---|---|
+| **v0.4 EMA pullback + 15m ADX** | 2.5 | 41.9 | **1.33** | **+1,403** | 1,620 | 3/5 |
+| v10.3 sweep + daily trend | 3.5 | 38.1 | 1.10 | +924 | 2,631 | 2/5 |
+| v13 sweep "bear" | 7.7 | 32.5 | 1.06 | +914 | 2,642 | 2/5 |
+| v0.1 pullback (approx.) | 3.1 | 35.8 | 1.01 | +70 | 1,945 | 3/5 |
+| v10.4 | 3.1 | 37.6 | 0.99 | −119 | 2,345 | 2/5 |
+| v0.3 pullback | 4.3 | 33.6 | 0.88 | −997 | 2,844 | 2/5 |
+| v10.5 (v10.6 identical at defaults) | 4.2 | 32.3 | 0.85 | −1,551 | 3,763 | 2/5 |
+| v12 | 9.8 | 30.4 | 0.86 | −2,954 | 5,422 | 2/5 |
+| v11 | 7.4 | 29.6 | 0.79 | −3,220 | 5,192 | 1/5 |
+
+### BankNifty 3m: 5 windows, Mar 2025 - Sep 2026 (18 months; the 3m data floor)
+
+| Strategy | Trades/mo | Win% | PF | Net pts | Max DD | + windows |
+|---|---|---|---|---|---|---|
+| **v1.1 MTF + ADX gates** | 2.1 | 52.6 | **1.69** | **+1,170** | 465 | 3/5 |
+| v7 OB+FVG | 15.3 | 36.9 | 0.92 | −1,291 | 3,445 | 1/5 |
+| v4.1 OB pullback (4 windows) | 15.7 | 24.1 | 0.78 | −3,340 | 4,839 | 1/4 |
+| v1.0 MTF | 11.8 | 33.6 | 0.71 | −3,514 | 3,515 | 1/5 |
+| v10 3m sweep | 8.9 | 26.4 | 0.68 | −4,085 | 4,310 | 1/5 |
+| v9 sweep + CHoCH | 7.8 | 25.9 | 0.62 | −4,418 | 4,521 | 0/5 |
+| ORB v0.3 | 19.2 | 47.2 | 0.76 | −9,988 | 10,459 | 0/5 |
+| v8 SMC pure | 22.7 | 29.3 | 0.58 | −10,602 | 10,602 | 0/5 |
+| v6 level fakeout | 26.6 | 25.8 | 0.60 | −13,002 | 13,002 | 0/5 |
+| v5 lab, 4 trading modes | 6-77 | 26-39 | 0.36-0.55 | −3,907 to −36,098 | - | 0/5 each |
+| v3 session + SMC | 56.9 | 32.3 | 0.57 | −26,969 | 27,822 | 0/5 |
+
+v5's "orb-break" mode takes no trades: the opening range is always wider
+than its 2 × ATR stop cap.
+
+### CrudeOil 5m: 11 windows, Mar 2024 - Sep 2026 (30 months)
+
+| Strategy | Trades/mo | Win% | PF | Net pts | Max DD | + windows |
+|---|---|---|---|---|---|---|
+| **v4.0 SHA flip RR3** (lab V21, fidelity-checked) | 28 | 28.0 | 1.09 | **+2,136** | 2,339 | 6/11 |
+| **v2.0 / v1.0-tuned** (EMA 9/22 pullback, separation 0.5) | 45 | 37.8 | 1.09 | **+2,155** | 2,398 | 4/11 |
+| v2.1 (separation 1.5) | 17 | 37.3 | **1.14** | +1,304 | **900** | 5/11 |
+| v2.3 (+ daily-trend filter) | 11 | 36.5 | 1.02 | +98 | 874 | 4/11 |
+| v1.0-pure / v0.7 | 102 | 37.3 | 0.91 | −4,118 | 6,215 | 2/11 |
+| v0.6 | 98 | 36.3 | 0.90 | −5,102 | 6,853 | 3/11 |
+| v1.1 / v0.8 (coil break) | 115 | 36.9 | 0.89 | −5,522 | 6,880 | 3/11 |
+| v0.5 | 187 | 37.1 | 0.89 | −9,340 | 10,942 | 3/11 |
+
+Not re-run here:
+- crude v0-v0.4, the deep-sweep-breakout prototypes that were superseded
+  (originally qty 10)
+- v0.9, the SMC experiment: its default `smcMode="off"` is the v1.1 engine
+- v3.0: variant lab V01 covered it, at −2,587 pts
+- one v4.1 window: a script save replaced the study on the chart mid-run
+
+### Volume profile (POC): `variant lab v3`, 24 variants
+
+The profile is built from the chart's own futures volume:
+- bins of 10 points for BankNifty and 2 points for crude
+- today's developing POC, and yesterday's POC with its 70% value area
+- naked POCs (earlier POCs price hasn't returned to yet)
+
+The variants use these levels two ways:
+- as filters on the v4.0 SHA flip
+- as setups of their own: 80% rule, value-area-edge fades, POC bounce,
+  value-area breakout-retest, developing-POC trend pullback, and sweep fades
+  at the profile levels
+
+Summaries: `strategy_audit_2026_09/vp_lab3_summary.md`.
+
+| Script | Variant | Trades/mo | PF | Net pts | + windows |
+|---|---|---|---|---|---|
+| BankNifty 5m | SHA flip, no filter | 16 | 0.86 | −5,068 | 2/5 |
+| BankNifty 5m | SHA flip, only outside prior value area | 9 | 1.00 | −45 | 3/5 |
+| BankNifty 5m | best standalone POC setup | 1-18 | 0.71 or less | all negative | 2/5 or fewer |
+| BankNifty 5m | high-frequency POC setups (30-42/mo) | 30-42 | 0.68 or less | −24,000 to −35,000 | 0/5 |
+| Crude 5m | SHA flip, no filter (= v4.0) | 28 | 1.09 | +2,136 | 6/11 |
+| Crude 5m | SHA flip, only outside prior value area | 14 | 1.10 | +1,225 (max DD 1,804 vs 2,339) | 6/11 |
+| Crude 5m | SHA flip, on the prior-day POC side | 21 | 1.08 | +1,247 | 6/11 |
+| Crude 5m | POC bounce RR3 | 17 | 1.07 | +373 (max DD 665) | 6/11 |
+
+**Reading:**
+- POC works as a **risk filter**. It halves the trades and cuts drawdown, but
+  it also cuts profit, and it never turned a losing strategy into a winner.
+- POC setups on their own lose on BankNifty at every frequency. At about 22
+  points of cost per round trip, their small edge disappears.
+
+### Can BankNifty reach 20 trades a month profitably?
+
+Not in this data. The profitable BankNifty strategies and their frequencies:
+
+| Strategy | Trades/mo |
+|---|---|
+| v0.4 | 2.5 |
+| v10.3 | 3.5 |
+| v13 | 7.7 (shares its signal engine with v10.3) |
+| v1.1 3m | 2.1 |
+
+- Running v0.4 + v13 + v1.1 together gives about **12 trades a month**.
+- Every one of the roughly 80 strategy/configuration combinations above about
+  10 trades a month lost after costs.
+- 20 a month would need a lower cost per trade, such as a low-cost broker or
+  limit entries. That has not been tested here.

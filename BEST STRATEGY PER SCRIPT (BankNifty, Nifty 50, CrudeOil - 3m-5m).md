@@ -18,6 +18,21 @@ in the real TradingView Strategy Tester (or a lab that was checked against it).
 - Rupees = points x point value. The point value is 100 for CrudeOil, 30 for
   BankNifty futures (1 lot) and 1 for Nifty spot.
 
+
+> **Audit update (12 Sep 2026).** Every BankNifty and crude strategy file was
+> re-run on all history with identical costs. See the README section "Full
+> audit" and `strategy_audit_2026_09/`.
+> - **BankNifty:** the picks stand. v0.4 is +1,403 pts over 30 months, PF
+>   1.33, with no extra slippage charged. MTF v1.1 on 3m is +1,170 pts, PF
+>   1.69.
+> - **Crude:** v1.0-tuned / v2.0 (the EMA 9/22 pullback with separation 0.5)
+>   **ties v4.0 on points**: +2,155 vs +2,136. It trades 45 times a month
+>   against 28, at the same PF of 1.09. v2.1 stays the smoother choice: PF
+>   1.14, max drawdown 900.
+> - **Volume profile (POC):** it cuts drawdown and trade count but does not add
+>   points.
+> - No profitable BankNifty setup was found at 20 or more trades a month.
+
 ---
 
 ## 1. The picks at a glance
