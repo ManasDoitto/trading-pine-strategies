@@ -1327,3 +1327,65 @@ seeing results:
   window), or PF < 0.8 after 60 trades.
 - Expect losing streaks. At a 28% win rate, the longest run of losses in 60
   trades is typically 8-9. That alone is not a failure.
+
+---
+
+## Best strategy per script: head-to-head on identical windows (3m/5m)
+
+The earlier per-script picks were measured on different, partly overlapping
+windows. BankNifty v13 and Nifty v2 also ran with zero commission and a flat
+20 or 10 points per round trip deducted in their own tables. For a fair
+comparison, each was re-run in the **real Strategy Tester** on exactly the
+same 5m windows as the variant lab: same start date to the day, 0.02% per
+side, qty 1. A small add-on counted only the trades inside each window.
+Raw rows and the scripts are in `variant_lab_v1/head_to_head_*`.
+
+| Script | Strategy | TF | Trades | /month | Win% | Avg win / loss (pts) | PF | Net pts | Daily Sharpe | Worst-window DD | +windows |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| CrudeOil | **v2.1 EMA 9/22 pullback** | 5m | 519 | 17 | **37.4** | 56 / -29 | **1.14** | +1,337 | **+0.68** | **607** | 5/11 |
+| CrudeOil | **v4.0 SHA flip RR3** (lab V21) | 5m | 838 | 28 | 28.2 | 105 / -38 | 1.10 | **+2,240** | +0.53 | 2,106 | **6/11** |
+| CrudeOil | v3.0 SHA+RSI3 pullback (lab V01) | 5m | 1,965 | 66 | 30.1 | 75 / -34 | 0.94 | -2,587 | -0.55 | 1,552 | 2/11 |
+| CrudeOil | best 3m (lab V07) | 3m | 2,253 | 123 | 31.6 | 66 / -31 | 1.00 | -144 | -0.04 | 2,130 | 4/11 |
+| BankNifty | **v13 sweep-fade "bear", RR 1:6** | 5m | 231 | 8 | 32.5 | 224 / -102 | **1.06** | **+914** | **+0.19** | 1,944 | **2/5** |
+| BankNifty | best lab variant (V22 SHA flip + EMA200) | 5m | 393 | 13 | 39.7 | 160 / -119 | 0.88 | -3,289 | -0.63 | 3,028 | 1/5 |
+| BankNifty | best 3m (lab V24 Donchian) | 3m | 517 | 28 | 33.7 | 187 / -127 | 0.75 | -10,939 | -2.12 | 5,610 | 1/5 |
+| Nifty 50 | v2 sweep-fade, 5m retune, RR 1:6 | 5m | 161 | 5 | 24.2 | 90 / -41 | 0.71 | -1,436 | -1.01 | 992 | 1/5 |
+| Nifty 50 | best lab variant (V22 SHA flip + EMA200) | 5m | 374 | 12 | 39.6 | 64 / -50 | 0.84 | -1,846 | -0.89 | 1,281 | 0/5 |
+| Nifty 50 | best 3m (lab V21 SHA flip) | 3m | 425 | 22 | 31.5 | 70 / -44 | 0.73 | -3,430 | -2.06 | 1,679 | 0/5 |
+
+Net points by window, oldest to newest:
+
+| Strategy | Net pts by window |
+|---|---|
+| CrudeOil v2.1 | -195, -62, +278, +260, -179, -166, +45, -92, +1,602, +324, -477 |
+| CrudeOil v4.0 | +281, +621, -1,295, -129, +1,248, -460, -376, -408, +1,216, +1,215, +327 |
+| BankNifty v13 | -503, -1,221, +1,496, -566, +1,707 |
+| Nifty v2 5m | -230, -428, -597, -877, +697 |
+
+**Pick per script:**
+
+- **CrudeOil: a near tie between two different styles.**
+  - **v2.1** (EMA 9/22 pullback, RR 1:2) is the better risk-adjusted
+    strategy: highest Sharpe (0.68), PF 1.14, 37% win rate, and a
+    worst-window drawdown of only 607 pts.
+  - **v4.0** (SHA flip, RR 1:3) books the most points (+2,240) and has
+    more positive windows (6/11), but with 3.5x the drawdown and a 28% win
+    rate.
+  - Both are profitable after costs over 2.5 years, and both make most of
+    their money in 2-3 strong windows.
+  - **Best overall: v2.1.** It wins on Sharpe, PF, win rate and drawdown.
+    v4.0 is the choice if total points matter more than smoothness.
+- **BankNifty: v13 "bear"** is the only net-profitable strategy found at
+  3m/5m. It is thin: +914 pts over 2.5 years, PF 1.06, 2 of 5 windows
+  positive, and a -1,221 pt window through the late-2024 trend and crash.
+- **Nifty 50: no viable 3m/5m strategy.** Every candidate is net-negative.
+  The least-bad is v2 5m retune (-1,436 pts). Its only positive window is
+  the one it was tuned on. Nifty's working edge in this repo is `v2` at 15m,
+  which is excluded by the 3m/5m scope.
+
+**Corrections to earlier numbers:**
+- BankNifty v13's earlier "+3,606 net pts" came from overlapping windows,
+  which double-counted its good 2025-26 period. On exact, non-overlapping
+  windows with 0.02% per side it is **+914 pts**.
+- CrudeOil v2.1's earlier per-window % figures are superseded by the
+  points above.
