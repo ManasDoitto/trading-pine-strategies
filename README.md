@@ -1389,3 +1389,111 @@ Net points by window, oldest to newest:
   windows with 0.02% per side it is **+914 pts**.
 - CrudeOil v2.1's earlier per-window % figures are superseded by the
   points above.
+
+---
+
+## Best robust version per script: walk-forward tuning (3m/5m)
+
+The request was to tune three scripts until each hit **PF > 1.4, win rate
+> 50%, max drawdown < 3% of capital and at least 15 trades a month**:
+
+- BankNifty MTF v1.0 (3m)
+- BankNifty EMA Pullback v0.3 (5m)
+- the same v0.3 code on Nifty 50 **spot**
+
+The baselines quoted in the request were mislabelled. The "v0.3" rows were
+really v13 sweep-fade and Nifty v2 results, and the MTF row matched only
+its single good window. Every script was therefore re-measured from
+scratch, in the **real Strategy Tester**:
+
+- same tiled windows as the variant lab
+- qty 1 lot, 0.02% per side plus 5 points of slippage
+- rupees = points x pointvalue: 30 for BankNifty futures, 1 for Nifty spot
+
+Each script was checked against the fixed targets first. When those proved
+unreachable, the aim switched to the **most robust version** (option 2):
+- **structural changes only**, each with a market reason, judged on every window
+- no fine parameter search
+- trend gates read from completed bars only, so no lookahead
+
+Raw rows and the summary script are in `variant_lab_v1/robust_tuning/`.
+
+### Script 3: BankNifty MTF v1.0, 3m, 5 windows, Mar 2025 - Sep 2026
+
+| Version | Trades (/mo) | Win% | PF | Net pts | Sharpe | Max DD | Windows + / - / flat | By window, old to new |
+|---|---|---|---|---|---|---|---|---|
+| v1.0 as-is | 217 (12) | 33.6 | 0.69 | -3,880 | -2.09 | 3,880 pts = Rs1.16L = 23% | 1 / 4 / 0 | -382, -346, -999, +625, -2,777 |
+| + 15m ADX >= 25 | 73 (4) | 41.1 | 0.94 | -224 | -0.20 | 1,094 pts = 6.6% | 2 / 3 / 0 | -320, +235, -66, +987, -1,059 |
+| + daily ADX >= 20 | 101 (5.6) | 40.6 | 0.99 | -52 | -0.04 | 1,068 pts = 6.4% | 1 / 3 / 1 | -243, -60, -569, +820, 0 |
+| **+ both gates, v1.1** | **38 (2.1)** | **52.6** | **1.64** | **+1,113** | **+1.21** | **482 pts = Rs14.5k = 2.9%** | **3 / 1 / 1** | -252, +397, +139, +829, 0 |
+
+The request's own "Set A" did not help:
+
+- **Set A** (breakeven after 1R, fresh-cross window 20, skip the first 20
+  min, skip midday) made both windows it was tested on **worse**:
+  - Jan-May 2026: +625 fell to -1,043, and drawdown rose from 589 to 1,382
+  - May-Sep 2026: -2,777 fell to -3,287
+- Breakeven hurts because winners often return to entry before reaching
+  the 2.5R target.
+- A 0.5xATR trailing stop lifted win rate to 55% but turned PF to 0.85.
+- Widening the fresh-cross window added trades that lose.
+- Wick plus volume filters left 2 trades in 4 months.
+- EMA200 and 15m-slope filters had little or no effect.
+
+### Script 1: BankNifty EMA Pullback v0.3, 5m, 5 windows, Mar 2024 - Sep 2026
+
+| Version | Trades (/mo) | Win% | PF | Net pts | Sharpe | Max DD | Windows + / - | By window, old to new |
+|---|---|---|---|---|---|---|---|---|
+| v0.3 as-is | 131 (4.4) | 33.6 | 0.86 | -1,229 | -0.43 | 2,968 pts = Rs89k = 18% | 2 / 3 | -88, -216, -1,584, +282, +378 |
+| **+ 15m ADX >= 25, v0.4** | **74 (2.5)** | **41.9** | **1.29** | **+1,277** | **+0.52** | **1,668 pts = Rs50k = 10%** | **3 / 2** | +816, +206, -533, -102, +889 |
+
+Rejected:
+- **ATR floor 40:** 4x the trades, and it loses.
+- **Daily-ADX gate, alone or with the 15m gate:** in Sep 2025 - Mar 2026 it
+  took 5 trades and all 5 lost.
+
+### Script 2: Nifty 50 spot, same v0.3 code: no robust version
+
+- **Nifty spot has no volume in TradingView**, so v0.3's core
+  volume/VWAP condition can never pass on NSE:NIFTY.
+- v0.4 adds `volSym = NSE:NIFTY1!`. That takes volume from the futures
+  and builds VWAP from spot prices, and it works on the **live chart**.
+- **Bar replay does not return another symbol's volume.** Every older
+  window silently degrades to about 1 trade. Proof: with the volume/VWAP
+  condition off, the same window takes 127 trades.
+- So Nifty spot can only be judged on the live window, Mar - Sep 2026:
+
+  | Version | Result |
+  |---|---|
+  | ATR >= 20 (scaled from BankNifty) | 27 trades, PF 0.68, -239 pts |
+  | + 15m ADX >= 25 | 16 trades, -183 |
+  | ATR >= 25 | 15 trades, PF 0.95, -21 |
+  | ATR >= 25 + ADX gate | 10 trades, -113 |
+  | Request's own Nifty set (ATR 30, max stop 1.5, wick 0.6, skip midday, gap lock, breakeven 1R) | 5 trades in 6 months, -12 |
+
+- The no-volume version that *can* be tested in older windows loses:
+  Aug 2025 - Mar 2026 gave 127 trades, PF 0.65, -1,196 pts.
+- **Verdict: no viable Nifty-spot version of this script.** Judging it
+  across windows would need testing on NIFTY1! futures as a stand-in.
+
+### Against the requested targets
+
+| Script | PF > 1.4 | Win > 50% | DD < 3% of Rs5L | >= 15 trades/mo |
+|---|---|---|---|---|
+| BankNifty MTF v1.1 | yes (1.64) | yes (52.6%) | yes (2.9%) | **no (2.1)** |
+| BankNifty EMA Pullback v0.4 | no (1.29) | no (41.9%) | no (10%) | **no (2.5)** |
+| Nifty spot | no | no | - | no |
+
+**Honest read:**
+- The trend-strength gates are the one structural change that helped
+  both BankNifty scripts. They work by **standing aside in choppy
+  markets**, which is also why trade frequency falls to 2-3 a month.
+- **More trades and higher quality pulled in opposite directions in
+  every test.** Every change that added trades added losing trades.
+- Samples are small: 38 and 74 trades. The gates were chosen after
+  screening on the newest windows, then held up on the older ones. Treat
+  both as leads to forward-test, not proven systems.
+- An input-carryover quirk was found and controlled for. When a script
+  in the TV slot is replaced, **inputs the user changed that have
+  identical names carry over**. From here on, every test sets its gate
+  inputs explicitly.
