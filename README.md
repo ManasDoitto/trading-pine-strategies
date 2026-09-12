@@ -1497,3 +1497,90 @@ Rejected:
   in the TV slot is replaced, **inputs the user changed that have
   identical names carry over**. From here on, every test sets its gate
   inputs explicitly.
+
+---
+
+## The user's two concepts tested, and the final strategy set
+
+### Concepts tested (VARIANT LAB v2, 20 variants, 5m, all history, 21 windows)
+
+`variant lab v2 (...).pine.txt` implements both of the user's ideas. It
+uses the same simulation rules and window tiling as lab v1: 0.02% per side,
+fill at the next open, indices flat by 15:24.
+
+**H - Smoothed Heikin Ashi pullback (the user's rules):**
+- The 5m SHA flips colour and stays that colour.
+- Price pulls back into the EMA 9/22 channel.
+- A candle then closes beyond the pullback candle.
+- The stop goes at the previous candle's high or low; the target is
+  RR 2, 2.4 or 3.
+- Filter variants tested:
+  - EMA alignment
+  - 15m SHA same colour
+  - the user's "strong candle" rule: the 15m SHA candle has little or no
+    opposite wick, a 5m SHA candle in the same leg mimics it, then wait
+    for the pullback
+  - first pullback only
+  - wider stop
+  - next-bar trigger
+
+**J - next-day levels from the previous day's H/L/C:**
+- CPR pullback
+- PDH/PDL break-and-retest
+- S1/R1 fade
+- each with and without SHA agreement, max 2 entries a day
+
+Results: `variant_lab_v2/lab2_summary.md`.
+
+| Script (5m) | Best new variant | Trades/mo | PF | Net pts | +windows | Verdict |
+|---|---|---|---|---|---|---|
+| CrudeOil (30 mo, 11 windows) | PDH/PDL break-retest RR3 | 24 | 1.03 | **+223** | 6/11 | only net-positive new variant, and barely |
+| CrudeOil | best SHA-pullback: 15m + 5m strong, RR2.4 | 47 | 0.84 | -3,344 | 1/11 | gross +330, costs make it negative |
+| CrudeOil | plain SHA pullback RR3 | 154 | 0.89 | -8,438 | 2/11 | **gross +3,462**: a real edge before costs, but too many tight-stop trades |
+| BankNifty (30 mo, 5 windows) | CPR pullback + SHA agree RR2 | 8 | 0.74 | -4,074 | 0/5 | every variant loses heavily at ~22 pts cost a trade |
+| Nifty 50 spot (32 mo, 5 windows) | CPR pullback + SHA agree RR2 | 8 | 0.62 | -2,362 | 0/5 | every variant loses |
+
+**Reading:**
+- The SHA-pullback idea has genuine *gross* edge on CrudeOil and Nifty.
+- The previous-candle stop is so tight that it trades 110-190 times a
+  month, and the round-trip cost is a large share of each trade's risk.
+- The strong-candle filter cuts trading to about 45 a month but doesn't
+  fix it.
+- The closest profitable relative is **v4.0**: an SHA colour flip with a
+  **swing** stop (at least 1.5 ATR) and RR 3, which trades about 28 a
+  month. Wide stops and fewer trades are what make it survive costs.
+- The daily-level strategies only work on crude, and only marginally.
+
+### Final strategy set: best balance of trade count and positive points
+
+All figures come from the real Strategy Tester, or the fidelity-verified
+lab, on the same no-overlap windows, net of 0.02% per side.
+
+| # | Script | Strategy (file) | TF | Trades/mo | Win% | PF | Net pts | Pts/mo | Rs/mo at 1 lot | Max DD | +windows |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | CrudeOil | **v4.0 SHA flip RR3** | 5m | 28 | 28 | 1.10 | +2,240 | +75 | ~Rs7,500 | 2,106 pts (worst window) | 6/11 |
+| 2 | CrudeOil | **v2.1 EMA 9/22 pullback RR2** | 5m | 17 | 37 | 1.14 | +1,337 | +45 | ~Rs4,500 | 607 pts | 5/11 |
+| 3 | BankNifty | **v0.4 EMA pullback + 15m ADX gate** | 5m | 2.5 | 42 | 1.29 | +1,277 | +42 | ~Rs1,270 | 1,668 pts | 3/5 |
+| 4 | BankNifty | **v13 sweep-fade "bear" RR6** | 5m | 8 | 33 | 1.06 | +914 | +30 | ~Rs900 | 1,944 pts | 2/5 |
+| 5 | BankNifty | **v1.1 MTF pullback + ADX gates** | 3m | 2 | 53 | 1.64 | +1,113 | +60 | ~Rs1,800 | 482 pts | 3/5 (+1 flat) |
+| - | Nifty 50 | **none at 3m/5m** | - | - | - | - | all negative | - | - | - | - |
+
+Notes on the table:
+- Rs/mo uses TradingView point values: CrudeOil 100 per point, BankNifty
+  futures 30.
+- v0.4 and v1.1 include 5 pts of slippage; the others do not.
+- The strategies are listed separately. Combined drawdown was not
+  computed.
+- v4.0 and v2.1 both trade crude, so running both means 2 lots on one
+  instrument, with correlated risk.
+
+Together these give **about 57 trades a month**, mostly from crude. That
+is roughly 45 on crude and 12 on BankNifty. Every row is positive over its
+full history, but none is consistently positive window-to-window. Each
+had losing stretches of 3-6 months.
+
+**Nifty 50 has no 3m/5m strategy in this repo.** Its only edge found was
+`nifty v2` at 15m, which is outside the current scope.
+
+Forward-test all of them on paper before trading real money. v4.0's forward
+test started 14-Sep-2026.

@@ -1,0 +1,329 @@
+//@version=5
+// ============================================================================
+//  VARIANT LAB v2 -- research indicator (same sim rules as VARIANT LAB v1):
+//  qty 1, points, cost 0.02%/side, signal on close -> fill next open, fixed
+//  SL/TP, TradingView intrabar-path heuristic, indices flat by 15:24 IST.
+//  Trades counted from the first UTC midnight after 400 bars, so windows
+//  started at the previous window's `from` date tile history exactly.
+//
+//  FAMILY H -- the user's Smoothed-Heikin-Ashi pullback concept (5m):
+//    SHA (EMA10/EMA10) flips colour and STAYS that colour; price pulls back
+//    into the EMA 9/22 channel (the "pullback candle"); a later candle
+//    (within trigW bars) CLOSES beyond the pullback candle (below its low for
+//    a short / above its high for a long) -> enter; SL = previous candle's
+//    high (short) / low (long) + small buffer; TP = RR x risk (2 / 2.4 / 3).
+//    Optional: EMA9/22 aligned with SHA; 15m SHA same colour; "strong"
+//    filter = 15m SHA candle with (almost) no opposite wick AND a 5m SHA
+//    candle in the current leg that mimics it (user's second hint).
+//  FAMILY J -- next-day levels computed from the PREVIOUS day's H/L/C:
+//    J1 CPR pullback: day opens beyond the central pivot range, price comes
+//       back to it and closes back out with a bar in the bias direction
+//    J2 PDH/PDL break-and-retest: close beyond PDH/PDL, later retest holds
+//    J3 S1/R1 fade: first rejection of floor-pivot S1 / R1
+//    each optionally requiring SHA colour agreement; max 2 entries/day.
+//  Row format: Vnn|trades|wins|sumWinPts|sumLossPts|costPts|maxDDpts|
+//              sumDailyPnl^2|peakEq|minEq
+// ============================================================================
+indicator("VARIANT LAB v2 (SHA pullback + daily levels)", overlay=true, max_bars_back=500)
+
+costPct = input.float(0.02, "Cost % per side")
+warm    = input.int(400, "Warm-up bars before counting")
+tol     = input.float(0.1, "Level/channel touch tolerance (x ATR)", step=0.05)
+wk      = input.float(0.15, "Strong SHA: opposite wick <= frac of range", step=0.05)
+
+NV = 20
+tz = "Asia/Kolkata"
+isCrude = str.contains(syminfo.root, "CRUDE")
+entSess = isCrude ? "0915-2330" : "0920-1500"
+inSess  = not na(time(timeframe.period, entSess))
+cutoff  = timestamp(tz, year(time, tz), month(time, tz), dayofmonth(time, tz), isCrude ? 23 : 15, 24)
+eodBar  = time_close >= cutoff
+newDay  = ta.change(time("D")) != 0
+
+// ---- 5m Smoothed Heikin Ashi (same maths as the public indicator) ----
+o1 = ta.ema(open, 10)
+c1 = ta.ema(close, 10)
+h1 = ta.ema(high, 10)
+l1 = ta.ema(low, 10)
+haC = (o1 + h1 + l1 + c1) / 4
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+haH = math.max(h1, math.max(haO, haC))
+haL = math.min(l1, math.min(haO, haC))
+shaO = ta.ema(haO, 10)
+shaC = ta.ema(haC, 10)
+shaH = ta.ema(haH, 10)
+shaL = ta.ema(haL, 10)
+shaUp = shaC > shaO
+
+// ---- 15m Smoothed Heikin Ashi, last COMPLETED 15m bar (no lookahead) ----
+f_sha() =>
+    _o = ta.ema(open, 10)
+    _c = ta.ema(close, 10)
+    _h = ta.ema(high, 10)
+    _l = ta.ema(low, 10)
+    _hc = (_o + _h + _l + _c) / 4
+    var float _ho = na
+    _ho := na(_ho[1]) ? (_o + _c) / 2 : (_ho[1] + _hc[1]) / 2
+    _hh = math.max(_h, math.max(_ho, _hc))
+    _hl = math.min(_l, math.min(_ho, _hc))
+    _sO = ta.ema(_ho, 10)
+    _sC = ta.ema(_hc, 10)
+    _sH = ta.ema(_hh, 10)
+    _sL = ta.ema(_hl, 10)
+    [_sO[1], _sC[1], _sH[1], _sL[1]]
+[o15, c15, h15, l15] = request.security(syminfo.tickerid, "15", f_sha(), lookahead=barmerge.lookahead_on)
+same15Up = c15 > o15
+same15Dn = c15 < o15
+st15Up = c15 > o15 and (math.min(o15, c15) - l15) <= wk * (h15 - l15)
+st15Dn = c15 < o15 and (h15 - math.max(o15, c15)) <= wk * (h15 - l15)
+
+e9  = ta.ema(close, 9)
+e22 = ta.ema(close, 22)
+atr = ta.atr(14)
+prevLow  = low[1]
+prevHigh = high[1]
+
+// ---- Family H shared state: SHA leg, strong-candle flag, pullback candle ----
+var int legId = 0
+var bool legStUp = false
+var bool legStDn = false
+var int pbSb = na
+var float pbSlo = na
+var int pbLb = na
+var float pbLhi = na
+if shaUp != shaUp[1]
+    legId += 1
+    legStUp := false
+    legStDn := false
+    pbSb := na
+    pbLb := na
+if shaUp and (math.min(shaO, shaC) - shaL) <= wk * (shaH - shaL)
+    legStUp := true
+if not shaUp and (shaH - math.max(shaO, shaC)) <= wk * (shaH - shaL)
+    legStDn := true
+chanLo = math.min(e9, e22)
+chanHi = math.max(e9, e22)
+dS = na(pbSb) ? 99999 : bar_index - pbSb
+dL = na(pbLb) ? 99999 : bar_index - pbLb
+hS1 = not shaUp and dS == 1 and close < pbSlo
+hS3 = not shaUp and dS >= 1 and dS <= 3 and close < pbSlo
+hL1 = shaUp and dL == 1 and close > pbLhi
+hL3 = shaUp and dL >= 1 and dL <= 3 and close > pbLhi
+pbSbPrev = pbSb
+pbLbPrev = pbLb
+if not shaUp and high >= chanLo - tol * atr
+    pbSb := bar_index
+    pbSlo := low
+if shaUp and low <= chanHi + tol * atr
+    pbLb := bar_index
+    pbLhi := high
+
+// ---- Family J shared: previous-day levels ----
+[pdH, pdL, pdC] = request.security(syminfo.tickerid, "D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_on)
+var float dOpen = na
+var bool brUp = false
+var bool brDn = false
+if newDay
+    dOpen := open
+    brUp := false
+    brDn := false
+pvt = (pdH + pdL + pdC) / 3
+bcx = (pdH + pdL) / 2
+tcx = 2 * pvt - bcx
+cTop = math.max(tcx, bcx)
+cBot = math.min(tcx, bcx)
+r1 = 2 * pvt - pdL
+s1 = 2 * pvt - pdH
+j1L = not na(dOpen) and dOpen > cTop and low <= cTop + tol * atr and close > cTop and close > open
+j1S = not na(dOpen) and dOpen < cBot and high >= cBot - tol * atr and close < cBot and close < open
+j2L = brUp and low <= pdH + tol * atr and close > pdH and close > open
+j2S = brDn and high >= pdL - tol * atr and close < pdL and close < open
+j3L = low <= s1 and close > s1 and close > open
+j3S = high >= r1 and close < r1 and close < open
+if close > pdH
+    brUp := true
+if close < pdL
+    brDn := true
+
+// ---- variant definitions (V01..V20) ----
+var fam   = array.from(1,1,1,1,1,1,1,1,1,1,1,1, 2,2,3,3,3,4,2, 1)
+var vRR   = array.from(2.0,2.4,3.0,2.4,2.4,2.4,2.4,2.0,3.0,2.4,2.4,2.4, 2.0,2.0,2.0,2.0,3.0,1.5,3.0, 2.4)
+var vFst  = array.from(0,0,0,1,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0)
+var vAl   = array.from(0,0,0,0,1,0,0,0,0,1,0,0, 0,0,0,0,0,0,0, 0)
+var vHtf  = array.from(0,0,0,0,0,1,2,2,2,1,0,0, 0,0,0,0,0,0,0, 0)
+var vS5   = array.from(0,0,0,0,0,0,1,1,1,0,0,0, 0,0,0,0,0,0,0, 0)
+var vBuf  = array.from(0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.2,0.05, 0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.05)
+var vTw   = array.from(3,3,3,3,3,3,3,3,3,3,3,1, 0,0,0,0,0,0,0, 3)
+var vAgr  = array.from(0,0,0,0,0,0,0,0,0,0,0,0, 0,1,0,1,0,0,0, 0)
+var vEod  = array.from(0,0,0,0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1, 1)
+var vMpd  = array.from(0,0,0,0,0,0,0,0,0,0,0,0, 2,2,2,2,2,2,2, 0)
+
+// ---- per-variant state ----
+var pos  = array.new_int(NV, 0)
+var pend = array.new_int(NV, 0)
+var eP   = array.new_float(NV, na)
+var eTm  = array.new_int(NV, 0)
+var sl   = array.new_float(NV, na)
+var tp   = array.new_float(NV, na)
+var lEx  = array.new_int(NV, -1)
+var legTr = array.new_int(NV, -1)
+var dCnt = array.new_int(NV, 0)
+var mN   = array.new_int(NV, 0)
+var mW   = array.new_int(NV, 0)
+var mSW  = array.new_float(NV, 0.0)
+var mSL  = array.new_float(NV, 0.0)
+var mC   = array.new_float(NV, 0.0)
+var mEq  = array.new_float(NV, 0.0)
+var mPk  = array.new_float(NV, 0.0)
+var mMn  = array.new_float(NV, 0.0)
+var mDD  = array.new_float(NV, 0.0)
+var dP   = array.new_float(NV, 0.0)
+var sD2  = array.new_float(NV, 0.0)
+var int nD = 0
+var int dayStart = 0
+var int firstT = time
+var int countFrom = na
+if bar_index == warm
+    countFrom := (math.floor(time / 86400000.0) + 1) * 86400000
+
+if newDay
+    if not na(countFrom) and dayStart >= countFrom
+        nD += 1
+        for v = 0 to NV - 1
+            d = array.get(dP, v)
+            array.set(sD2, v, array.get(sD2, v) + d * d)
+    for v = 0 to NV - 1
+        array.set(dP, v, 0.0)
+        array.set(dCnt, v, 0)
+    dayStart := time
+
+for v = 0 to NV - 1
+    f = array.get(fam, v)
+    eodV = array.get(vEod, v) == 1 or not isCrude
+    p = array.get(pos, v)
+    if array.get(pend, v) != 0
+        p := array.get(pend, v)
+        array.set(pos, v, p)
+        array.set(pend, v, 0)
+        array.set(eP, v, open)
+        array.set(eTm, v, time)
+    if p != 0
+        slv = array.get(sl, v)
+        tpv = array.get(tp, v)
+        float xp = na
+        hf = (high - open) < (open - low)
+        if p == 1
+            if open <= slv
+                xp := open
+            else if open >= tpv
+                xp := open
+            else if low <= slv and high >= tpv
+                xp := hf ? tpv : slv
+            else if high >= tpv
+                xp := tpv
+            else if low <= slv
+                xp := slv
+        else
+            if open >= slv
+                xp := open
+            else if open <= tpv
+                xp := open
+            else if high >= slv and low <= tpv
+                xp := hf ? slv : tpv
+            else if low <= tpv
+                xp := tpv
+            else if high >= slv
+                xp := slv
+        if na(xp) and eodV and eodBar
+            xp := close
+        if not na(xp)
+            ep = array.get(eP, v)
+            c = costPct / 100 * (ep + xp)
+            pts = p * (xp - ep) - c
+            if not na(countFrom) and array.get(eTm, v) >= countFrom
+                array.set(mN, v, array.get(mN, v) + 1)
+                if pts > 0
+                    array.set(mW, v, array.get(mW, v) + 1)
+                    array.set(mSW, v, array.get(mSW, v) + pts)
+                else
+                    array.set(mSL, v, array.get(mSL, v) + pts)
+                array.set(mC, v, array.get(mC, v) + c)
+                eq = array.get(mEq, v) + pts
+                array.set(mEq, v, eq)
+                array.set(mPk, v, math.max(array.get(mPk, v), eq))
+                array.set(mMn, v, math.min(array.get(mMn, v), eq))
+                array.set(mDD, v, math.max(array.get(mDD, v), array.get(mPk, v) - eq))
+                array.set(dP, v, array.get(dP, v) + pts)
+            array.set(pos, v, 0)
+            array.set(lEx, v, bar_index)
+            p := 0
+    mpd = array.get(vMpd, v)
+    if p == 0 and inSess and not (eodV and eodBar) and (mpd == 0 or array.get(dCnt, v) < mpd)
+        bool sL = false
+        bool sS = false
+        float rL = na
+        float rS = na
+        lx = array.get(lEx, v)
+        if f == 1
+            one = array.get(vTw, v) == 1
+            legOK = array.get(vFst, v) == 0 or array.get(legTr, v) != legId
+            sL := (one ? hL1 : hL3) and not na(pbLbPrev) and pbLbPrev > lx and legOK
+            sS := (one ? hS1 : hS3) and not na(pbSbPrev) and pbSbPrev > lx and legOK
+            if array.get(vAl, v) == 1
+                sL := sL and e9 > e22
+                sS := sS and e9 < e22
+            hfx = array.get(vHtf, v)
+            if hfx == 1
+                sL := sL and same15Up
+                sS := sS and same15Dn
+            if hfx == 2
+                sL := sL and st15Up
+                sS := sS and st15Dn
+            if array.get(vS5, v) == 1
+                sL := sL and legStUp
+                sS := sS and legStDn
+            b = array.get(vBuf, v)
+            rL := math.max(close - (prevLow - b * atr), 0.3 * atr)
+            rS := math.max((prevHigh + b * atr) - close, 0.3 * atr)
+        else
+            agr = array.get(vAgr, v) == 1
+            if f == 2
+                sL := j1L
+                sS := j1S
+            else if f == 3
+                sL := j2L
+                sS := j2S
+            else
+                sL := j3L
+                sS := j3S
+            if agr
+                sL := sL and shaUp
+                sS := sS and not shaUp
+            b = array.get(vBuf, v)
+            rL := math.max(close - (low - b * atr), 0.5 * atr)
+            rS := math.max((high + b * atr) - close, 0.5 * atr)
+        r = array.get(vRR, v)
+        if sL and rL <= 3.0 * atr
+            array.set(pend, v, 1)
+            array.set(sl, v, close - rL)
+            array.set(tp, v, close + r * rL)
+            array.set(dCnt, v, array.get(dCnt, v) + 1)
+            array.set(legTr, v, legId)
+        else if sS and rS <= 3.0 * atr
+            array.set(pend, v, -1)
+            array.set(sl, v, close + rS)
+            array.set(tp, v, close - r * rS)
+            array.set(dCnt, v, array.get(dCnt, v) + 1)
+            array.set(legTr, v, legId)
+
+plot(close, "close", display=display.none)
+
+if barstate.islast
+    var table t = table.new(position.top_right, 1, NV + 1, bgcolor=color.new(color.black, 10))
+    inclLast = not na(countFrom) and dayStart >= countFrom
+    table.cell(t, 0, 0, "LAB2|" + syminfo.ticker + "|" + timeframe.period + "|first=" + str.tostring(firstT) + "|from=" + str.tostring(countFrom) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(nD + (inclLast ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
+    for v = 0 to NV - 1
+        d = inclLast ? array.get(dP, v) : 0.0
+        row = "V" + (v < 9 ? "0" : "") + str.tostring(v + 1) + "|" + str.tostring(array.get(mN, v)) + "|" + str.tostring(array.get(mW, v)) + "|" + str.tostring(array.get(mSW, v), "#.#") + "|" + str.tostring(array.get(mSL, v), "#.#") + "|" + str.tostring(array.get(mC, v), "#.#") + "|" + str.tostring(array.get(mDD, v), "#.#") + "|" + str.tostring(array.get(sD2, v) + d * d, "#.#") + "|" + str.tostring(array.get(mPk, v), "#.#") + "|" + str.tostring(array.get(mMn, v), "#.#")
+        table.cell(t, 0, v + 1, row, text_color=color.white, text_size=size.tiny, text_halign=text.align_left)
