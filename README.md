@@ -1584,3 +1584,52 @@ had losing stretches of 3-6 months.
 
 Forward-test all of them on paper before trading real money. v4.0's forward
 test started 14-Sep-2026.
+
+---
+
+## BankNifty: pushing for more trades per month
+
+Request: more BankNifty trades. The constraint is cost. At about 55,000, a
+0.02% per side round trip is about 22 pts, close to real futures cost
+(brokerage + STT + exchange + stamp + slippage). Every extra trade must
+earn more than that on average. All tests below use the real Strategy
+Tester on the same tiled windows as the rest of this README.
+
+| Candidate | TF | Trades/mo | Win% | PF | Net pts | +windows | Verdict |
+|---|---|---|---|---|---|---|---|
+| v0.4 EMA pullback, 15m ADX >= 25 (current) | 5m | 2.5 | 41.9 | 1.29 | +1,277 | 3/5 | keep |
+| v0.4 with ADX >= 20 | 5m | 3.3 | 38.1 | 1.06 | +399 | 4/5 | +0.8 trade/mo costs ~880 pts |
+| v0.4 with ADX >= 15 (live window only) | 5m | - | - | - | +482 vs +624 at ADX 20 | - | no extra trades (35 vs 34) |
+| v0.3 with no gate | 5m | 4.4 | 33.6 | 0.86 | -1,229 | 2/5 | loses |
+| v0.4 on 3m (ATR >= 40, ADX >= 25) | 3m | 7.8 | 31.6 | 0.60 | -1,559 | 0/2 | lost even in the best window, dropped |
+| v13 sweep-fade "bear" (current) | 5m | 8 | 32.5 | 1.06 | +914 | 2/5 | keep: highest-frequency profitable single |
+| v13 on 3m | 3m | 10.7 | 28.9 | 0.91 | -1,126 | 2/5 | more trades, net negative |
+| MTF v1.1 (daily + 15m ADX gates) | 3m | 2 | 52.6 | 1.64 | +1,113 | 3/5 +1 flat | keep |
+| Variant lab v1 (32) + v2 (20) | 3m/5m | 8-190 | - | < 1 | all negative | - | no BankNifty variant profitable at any frequency |
+
+**Running the profitable ones together is what adds frequency.**
+
+v13 plus v0.4, both on 5m and on the same windows:
+
+| Metric | Result |
+|---|---|
+| Trades | 305 in 30 months = **10.1 a month** |
+| Net | **+2,189 pts** |
+| Positive windows | 3/5 |
+| By window, old to new | +313, -1,015, +963, -668, +2,596 |
+
+The two partly offset each other: v13 loses in trends, and v0.4 needs
+trends. Adding MTF v1.1 (3m, about 2 a month) brings the BankNifty set to
+**about 12 trades a month**, roughly +130 pts/mo, or about Rs4,000/mo at
+1 lot each.
+
+At times all three can hold positions together, so up to 3 lots.
+
+**Verdict:**
+- No single BankNifty strategy at 15 or more trades a month survives the
+  ~22-pt round trip in this data.
+- Every loosening that adds trades adds losing trades faster than
+  winning ones.
+- The practical answer is the **combined set**.
+- Anything faster would need lower cost per trade (for example a
+  low-brokerage broker, or limit entries). That has not been tested here.
