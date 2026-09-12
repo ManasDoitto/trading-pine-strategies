@@ -32,6 +32,8 @@ in the real TradingView Strategy Tester (or a lab that was checked against it).
 > - **Volume profile (POC):** it cuts drawdown and trade count but does not add
 >   points.
 > - No profitable BankNifty setup was found at 20 or more trades a month.
+> - Crude prototypes v0-v0.4 were re-run on the same 11 windows. All five
+>   lose (−1,780 to −7,301 pts), so the crude picks do not change.
 
 ---
 

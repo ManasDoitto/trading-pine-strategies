@@ -1785,9 +1785,28 @@ than its 2 × ATR stop cap.
 | v1.1 / v0.8 (coil break) | 115 | 36.9 | 0.89 | −5,522 | 6,880 | 3/11 |
 | v0.5 | 187 | 37.1 | 0.89 | −9,340 | 10,942 | 3/11 |
 
+### CrudeOil 5m prototypes v0-v0.4: same 11 windows (added 12 Sep 2026)
+
+These are the deep-sweep-breakout and pullback prototypes that came before
+v0.5. They were written for qty 10. The audit copies use qty 1, so the
+figures are points per lot, like every other row here.
+
+| Prototype | Trades/mo | Win% | PF | Net pts | Max DD | + windows |
+|---|---|---|---|---|---|---|
+| v0.2 deep sweep breakout, close-based SL, one trade per leg | 38 | 28.9 | 0.90 | −1,780 | 3,374 | 3/11 |
+| v0.3 v0.2 with a 15m bias and a 12-bar sweep window | 28 | 27.4 | 0.88 | −2,164 | 3,312 | 4/11 |
+| v0.4 pullback-candle trigger, raw Heikin Ashi | 84 | 36.2 | 0.90 | −4,027 | 5,022 | 3/11 |
+| v0 deep sweep breakout (1:3) | 32 | 24.2 | 0.77 | −6,858 | 9,665 | 1/11 |
+| v0.1 EMA9 continuous trail | 116 | 22.1 | 0.78 | −7,301 | 7,431 | 1/11 |
+
+- All five lose after costs. None comes near v2.0 / v1.0-tuned (+2,155) or
+  v4.0 (+2,136).
+- v0 and v0.2 each have one big winning window in 2026 (+2,286 and +2,119),
+  the period they were built on. Their older windows mostly lose.
+- Check on the emulation: the v1.0-tuned file run directly on the live
+  window gives 246 trades and +108 pts, the same as the v2.3-file emulation.
+
 Not re-run here:
-- crude v0-v0.4, the deep-sweep-breakout prototypes that were superseded
-  (originally qty 10)
 - v0.9, the SMC experiment: its default `smcMode="off"` is the v1.1 engine
 - v3.0: variant lab V01 covered it, at −2,587 pts
 - one v4.1 window: a script save replaced the study on the chart mid-run
