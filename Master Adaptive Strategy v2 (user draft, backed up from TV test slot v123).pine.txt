@@ -1,0 +1,144 @@
+//@version=5
+// ============================================================================
+// Master Adaptive Strategy v2
+// Built for Multi-Year Robustness on Crude Oil
+// - US Session Only (17:30 to 23:30) to eliminate Asian/Euro chop
+// - Daily VWAP Trend Filter
+// - Smoothed Heikin Ashi Entry Signal
+// - Chandelier Trailing Stop to prevent "Big Blows"
+// ============================================================================
+strategy("Master Adaptive Strategy v2", overlay=true, initial_capital=500000, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.02)
+
+// --- Inputs ---
+grp_risk = "Risk Management"
+inp_rr = input.float(2.5, "Reward:Risk Ratio (Initial)", group=grp_risk, step=0.1)
+inp_sl_atr = input.float(1.5, "Initial Stop Loss ATR", group=grp_risk, step=0.1)
+inp_trail_atr = input.float(1.0, "Trailing Stop ATR", group=grp_risk, step=0.1)
+inp_sl_cap = input.int(120, "Stop Loss Hard Cap (Points)", group=grp_risk)
+
+grp_time = "Session Filter"
+inp_session = input.session("1730-2330", "Trading Session (IST)", group=grp_time)
+
+// --- Time Filter ---
+inSession = not na(time(timeframe.period, inp_session, "Asia/Kolkata"))
+
+// --- Indicators ---
+atr = ta.atr(14)
+ema9 = ta.ema(close, 9)
+ema21 = ta.ema(close, 21)
+
+// Daily VWAP
+var float cumVol = 0
+var float cumVolPrice = 0
+isNewDay = ta.change(time("D")) != 0
+if isNewDay
+    cumVol := 0
+    cumVolPrice := 0
+cumVol += volume
+cumVolPrice += hlc3 * volume
+dailyVwap = cumVolPrice / cumVol
+
+// --- Smoothed Heikin Ashi (SHA) ---
+// EMA of OHLC
+o_ema = ta.ema(open, 10)
+h_ema = ta.ema(high, 10)
+l_ema = ta.ema(low, 10)
+c_ema = ta.ema(close, 10)
+
+// Calculate HA candles from the EMAs
+var float ha_o = na
+ha_c = (o_ema + h_ema + l_ema + c_ema) / 4
+ha_o := na(ha_o[1]) ? (o_ema + c_ema) / 2 : (ha_o[1] + ha_c[1]) / 2
+ha_h = math.max(h_ema, math.max(ha_o, ha_c))
+ha_l = math.min(l_ema, math.min(ha_o, ha_c))
+
+// Second Smoothing
+sha_o = ta.ema(ha_o, 10)
+sha_c = ta.ema(ha_c, 10)
+
+// Signals
+shaGreen = sha_c > sha_o
+shaRed = sha_c < sha_o
+
+// Flip detection
+shaFlipGreen = shaGreen and shaRed[1]
+shaFlipRed = shaRed and shaGreen[1]
+
+// --- Execution Logic ---
+// Trend Alignment
+bullTrend = close > dailyVwap and ema9 > ema21
+bearTrend = close < dailyVwap and ema9 < ema21
+
+longCondition = inSession and shaFlipGreen and bullTrend
+shortCondition = inSession and shaFlipRed and bearTrend
+
+var float sl_level = na
+var float tp_level = na
+var float entry_price = na
+
+// Extract historical functions from local scope
+swingLow = ta.lowest(low, 10)
+swingHigh = ta.highest(high, 10)
+
+if longCondition and strategy.position_size == 0
+    entry_price := close
+    // Calculate Swing Low within last 10 bars
+    sl_raw = swingLow - (0.1 * atr)
+    // Make sure SL is not more than 1.5 ATR away
+    max_sl = close - (inp_sl_atr * atr)
+    sl_raw := math.max(sl_raw, max_sl)
+
+    sl_level := math.max(sl_raw, close - inp_sl_cap)
+    tp_level := close + ((close - sl_level) * inp_rr)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", from_entry="Long", stop=sl_level, limit=tp_level)
+
+if shortCondition and strategy.position_size == 0
+    entry_price := close
+    sl_raw = swingHigh + (0.1 * atr)
+    max_sl = close + (inp_sl_atr * atr)
+    sl_raw := math.min(sl_raw, max_sl)
+
+    sl_level := math.min(sl_raw, close + inp_sl_cap)
+    tp_level := close - ((sl_level - close) * inp_rr)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", from_entry="Short", stop=sl_level, limit=tp_level)
+
+// --- Trailing Stop Logic (Capital Protection) ---
+if strategy.position_size > 0
+    // Trail if in profit by at least 1 ATR
+    if close > entry_price + atr
+        sl_level := math.max(sl_level, close - (inp_trail_atr * atr))
+        strategy.exit("Exit Long", from_entry="Long", stop=sl_level, limit=tp_level)
+
+if strategy.position_size < 0
+    if close < entry_price - atr
+        sl_level := math.min(sl_level, close + (inp_trail_atr * atr))
+        strategy.exit("Exit Short", from_entry="Short", stop=sl_level, limit=tp_level)
+
+// --- EOD Flatten (11:30 PM IST) ---
+inFlat = not na(time(timeframe.period, "2330-2345", "Asia/Kolkata"))
+if inFlat
+    strategy.close_all(comment="EOD Flat")
+    sl_level := na
+    tp_level := na
+
+if strategy.position_size == 0
+    sl_level := na
+    tp_level := na
+    entry_price := na
+
+// --- Visuals ---
+plot(dailyVwap, "Daily VWAP", color=color.purple, linewidth=2)
+plot(ema9, "EMA9", color=color.aqua)
+plot(ema21, "EMA21", color=color.orange)
+
+// Paint SHA colors on candles for visual aid
+barcolor(shaGreen ? color.green : color.red)
+
+// Plot Entry, SL, TP levels only when in a trade
+plot(strategy.position_size != 0 ? entry_price : na, "Entry", color=color.blue, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? sl_level : na, "Stop Loss", color=color.red, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tp_level : na, "Target", color=color.green, style=plot.style_linebr, linewidth=2)
+
+bgcolor(inSession ? color.new(color.gray, 90) : na, title="US Session")

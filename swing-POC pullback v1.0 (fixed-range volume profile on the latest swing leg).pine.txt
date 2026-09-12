@@ -1,0 +1,196 @@
+//@version=5
+// Swing-POC Pullback v1.0 -- fixed-range volume profile on the latest swing leg
+// The user's process, made mechanical (13 Sep 2026):
+//   1. Trend: the last two confirmed swing pivots make higher highs AND higher lows (up),
+//      or lower highs AND lower lows (down).
+//   2. Leg: the most recent swing low -> swing high (up), or swing high -> swing low (down).
+//   3. Fixed-range volume profile over that leg (profRows rows). POC = the row with the most volume.
+//   4. Wait for price to pull back into the POC. Never enter on the touch alone.
+//   5. Reaction = a candle that closes back beyond the POC in the trend direction with a body in
+//      that direction (close > open for longs), within reactWin bars of the first touch.
+//   6. Stop: just beyond the deepest wick of the pullback. Target rr x risk. The stop moves to
+//      breakeven once price reaches beR x risk. One trade per leg.
+//   7. The setup is cancelled if price closes beyond the leg's origin, or never touches the POC
+//      within maxWait bars.
+// Needs real volume: use futures (NSE:BANKNIFTY1!, NSE:NIFTY1!, MCX:CRUDEOIL1!), not the spot index.
+strategy("Swing-POC Pullback v1.0", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500, max_bars_back=2000)
+
+pivLen     = input.int(5, "Swing pivot strength (bars each side)", minval=2, group="Structure")
+needHHHL   = input.bool(true, "Require HH+HL (up) / LH+LL (down)", group="Structure")
+profRows   = input.int(30, "Volume profile rows", minval=5, maxval=100, group="Profile")
+maxLegBars = input.int(400, "Max leg length (bars)", minval=10, maxval=1500, group="Profile")
+maxWait    = input.int(48, "Max bars to wait for the pullback", group="Entry")
+reactWin   = input.int(12, "Max bars from first POC touch to reaction", group="Entry")
+rr         = input.float(3.0, "Target R:R", step=0.1, group="Risk")
+beR        = input.float(1.5, "Move stop to breakeven at +R (0=off)", step=0.1, group="Risk")
+slBufATR   = input.float(0.0, "Extra stop buffer beyond the deepest wick (x ATR14)", step=0.05, group="Risk")
+maxRiskATR = input.float(0.0, "Skip if the stop is wider than x ATR14 (0=off)", step=0.25, group="Risk")
+useSess    = input.bool(true, "Entry session filter", group="Time")
+sess       = input.session("0930-2300", "Entry session", group="Time")
+useFlat    = input.bool(true, "Flatten before the close (NSE 15:15, MCX 23:15)", group="Time")
+showMarks  = input.bool(true, "Show POC levels", group="Visuals")
+
+atr = ta.atr(14)
+inSess = not useSess or not na(time(timeframe.period, sess))
+flatSess = syminfo.prefix == "MCX" ? "2315-2330" : "1515-1530"
+inFlat = useFlat and not na(time(timeframe.period, flatSess))
+
+// ---- swing pivots ----
+ph = ta.pivothigh(high, pivLen, pivLen)
+pl = ta.pivotlow(low, pivLen, pivLen)
+lowAfter  = ta.lowest(low, pivLen)
+highAfter = ta.highest(high, pivLen)
+var float lastPH = na
+var int   lastPHbar = na
+var float prevPH = na
+var float lastPL = na
+var int   lastPLbar = na
+var float prevPL = na
+newPH = not na(ph)
+newPL = not na(pl)
+if newPH
+    prevPH := lastPH
+    lastPH := ph
+    lastPHbar := bar_index - pivLen
+if newPL
+    prevPL := lastPL
+    lastPL := pl
+    lastPLbar := bar_index - pivLen
+
+// ---- fixed-range volume profile: POC of the bars between two offsets ----
+f_poc(int oFrom, int oTo, float lo, float hi) =>
+    float poc = na
+    if hi > lo and oFrom >= oTo
+        rowH = (hi - lo) / profRows
+        vols = array.new_float(profRows, 0.0)
+        for o = oFrom to oTo
+            i0 = math.max(0, math.min(profRows - 1, math.floor((low[o] - lo) / rowH)))
+            i1 = math.max(0, math.min(profRows - 1, math.floor((high[o] - lo) / rowH)))
+            share = volume[o] / (i1 - i0 + 1)
+            for r = i0 to i1
+                array.set(vols, r, array.get(vols, r) + share)
+        vmax = array.max(vols)
+        if vmax > 0
+            poc := lo + (array.indexof(vols, vmax) + 0.5) * rowH
+    poc
+
+// ---- setup state ----
+var bool  armL = false
+var float pocL = na
+var float legLoL = na
+var int   armBarL = na
+var bool  touchL = false
+var int   touchBarL = na
+var float deepL = na
+var bool  armS = false
+var float pocS = na
+var float legHiS = na
+var int   armBarS = na
+var bool  touchS = false
+var int   touchBarS = na
+var float deepS = na
+var float slPx = na
+var float tpPx = na
+var float riskPx = na
+
+// a new swing high after a swing low completes an up-leg
+if newPH and not na(lastPLbar) and lastPLbar < lastPHbar
+    upOK = not needHHHL or (not na(prevPH) and not na(prevPL) and lastPH > prevPH and lastPL > prevPL)
+    oFrom = bar_index - lastPLbar
+    oTo   = bar_index - lastPHbar
+    if upOK and oFrom - oTo <= maxLegBars
+        p = f_poc(oFrom, oTo, lastPL, lastPH)
+        if not na(p)
+            armL := true
+            armS := false
+            pocL := p
+            legLoL := lastPL
+            armBarL := bar_index
+            deepL := lowAfter
+            touchL := lowAfter <= p
+            touchBarL := bar_index
+
+// a new swing low after a swing high completes a down-leg
+if newPL and not na(lastPHbar) and lastPHbar < lastPLbar
+    dnOK = not needHHHL or (not na(prevPH) and not na(prevPL) and lastPH < prevPH and lastPL < prevPL)
+    oFrom = bar_index - lastPHbar
+    oTo   = bar_index - lastPLbar
+    if dnOK and oFrom - oTo <= maxLegBars
+        p = f_poc(oFrom, oTo, lastPL, lastPH)
+        if not na(p)
+            armS := true
+            armL := false
+            pocS := p
+            legHiS := lastPH
+            armBarS := bar_index
+            deepS := highAfter
+            touchS := highAfter >= p
+            touchBarS := bar_index
+
+// ---- long: pullback into the POC, then a bullish close back above it ----
+if armL and strategy.position_size == 0 and bar_index > armBarL
+    deepL := math.min(deepL, low)
+    if close < legLoL or (not touchL and bar_index - armBarL > maxWait)
+        armL := false
+    else
+        if not touchL and low <= pocL
+            touchL := true
+            touchBarL := bar_index
+        if touchL
+            if bar_index - touchBarL > reactWin
+                armL := false
+            else if close > pocL and close > open and inSess and not inFlat
+                sl = deepL - slBufATR * atr - syminfo.mintick
+                risk = close - sl
+                if risk > 0 and (maxRiskATR == 0 or risk <= maxRiskATR * atr)
+                    slPx := sl
+                    tpPx := close + rr * risk
+                    riskPx := risk
+                    strategy.entry("L", strategy.long)
+                    strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+                armL := false
+
+// ---- short: pullback up into the POC, then a bearish close back below it ----
+if armS and strategy.position_size == 0 and bar_index > armBarS
+    deepS := math.max(deepS, high)
+    if close > legHiS or (not touchS and bar_index - armBarS > maxWait)
+        armS := false
+    else
+        if not touchS and high >= pocS
+            touchS := true
+            touchBarS := bar_index
+        if touchS
+            if bar_index - touchBarS > reactWin
+                armS := false
+            else if close < pocS and close < open and inSess and not inFlat
+                sl = deepS + slBufATR * atr + syminfo.mintick
+                risk = sl - close
+                if risk > 0 and (maxRiskATR == 0 or risk <= maxRiskATR * atr)
+                    slPx := sl
+                    tpPx := close - rr * risk
+                    riskPx := risk
+                    strategy.entry("S", strategy.short)
+                    strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+                armS := false
+
+// ---- management: breakeven at beR x risk, flatten before the close ----
+if strategy.position_size > 0
+    if beR > 0 and high >= strategy.position_avg_price + beR * riskPx
+        slPx := math.max(slPx, strategy.position_avg_price)
+    strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+if strategy.position_size < 0
+    if beR > 0 and low <= strategy.position_avg_price - beR * riskPx
+        slPx := math.min(slPx, strategy.position_avg_price)
+    strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+if inFlat and strategy.position_size != 0
+    strategy.close_all(comment="EOD flat")
+
+plot(showMarks and armL ? pocL : na, "Long-leg POC", color=color.new(color.teal, 0), style=plot.style_linebr, linewidth=2)
+plot(showMarks and armS ? pocS : na, "Short-leg POC", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? slPx : na, "Stop", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size != 0 ? tpPx : na, "Target", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
