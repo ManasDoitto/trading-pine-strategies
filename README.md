@@ -1285,3 +1285,45 @@ have overlapped. Raw dumps, aggregation scripts, the full CSV and the full
 both. For example, trade SHA flip only in the direction of a higher-timeframe
 trend, or use limit entries. Forward-test V21 on CrudeOil 5m on paper before
 risking capital.
+
+---
+
+## v4.0 forward-test build: SHA flip RR3 on CrudeOil 5m
+
+`v4.0 crudeoil strategy 5min (SHA flip RR3 - variant lab V21, forward-test build).pine.txt`
+is a rule-for-rule TradingView strategy of lab variant V21, the only
+net-profitable combination in the variant lab. Its rules:
+
+- **Entry:** Smoothed Heikin Ashi (10/10) colour flip, with EMA9 vs EMA22
+  agreeing, 09:15-23:30 IST.
+- **Stop:** beyond the 10-bar swing + 0.1 ATR, at least 1.5 ATR away. The trade
+  is skipped if the stop would be wider than 3 ATR.
+- **Target:** 3R. No trailing, one position at a time, may hold overnight.
+
+**Fidelity check: real Strategy Tester vs lab simulation** (qty 1, 0.02%/side).
+The tester counts from the first loaded bar, about 3 days before the lab
+window starts.
+
+| Window | Strategy Tester | Lab (V21) |
+|---|---|---|
+| 22 Jun-11 Sep 2026 (live) | 78 trades, 29.5% win, PF 1.20, **+578 pts** | 72 trades, **+327 pts** (from 25 Jun) |
+| 30 Mar-24 Jun 2026 | 92 trades, 34.8% win, PF 1.20, **+1,118 pts** | 88 trades, **+1,215 pts** (from 2 Apr) |
+| 2 Sep-27 Nov 2024 | 95 trades, 16.8% win, PF 0.43, **-1,379 pts** | 91 trades, **-1,295 pts** (from 5 Sep) |
+
+The lab is a faithful model, in both the winning and the losing windows. Lab
+per-window net points, oldest to newest:
++281, +621, -1,295, -129, +1,248, -460, -376, -408, +1,216, +1,215, +327.
+
+**Forward-test protocol.** The test starts **14 Sep 2026 00:00 IST**. This is
+data the lab has never seen, because every bar up to 11 Sep was used to select
+V21. The chart table splits BACKTEST and FORWARD-TEST trades, and forward
+entries are labelled blue/purple. Pass/fail rules are fixed now, before
+seeing results:
+
+- Judge after at least 60 forward trades (about 2 months at about 28
+  trades/month).
+- **Keep:** net PF >= 1.0 and drawdown < 2,100 pts.
+- **Drop:** drawdown > 2,100 pts at any time (worse than any backtest
+  window), or PF < 0.8 after 60 trades.
+- Expect losing streaks. At a 28% win rate, the longest run of losses in 60
+  trades is typically 8-9. That alone is not a failure.
