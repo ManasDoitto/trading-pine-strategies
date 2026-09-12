@@ -1,0 +1,694 @@
+//@version=5
+// ============================================================================
+//  BankNifty COMBINED v1  --  NSE:BANKNIFTY1!  5-minute  --  one script, 3 modules
+//  A = v13 sweep-fade "bear": fade PDH/PDL sweeps + intraday swing/opening-
+//      range level rejections, only while the 8-day daily SMA is flat/falling;
+//      stop beyond the wick (cap 120 pts), target 6R.
+//  B = v0.4 EMA pullback: 9/21 trend, pullback to EMA9 with a rejection wick,
+//      reclaim bar with above-average volume, on the VWAP side, holding EMA21;
+//      only while the last completed 15m ADX >= 25; stop-entry, 2.5R.
+//  C = MTF v1.1: 15m EMA9/21 cross sets bias, first pullback on this chart;
+//      only while prev daily ADX >= 20 AND prev 15m ADX >= 25; 2.5R.
+//      (C was built and tested on 3m; on this 5m chart its bar-count
+//      settings span more time -- see README for its 5m results.)
+//  Position handling: each module trades 1 lot with its own entry/exit IDs
+//  (pyramiding = 3), so modules can hold trades AT THE SAME TIME IN THE SAME
+//  DIRECTION. TradingView keeps one net position per script, so a module
+//  may NOT open (or arm) a trade opposite to one another module holds or has
+//  armed -- that signal is skipped. Everything is flat by 15:15 IST.
+//  Costs: 0.02%/side commission + 5 pts slippage per fill.
+//  The top-right table shows every module and the total over the loaded
+//  history (trades, trades/month, win %, profit factor, net points,
+//  points/month, max drawdown in points). Points x 30 = Rs for 1 lot.
+// ============================================================================
+strategy("BankNifty Combined v1 (A v13 + B v0.4 + C MTF)", overlay=true,
+     initial_capital=500000,
+     default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=3,
+     margin_long=0, margin_short=0, close_entries_rule="ANY",
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=5, max_lines_count=500, max_labels_count=500, calc_on_every_tick=false)
+
+// ============ MODULE SWITCHES ============
+useA    = input.bool(true, "A: v13 sweep-fade 'bear' (RR 1:6)", group="Modules")
+useB    = input.bool(true, "B: v0.4 EMA pullback + 15m ADX gate (RR 1:2.5)", group="Modules")
+useC    = input.bool(true, "C: MTF v1.1 + daily/15m ADX gates (RR 1:2.5)", group="Modules")
+showTbl = input.bool(true, "Show scoreboard", group="Modules")
+showRes = input.bool(false, "Show research row (tiled-window stats)", group="Modules")
+
+aRR      = input.float(6.0, "A: reward:risk", step=0.1, group="A: v13 sweep-fade")
+aStopCap = input.float(120.0, "A: stop hard cap (pts)", step=5, group="A: v13 sweep-fade")
+aMaxDay  = input.int(6, "A: max entries per day", group="A: v13 sweep-fade")
+aSess    = input.session("0935-1500", "A: entry window (IST)", group="A: v13 sweep-fade")
+
+bAtrMin  = input.float(50.0, "B: min ATR14 (pts)", step=5, group="B: v0.4 EMA pullback")
+bHAdx    = input.float(25.0, "B: prev 15m ADX14 >= (0=off)", step=1, group="B: v0.4 EMA pullback")
+bRR      = input.float(2.5, "B: reward:risk", step=0.1, group="B: v0.4 EMA pullback")
+bSess    = input.session("0930-1500", "B: entry window (IST)", group="B: v0.4 EMA pullback")
+
+cAtrMin  = input.float(35.0, "C: min ATR14 (pts)", step=5, group="C: MTF v1.1")
+cDAdx    = input.float(20.0, "C: prev daily ADX14 >= (0=off)", step=1, group="C: MTF v1.1")
+cHAdx    = input.float(25.0, "C: prev 15m ADX14 >= (0=off)", step=1, group="C: MTF v1.1")
+cRR      = input.float(2.5, "C: reward:risk", step=0.1, group="C: MTF v1.1")
+cRecent  = input.int(12, "C: only within N bars of a fresh 15m cross", group="C: MTF v1.1")
+cSess    = input.session("0925-1500", "C: entry window (IST)", group="C: MTF v1.1")
+
+// ============ SHARED ============
+inFlat = not na(time(timeframe.period, "1515-1530"))
+newDay = ta.change(time("D")) != 0
+var int dayOpenTime = na
+if newDay
+    dayOpenTime := time
+minsSinceOpen = na(dayOpenTime) ? na : (time - dayOpenTime) / 60000.0
+afterOpen15 = na(minsSinceOpen) or minsSinceOpen >= 15
+atr14  = ta.atr(14)
+ema9   = ta.ema(close, 9)
+ema21  = ta.ema(close, 21)
+ema200 = ta.ema(close, 200)
+rsi3   = ta.rsi(close, 3)
+rng    = math.max(high - low, syminfo.mintick)
+bigLW  = (math.min(open, close) - low) >= 0.5 * rng
+bigUW  = (high - math.max(open, close)) >= 0.5 * rng
+
+f_adxPrev() =>
+    [_p, _m, _a] = ta.dmi(14, 14)
+    _a[1]
+dAdx = request.security(syminfo.tickerid, "D", f_adxPrev(), lookahead=barmerge.lookahead_on)
+hAdx = request.security(syminfo.tickerid, "15", f_adxPrev(), lookahead=barmerge.lookahead_on)
+
+f_isOpen(string id) =>
+    bool res = false
+    if strategy.opentrades > 0
+        for i = 0 to strategy.opentrades - 1
+            if strategy.opentrades.entry_id(i) == id
+                res := true
+    res
+aLo = f_isOpen("A_L")
+aSo = f_isOpen("A_S")
+bLo = f_isOpen("B_L")
+bSo = f_isOpen("B_S")
+cLo = f_isOpen("C_L")
+cSo = f_isOpen("C_S")
+aOpen = aLo or aSo
+bOpen = bLo or bSo
+cOpen = cLo or cSo
+anyLong  = aLo or bLo or cLo
+anyShort = aSo or bSo or cSo
+
+var int aLastExit = na
+var int bLastExit = na
+var int cLastExit = na
+if aOpen[1] and not aOpen
+    aLastExit := bar_index
+if bOpen[1] and not bOpen
+    bLastExit := bar_index
+if cOpen[1] and not cOpen
+    cLastExit := bar_index
+
+// armed stop-entries of modules B and C (state from the previous bar here)
+var bool  bWaitL = false
+var bool  bWaitS = false
+var bool  cWaitL = false
+var bool  cWaitS = false
+
+// ============================================================================
+//  MODULE A -- v13 sweep-fade "bear"
+// ============================================================================
+aAvgRng = ta.sma(high - low, 20)
+[pdh, pdl, pdc] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
+smaD   = request.security(syminfo.tickerid, "1D", ta.sma(close[1], 8), lookahead=barmerge.lookahead_off)
+dSlope = request.security(syminfo.tickerid, "1D", ta.sma(close[1], 8) - ta.sma(close[1], 8)[8], lookahead=barmerge.lookahead_off)
+
+aInEntry = not na(time(timeframe.period, aSess))
+aInOR    = not na(time(timeframe.period, "0930-1000"))
+var int aNDay = 0
+if newDay
+    aNDay := 0
+aRegBand = -1.5 * aAvgRng
+aDtS = not na(smaD) and close <= smaD + aRegBand
+aDtL = not na(smaD) and close >= smaD - aRegBand
+aMomS = close < low[1]
+aMomL = close > high[1]
+aRangeOK = na(dSlope) or dSlope <= 0
+aLayerOn = not na(dSlope) and dSlope <= 0
+aLayS = aDtS and aLayerOn
+aLayL = aDtL and aLayerOn
+
+var float aOrH = na
+var float aOrL = na
+var bool  aOrDone = false
+if newDay
+    aOrH := na
+    aOrL := na
+    aOrDone := false
+if aInOR
+    aOrH := na(aOrH) ? high : math.max(aOrH, high)
+    aOrL := na(aOrL) ? low  : math.min(aOrL, low)
+
+var aLvlP    = array.new_float(0)
+var aLvlHi   = array.new_bool(0)
+var aLvlBorn = array.new_int(0)
+var aLvlUsed = array.new_bool(0)
+
+aAddLevel(float p, bool isHi) =>
+    if not na(p) and p > 0
+        bool dup = false
+        int n = array.size(aLvlP)
+        if n > 0
+            for i = 0 to n - 1
+                if array.get(aLvlHi, i) == isHi and math.abs(array.get(aLvlP, i) - p) < 30.0
+                    dup := true
+        if not dup
+            array.push(aLvlP, p)
+            array.push(aLvlHi, isHi)
+            array.push(aLvlBorn, bar_index)
+            array.push(aLvlUsed, false)
+            if array.size(aLvlP) > 24
+                array.shift(aLvlP)
+                array.shift(aLvlHi)
+                array.shift(aLvlBorn)
+                array.shift(aLvlUsed)
+
+aMarkUsed(float L, bool isHi) =>
+    if array.size(aLvlP) > 0
+        for i = 0 to array.size(aLvlP) - 1
+            if array.get(aLvlHi, i) == isHi and math.abs(array.get(aLvlP, i) - L) < 1
+                array.set(aLvlUsed, i, true)
+
+if array.size(aLvlP) > 0
+    for i = array.size(aLvlP) - 1 to 0
+        L = array.get(aLvlP, i)
+        isHi = array.get(aLvlHi, i)
+        broken = isHi ? (close > L + 0.6 * aAvgRng) : (close < L - 0.6 * aAvgRng)
+        if array.get(aLvlUsed, i) or broken or (bar_index - array.get(aLvlBorn, i)) > 48
+            array.remove(aLvlP, i)
+            array.remove(aLvlHi, i)
+            array.remove(aLvlBorn, i)
+            array.remove(aLvlUsed, i)
+
+aPh = ta.pivothigh(high, 3, 3)
+aPl = ta.pivotlow(low, 3, 3)
+if not na(aPh)
+    aAddLevel(aPh, true)
+if not na(aPl)
+    aAddLevel(aPl, false)
+aOrFroze = (not aInOR) and aInOR[1] and not aOrDone
+if aOrFroze
+    aOrDone := true
+    aAddLevel(aOrH, true)
+    aAddLevel(aOrL, false)
+
+var bool  aHact = false
+var float aWickH = na
+var int   aPokeH = na
+var bool  aUsedH = false
+var int   aNHf = 0
+var bool  aLact = false
+var float aWickL = na
+var int   aPokeL = na
+var bool  aUsedL = false
+var int   aNLf = 0
+if newDay
+    aHact := false
+    aWickH := na
+    aPokeH := na
+    aUsedH := false
+    aNHf := 0
+    aLact := false
+    aWickL := na
+    aPokeL := na
+    aUsedL := false
+    aNLf := 0
+if not na(pdh) and not aUsedH and not aHact and high > pdh and (high - pdh) <= 0.8 * aAvgRng
+    aHact := true
+    aWickH := high
+    aPokeH := bar_index
+if aHact and not aUsedH
+    aWickH := math.max(aWickH, high)
+if aHact and ((aWickH - pdh) > 0.8 * aAvgRng or (not na(aPokeH) and (bar_index - aPokeH) > 8))
+    aHact := false
+if not na(pdl) and not aUsedL and not aLact and low < pdl and (pdl - low) <= 0.8 * aAvgRng
+    aLact := true
+    aWickL := low
+    aPokeL := bar_index
+if aLact and not aUsedL
+    aWickL := math.min(aWickL, low)
+if aLact and ((pdl - aWickL) > 0.8 * aAvgRng or (not na(aPokeL) and (bar_index - aPokeL) > 8))
+    aLact := false
+
+aTrigPdS = aHact and not aUsedH and aMomS and aDtS and close < pdh and close < open
+aTrigPdL = aLact and not aUsedL and aMomL and aDtL and close > pdl and close > open
+
+var float aXLvl  = na
+var int   aXSide = 0
+var float aXWick = na
+aXLvl  := na
+aXSide := 0
+aXWick := na
+float aBest = 1e12
+if array.size(aLvlP) > 0
+    for i = 0 to array.size(aLvlP) - 1
+        L = array.get(aLvlP, i)
+        isHi = array.get(aLvlHi, i)
+        used = array.get(aLvlUsed, i)
+        sS = not used and isHi and high >= L and close < L and (high - L) <= 0.8 * aAvgRng and close < open and aMomS and aLayS
+        sL = not used and (not isHi) and low <= L and close > L and (L - low) <= 0.8 * aAvgRng and close > open and aMomL and aLayL
+        d = math.abs(L - close)
+        if sS and d < aBest
+            aBest := d
+            aXLvl := L
+            aXSide := -1
+            aXWick := high
+        if sL and d < aBest
+            aBest := d
+            aXLvl := L
+            aXSide := 1
+            aXWick := low
+
+int   aSide = 0
+int   aSrc  = 0
+float aWick = na
+if aTrigPdS
+    aSide := -1
+    aSrc  := 0
+    aWick := aWickH
+else if aTrigPdL
+    aSide := 1
+    aSrc  := 0
+    aWick := aWickL
+else if aXSide == -1
+    aSide := -1
+    aSrc  := 1
+    aWick := aXWick
+else if aXSide == 1
+    aSide := 1
+    aSrc  := 1
+    aWick := aXWick
+
+aCoolOK = na(aLastExit) or (bar_index - aLastExit) > 1
+aBase = useA and not aOpen and aCoolOK and aInEntry and not inFlat and aNDay < aMaxDay and aRangeOK
+
+float aSlRaw = na
+if aSide == -1
+    aSlRaw := aWick + 0.6 * aAvgRng
+if aSide == 1
+    aSlRaw := aWick - 0.6 * aAvgRng
+float aSl = na
+if aSide == -1
+    aSl := aStopCap > 0 ? math.min(aSlRaw, close + aStopCap) : aSlRaw
+if aSide == 1
+    aSl := aStopCap > 0 ? math.max(aSlRaw, close - aStopCap) : aSlRaw
+aRk = aSide == -1 ? (aSl - close) : aSide == 1 ? (close - aSl) : na
+float aTgt = na
+if aSide == -1 and not na(aRk) and aRk > 0
+    aTgt := close - aRR * aRk
+if aSide == 1 and not na(aRk) and aRk > 0
+    aTgt := close + aRR * aRk
+aOkS = aSide == -1 and not na(aRk) and aRk > 0 and not na(aTgt) and aTgt < close
+aOkL = aSide == 1  and not na(aRk) and aRk > 0 and not na(aTgt) and aTgt > close
+
+var float aSlL = na
+var float aTpL = na
+var float aSlS = na
+var float aTpS = na
+bool aEnterS = false
+bool aEnterL = false
+if aBase and aOkS and not anyLong and not bWaitL and not cWaitL
+    strategy.entry("A_S", strategy.short)
+    aSlS := aSl
+    aTpS := aTgt
+    aNDay += 1
+    aEnterS := true
+    if aSrc == 0
+        aNHf += 1
+        aUsedH := aNHf > 1
+        aHact := false
+    else
+        aMarkUsed(aXLvl, true)
+if aBase and aOkL and not anyShort and not bWaitS and not cWaitS
+    strategy.entry("A_L", strategy.long)
+    aSlL := aSl
+    aTpL := aTgt
+    aNDay += 1
+    aEnterL := true
+    if aSrc == 0
+        aNLf += 1
+        aUsedL := aNLf > 1
+        aLact := false
+    else
+        aMarkUsed(aXLvl, false)
+
+if aLo
+    strategy.exit("A_xL", from_entry="A_L", stop=aSlL, limit=aTpL)
+    if inFlat
+        strategy.close("A_L", comment="EOD")
+if aSo
+    strategy.exit("A_xS", from_entry="A_S", stop=aSlS, limit=aTpS)
+    if inFlat
+        strategy.close("A_S", comment="EOD")
+
+// ============================================================================
+//  MODULE B -- v0.4 EMA pullback (wick + volume + VWAP + hold) + 15m ADX gate
+// ============================================================================
+var float bCPV = 0.0
+var float bCV  = 0.0
+if newDay
+    bCPV := 0.0
+    bCV  := 0.0
+bCPV += hlc3 * nz(volume)
+bCV  += nz(volume)
+bVwap   = bCV > 0 ? bCPV / bCV : na
+bVolSma = ta.sma(nz(volume), 20)
+emaHi3 = math.max(ema9, math.max(ema21, ema200))
+emaLo3 = math.min(ema9, math.min(ema21, ema200))
+bCoil  = (emaHi3 - emaLo3) <= 1.0 * atr14
+bInSess = not na(time(timeframe.period, bSess)) and afterOpen15 and not inFlat
+bAdxOK  = bHAdx == 0 or (not na(hAdx) and hAdx >= bHAdx)
+bRegUp  = ema9 > ema21 or bCoil
+bRegDn  = ema9 < ema21 or bCoil
+bAbove  = bCoil ? close > emaHi3 : (close > ema9 and close > ema21)
+bBelow  = bCoil ? close < emaLo3 : (close < ema9 and close < ema21)
+
+var bool  bPbActL = false
+var float bPbLowL = na
+var int   bPbBarL = na
+var int   bLastAbv = na
+var bool  bPbWickL = false
+var bool  bPbHoldL = false
+var bool  bPbActS = false
+var float bPbHiS = na
+var int   bPbBarS = na
+var int   bLastBlw = na
+var bool  bPbWickS = false
+var bool  bPbHoldS = false
+if not bRegUp
+    bPbActL := false
+    bPbLowL := na
+    bPbBarL := na
+    bPbWickL := false
+    bPbHoldL := false
+else
+    if bAbove
+        bLastAbv := bar_index
+    if low <= ema9 and not na(bLastAbv) and (bar_index - bLastAbv) <= 10
+        fresh = not bPbActL or (not na(bPbBarL) and bLastAbv >= bPbBarL)
+        bPbLowL := fresh ? low : math.min(bPbLowL, low)
+        bPbWickL := fresh ? bigLW : (bPbWickL or bigLW)
+        bPbHoldL := close > ema21
+        bPbActL := true
+        bPbBarL := bar_index
+if not bRegDn
+    bPbActS := false
+    bPbHiS := na
+    bPbBarS := na
+    bPbWickS := false
+    bPbHoldS := false
+else
+    if bBelow
+        bLastBlw := bar_index
+    if high >= ema9 and not na(bLastBlw) and (bar_index - bLastBlw) <= 10
+        fresh = not bPbActS or (not na(bPbBarS) and bLastBlw >= bPbBarS)
+        bPbHiS := fresh ? high : math.max(bPbHiS, high)
+        bPbWickS := fresh ? bigUW : (bPbWickS or bigUW)
+        bPbHoldS := close < ema21
+        bPbActS := true
+        bPbBarS := bar_index
+
+bCoolOK = na(bLastExit) or (bar_index - bLastExit) > 3
+bQVol = nz(volume) >= 1.0 * bVolSma
+bCoreL = bPbWickL and bQVol and (not na(bVwap) and close > bVwap) and bPbHoldL
+bCoreS = bPbWickS and bQVol and (not na(bVwap) and close < bVwap) and bPbHoldS
+bGateL = bRegUp and bAbove and bInSess and atr14 >= bAtrMin and bAdxOK and bCoreL and rsi3 < 80
+bGateS = bRegDn and bBelow and bInSess and atr14 >= bAtrMin and bAdxOK and bCoreS and rsi3 > 20
+
+var int   bWaitBarL = na
+var float bTrigL = na
+var float bSlL = na
+var float bTpL = na
+var int   bWaitBarS = na
+var float bTrigS = na
+var float bSlS = na
+var float bTpS = na
+if useB and not bOpen and bCoolOK and not bWaitL and bPbActL and bGateL and not na(bPbBarL) and (bar_index - bPbBarL) <= 8 and not anyShort and not aEnterS and not cWaitS
+    _t = bCoil ? (emaLo3 - 0.25 * atr14) : (bPbLowL - 0.15 * atr14)
+    _s = math.min(_t, high - 0.5 * atr14)
+    _r = high - _s
+    if _r > 0 and _r <= 2.0 * atr14
+        bWaitL := true
+        bWaitBarL := bar_index
+        bTrigL := high
+        bSlL := _s
+        bTpL := high + _r * bRR
+        bPbActL := false
+if useB and not bOpen and bCoolOK and not bWaitS and bPbActS and bGateS and not na(bPbBarS) and (bar_index - bPbBarS) <= 8 and not anyLong and not aEnterL and not cWaitL
+    _t = bCoil ? (emaHi3 + 0.25 * atr14) : (bPbHiS + 0.15 * atr14)
+    _s = math.max(_t, low + 0.5 * atr14)
+    _r = _s - low
+    if _r > 0 and _r <= 2.0 * atr14
+        bWaitS := true
+        bWaitBarS := bar_index
+        bTrigS := low
+        bSlS := _s
+        bTpS := low - _r * bRR
+        bPbActS := false
+if bWaitL and (bar_index - bWaitBarL > 8 or not bRegUp or anyShort or aEnterS)
+    bWaitL := false
+if bWaitS and (bar_index - bWaitBarS > 8 or not bRegDn or anyLong or aEnterL)
+    bWaitS := false
+if bOpen
+    bWaitL := false
+    bWaitS := false
+if bWaitL and not inFlat
+    strategy.entry("B_L", strategy.long, stop=bTrigL)
+else
+    strategy.cancel("B_L")
+if bWaitS and not inFlat
+    strategy.entry("B_S", strategy.short, stop=bTrigS)
+else
+    strategy.cancel("B_S")
+if bLo
+    bWaitL := false
+    strategy.exit("B_xL", from_entry="B_L", stop=bSlL, limit=bTpL)
+    if inFlat
+        strategy.close("B_L", comment="EOD")
+if bSo
+    bWaitS := false
+    strategy.exit("B_xS", from_entry="B_S", stop=bSlS, limit=bTpS)
+    if inFlat
+        strategy.close("B_S", comment="EOD")
+
+// ============================================================================
+//  MODULE C -- MTF v1.1 (15m EMA-cross bias -> pullback) + ADX gates
+// ============================================================================
+htfF = request.security(syminfo.tickerid, "15", ta.ema(close, 9), lookahead=barmerge.lookahead_off)
+htfS = request.security(syminfo.tickerid, "15", ta.ema(close, 21), lookahead=barmerge.lookahead_off)
+cBull = htfF > htfS
+cBear = htfF < htfS
+var int cSince = 100000
+cSign = cBull ? 1 : cBear ? -1 : 0
+cSince := ta.change(cSign) != 0 ? 0 : cSince + 1
+cRecentOK = cRecent == 0 or cSince <= cRecent
+cAdxOK = (cDAdx == 0 or (not na(dAdx) and dAdx >= cDAdx)) and (cHAdx == 0 or (not na(hAdx) and hAdx >= cHAdx))
+cRegUp = cBull and cRecentOK and ema9 > ema21
+cRegDn = cBear and cRecentOK and ema9 < ema21
+cAbove = close > ema9 and close > ema21
+cBelow = close < ema9 and close < ema21
+cInSess = not na(time(timeframe.period, cSess)) and afterOpen15 and not inFlat
+
+var bool  cPbActL = false
+var float cPbLowL = na
+var int   cPbBarL = na
+var int   cLastAbv = na
+var bool  cPbActS = false
+var float cPbHiS = na
+var int   cPbBarS = na
+var int   cLastBlw = na
+if not cRegUp
+    cPbActL := false
+    cPbLowL := na
+    cPbBarL := na
+else
+    if cAbove
+        cLastAbv := bar_index
+    if low <= ema9 and not na(cLastAbv) and (bar_index - cLastAbv) <= 12
+        fresh = not cPbActL or (not na(cPbBarL) and cLastAbv >= cPbBarL)
+        cPbLowL := fresh ? low : math.min(cPbLowL, low)
+        cPbActL := true
+        cPbBarL := bar_index
+if not cRegDn
+    cPbActS := false
+    cPbHiS := na
+    cPbBarS := na
+else
+    if cBelow
+        cLastBlw := bar_index
+    if high >= ema9 and not na(cLastBlw) and (bar_index - cLastBlw) <= 12
+        fresh = not cPbActS or (not na(cPbBarS) and cLastBlw >= cPbBarS)
+        cPbHiS := fresh ? high : math.max(cPbHiS, high)
+        cPbActS := true
+        cPbBarS := bar_index
+
+cCoolOK = na(cLastExit) or (bar_index - cLastExit) > 2
+cGateL = cRegUp and cAbove and cInSess and atr14 >= cAtrMin and cAdxOK and rsi3 < 85
+cGateS = cRegDn and cBelow and cInSess and atr14 >= cAtrMin and cAdxOK and rsi3 > 15
+
+var int   cWaitBarL = na
+var float cTrigL = na
+var float cSlL = na
+var float cTpL = na
+var int   cWaitBarS = na
+var float cTrigS = na
+var float cSlS = na
+var float cTpS = na
+if useC and not cOpen and cCoolOK and not cWaitL and cPbActL and cGateL and not na(cPbBarL) and (bar_index - cPbBarL) <= 10 and not anyShort and not aEnterS and not bWaitS
+    _t = cPbLowL - 0.15 * atr14
+    _s = math.min(_t, high - 0.5 * atr14)
+    _r = high - _s
+    if _r > 0 and _r <= 2.0 * atr14
+        cWaitL := true
+        cWaitBarL := bar_index
+        cTrigL := high
+        cSlL := _s
+        cTpL := high + _r * cRR
+        cPbActL := false
+if useC and not cOpen and cCoolOK and not cWaitS and cPbActS and cGateS and not na(cPbBarS) and (bar_index - cPbBarS) <= 10 and not anyLong and not aEnterL and not bWaitL
+    _t = cPbHiS + 0.15 * atr14
+    _s = math.max(_t, low + 0.5 * atr14)
+    _r = _s - low
+    if _r > 0 and _r <= 2.0 * atr14
+        cWaitS := true
+        cWaitBarS := bar_index
+        cTrigS := low
+        cSlS := _s
+        cTpS := low - _r * cRR
+        cPbActS := false
+if cWaitL and (bar_index - cWaitBarL > 10 or not cRegUp or anyShort or aEnterS or bWaitS)
+    cWaitL := false
+if cWaitS and (bar_index - cWaitBarS > 10 or not cRegDn or anyLong or aEnterL or bWaitL)
+    cWaitS := false
+if cOpen
+    cWaitL := false
+    cWaitS := false
+if cWaitL and not inFlat
+    strategy.entry("C_L", strategy.long, stop=cTrigL)
+else
+    strategy.cancel("C_L")
+if cWaitS and not inFlat
+    strategy.entry("C_S", strategy.short, stop=cTrigS)
+else
+    strategy.cancel("C_S")
+if cLo
+    cWaitL := false
+    strategy.exit("C_xL", from_entry="C_L", stop=cSlL, limit=cTpL)
+    if inFlat
+        strategy.close("C_L", comment="EOD")
+if cSo
+    cWaitS := false
+    strategy.exit("C_xS", from_entry="C_S", stop=cSlS, limit=cTpS)
+    if inFlat
+        strategy.close("C_S", comment="EOD")
+
+// ============ VISUALS ============
+plot(ema9,  "EMA9",  color=color.aqua,   linewidth=1)
+plot(ema21, "EMA21", color=color.orange, linewidth=1)
+plot(pdh, "PDH", color=color.new(color.red, 40), style=plot.style_stepline)
+plot(pdl, "PDL", color=color.new(color.green, 40), style=plot.style_stepline)
+plotshape(aLo and not aLo[1], "A long",  shape.circle,       location.belowbar, color.new(color.teal, 0),   size=size.tiny, text="A")
+plotshape(aSo and not aSo[1], "A short", shape.circle,       location.abovebar, color.new(color.red, 0),    size=size.tiny, text="A")
+plotshape(bLo and not bLo[1], "B long",  shape.triangleup,   location.belowbar, color.new(color.lime, 0),   size=size.tiny, text="B")
+plotshape(bSo and not bSo[1], "B short", shape.triangledown, location.abovebar, color.new(color.maroon, 0), size=size.tiny, text="B")
+plotshape(cLo and not cLo[1], "C long",  shape.diamond,      location.belowbar, color.new(color.blue, 0),   size=size.tiny, text="C")
+plotshape(cSo and not cSo[1], "C short", shape.diamond,      location.abovebar, color.new(color.purple, 0), size=size.tiny, text="C")
+
+// ============ SCOREBOARD (points; per module + total) ============
+f_add(float[] n, float[] w, float[] sw, float[] sl, float[] eq, float[] pk, float[] mn, float[] dd, int j, float p) =>
+    array.set(n, j, array.get(n, j) + 1)
+    if p > 0
+        array.set(w, j, array.get(w, j) + 1)
+        array.set(sw, j, array.get(sw, j) + p)
+    else
+        array.set(sl, j, array.get(sl, j) + p)
+    e = array.get(eq, j) + p
+    array.set(eq, j, e)
+    array.set(pk, j, math.max(array.get(pk, j), e))
+    array.set(mn, j, math.min(array.get(mn, j), e))
+    array.set(dd, j, math.max(array.get(dd, j), array.get(pk, j) - e))
+
+var uN  = array.new_float(4, 0.0)
+var uW  = array.new_float(4, 0.0)
+var uSW = array.new_float(4, 0.0)
+var uSL = array.new_float(4, 0.0)
+var uEq = array.new_float(4, 0.0)
+var uPk = array.new_float(4, 0.0)
+var uMn = array.new_float(4, 0.0)
+var uDD = array.new_float(4, 0.0)
+var rN  = array.new_float(4, 0.0)
+var rW  = array.new_float(4, 0.0)
+var rSW = array.new_float(4, 0.0)
+var rSL = array.new_float(4, 0.0)
+var rEq = array.new_float(4, 0.0)
+var rPk = array.new_float(4, 0.0)
+var rMn = array.new_float(4, 0.0)
+var rDD = array.new_float(4, 0.0)
+var rDay = array.new_float(4, 0.0)
+var rD2  = array.new_float(4, 0.0)
+var int firstT = time
+var int cmpFrom = na
+if bar_index == 400
+    cmpFrom := (math.floor(time / 86400000.0) + 1) * 86400000
+var int rNd = 0
+var int rDayStart = 0
+if newDay
+    if not na(cmpFrom) and rDayStart >= cmpFrom
+        rNd += 1
+        for m = 0 to 3
+            d = array.get(rDay, m)
+            array.set(rD2, m, array.get(rD2, m) + d * d)
+    for m = 0 to 3
+        array.set(rDay, m, 0.0)
+    rDayStart := time
+
+nClosed = strategy.closedtrades - strategy.closedtrades[1]
+if nClosed > 0
+    for k = 0 to nClosed - 1
+        i = strategy.closedtrades - 1 - k
+        id = strategy.closedtrades.entry_id(i)
+        m = str.startswith(id, "A") ? 0 : str.startswith(id, "B") ? 1 : 2
+        p = strategy.closedtrades.profit(i) / syminfo.pointvalue
+        f_add(uN, uW, uSW, uSL, uEq, uPk, uMn, uDD, m, p)
+        f_add(uN, uW, uSW, uSL, uEq, uPk, uMn, uDD, 3, p)
+        if not na(cmpFrom) and strategy.closedtrades.entry_time(i) >= cmpFrom
+            f_add(rN, rW, rSW, rSL, rEq, rPk, rMn, rDD, m, p)
+            f_add(rN, rW, rSW, rSL, rEq, rPk, rMn, rDD, 3, p)
+            array.set(rDay, m, array.get(rDay, m) + p)
+            array.set(rDay, 3, array.get(rDay, 3) + p)
+
+if barstate.islastconfirmedhistory or barstate.islast
+    if showTbl
+        var table ut = table.new(position.top_right, 8, 5, border_width=1, frame_color=color.gray, frame_width=1, bgcolor=color.new(color.black, 15))
+        mo = (time - firstT) / (30.44 * 86400000.0)
+        hdr = array.from("Module", "Trades", "Trades/mo", "Win %", "PF", "Net pts", "Pts/mo", "Max DD pts")
+        for c = 0 to 7
+            table.cell(ut, c, 0, array.get(hdr, c), text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+        nm = array.from("A  v13 sweep-fade", "B  v0.4 pullback", "C  MTF v1.1", "TOTAL")
+        for m = 0 to 3
+            n  = array.get(uN, m)
+            sw = array.get(uSW, m)
+            sl = array.get(uSL, m)
+            net = sw + sl
+            col = net >= 0 ? color.green : color.red
+            table.cell(ut, 0, m + 1, array.get(nm, m), text_color=color.white, text_size=size.small, text_halign=text.align_left)
+            table.cell(ut, 1, m + 1, str.tostring(n, "#"), text_color=color.white, text_size=size.small)
+            table.cell(ut, 2, m + 1, str.tostring(mo > 0 ? n / mo : 0, "#.#"), text_color=color.white, text_size=size.small)
+            table.cell(ut, 3, m + 1, str.tostring(n > 0 ? 100 * array.get(uW, m) / n : 0, "#.#"), text_color=color.white, text_size=size.small)
+            table.cell(ut, 4, m + 1, sl < 0 ? str.tostring(sw / -sl, "#.##") : "-", text_color=color.white, text_size=size.small)
+            table.cell(ut, 5, m + 1, str.tostring(net, "#"), text_color=col, text_size=size.small)
+            table.cell(ut, 6, m + 1, str.tostring(mo > 0 ? net / mo : 0, "#"), text_color=col, text_size=size.small)
+            table.cell(ut, 7, m + 1, str.tostring(array.get(uDD, m), "#"), text_color=color.white, text_size=size.small)
+    if showRes
+        var table rt = table.new(position.bottom_left, 1, 1, bgcolor=color.new(color.black, 10))
+        incl = not na(cmpFrom) and rDayStart >= cmpFrom
+        s = "CMB|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(cmpFrom) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(rNd + (incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue)
+        for m = 0 to 3
+            d = incl ? array.get(rDay, m) : 0.0
+            s := s + "|" + str.tostring(array.get(rN, m)) + "," + str.tostring(array.get(rW, m)) + "," + str.tostring(array.get(rSW, m), "#.#") + "," + str.tostring(array.get(rSL, m), "#.#") + "," + str.tostring(array.get(rDD, m), "#.#") + "," + str.tostring(array.get(rD2, m) + d * d, "#.#") + "," + str.tostring(array.get(rPk, m), "#.#") + "," + str.tostring(array.get(rMn, m), "#.#")
+        table.cell(rt, 0, 0, s, text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)

@@ -1633,3 +1633,65 @@ At times all three can hold positions together, so up to 3 lots.
 - The practical answer is the **combined set**.
 - Anything faster would need lower cost per trade (for example a
   low-brokerage broker, or limit entries). That has not been tested here.
+
+---
+
+## BankNifty combined script: v13 + v0.4 + MTF in one strategy (5m)
+
+`bnf combined v1 BankNifty 5min (v13 sweep-fade + v0.4 pullback + MTF v1.1 in one script).pine.txt`
+puts three modules on one 5m chart:
+
+- **A** = v13 sweep-fade "bear"
+- **B** = v0.4 EMA pullback with the 15m ADX gate
+- **C** = MTF v1.1 with both ADX gates
+
+How it trades:
+- Each module trades 1 lot with its own order IDs.
+- Modules may stack in the same direction. A signal opposite to another
+  module's open or armed trade is skipped.
+- Everything is flat by 15:15.
+- The chart table shows trades, trades/month, win %, PF, net points,
+  points/month and max drawdown for each module and in total.
+
+**Two bugs were found by running each module alone and comparing it with its
+standalone script. Both are fixed.**
+
+1. **Duplicate lots.** Armed stop-entries of B and C were not cancelled once
+   their trade was open. With `pyramiding=3`, the same order could fill a
+   second and third lot. B alone showed 46 trades against 24 for standalone
+   v0.4.
+2. **Misattributed exits.** TradingView closes trades first-in-first-out by
+   default, so one module's exit could close another module's earlier
+   same-direction trade. Fixed with `close_entries_rule="ANY"`.
+
+After the fixes, each module run alone matches its standalone script (B: 24
+trades, +889 pts in the live window). The first combined figure quoted (131
+trades, +3,751 pts) came from the buggy version and is **withdrawn**.
+
+**Walk-forward:** same 5 tiled 5m windows, Mar 2024 - Sep 2026, 30.2 months,
+0.02%/side plus 5 pts slippage. Raw rows and the aggregator are in
+`variant_lab_v1/robust_tuning/combined_bnf_*`.
+
+| Config | Trades | /mo | Win% | PF | Net pts | pts/mo | Sharpe | Max DD pts | +windows | By window, old to new |
+|---|---|---|---|---|---|---|---|---|---|---|
+| A + B + C (all on) | 353 | 11.7 | 34.6 | 1.06 | +1,438 | +48 | 0.26 | 3,979 | 3/5 | +249, -976, +128, -246, +2,282 |
+| of which A (v13) | 228 | 7.6 | 31.1 | 0.99 | -124 | -4 | -0.03 | 2,415 | 2/5 | -567, -838, +1,035, -617, +863 |
+| of which B (v0.4) | 72 | 2.4 | 41.7 | 1.28 | +1,190 | +39 | 0.49 | 1,559 | 3/5 | +816, +316, -533, -102, +692 |
+| of which C (MTF) | 53 | 1.8 | 39.6 | 1.10 | +372 | +12 | 0.19 | 1,542 | 2/5 | 0, -454, -374, +473, +727 |
+| B + C (A off) | 132 | 4.4 | 40.2 | 1.17 | +1,403 | +46 | 0.44 | 2,593 | 3/5 | +816, -180, -1,008, +270, +1,505 |
+| B alone (= standalone v0.4) | 74 | 2.5 | 41.9 | 1.29 | +1,277 | +42 | 0.52 | 1,668 | 3/5 | +816, +206, -533, -102, +889 |
+
+**Reading:**
+- Combining multiplies trades by 4.7 (11.7 a month against 2.5) but adds
+  almost no net points (+1,438 against +1,277). PF falls to 1.06, and
+  drawdown grows 2.4x.
+- **A breaks even once slippage is charged.** v13's earlier +914 had no
+  slippage. 228 trades at 10 pts a round trip is about 2,280 pts.
+- **C is weak on 5m** (PF 1.03-1.10) and takes no trades in the oldest
+  window. Its home is 3m, where it has PF 1.64.
+- **Verdict:** use v0.4 (module B) as the BankNifty strategy. Keep the
+  combined script only as the "more trades" option, and accept a lower PF
+  and deeper drawdown with it.
+
+The final pick per script, with full rules, is in
+`BEST STRATEGY PER SCRIPT (BankNifty, Nifty 50, CrudeOil - 3m-5m).md`.
