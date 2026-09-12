@@ -1,0 +1,277 @@
+//@version=5
+// ============================================================================
+//  SMC Liquidity Sweep + FVG v1.0
+//  ---------------------------------------------------------------------------
+//  Pure Smart Money Concepts mechanics, no EMAs/VWAP/RSI anywhere in the logic:
+//    1. LIQUIDITY: most recent confirmed swing high/low (pivot, `swingLen` bars
+//       each side) + optional previous day high/low.
+//    2. SWEEP: a bar's wick pierces one of those levels and its CLOSE snaps
+//       back inside it -> that level is "swept" (marked used so it can't
+//       re-trigger until a fresh level forms / a new day starts).
+//         - sweep of a HIGH (BSL) -> watch for a BEARISH reversal (short)
+//         - sweep of a LOW  (SSL) -> watch for a BULLISH reversal (long)
+//    3. DISPLACEMENT / FVG: within `maxDispBars` bars after the sweep, look
+//       for a 3-bar Fair Value Gap in the reversal direction (bar[2] vs
+//       bar[0], with bar[1] as the displacement candle). The displacement
+//       candle's range must be >= `minDispATR` x ATR14, or the gap is
+//       ignored (filters noise gaps from genuine displacement).
+//    4. ENTRY: a stop order armed at the FVG's near edge, so it fills on the
+//       first pullback that taps into the gap. Cancelled if price closes
+//       through the sweep wick again (thesis dead) or `maxPullbackBars`
+//       passes with no tap.
+//    5. RISK: stop just beyond the sweep wick (+ `slBufferATR` buffer).
+//       Target = the nearest opposing liquidity level (next swing high/low
+//       or PDH/PDL) ahead of entry, if it clears `minTargetR`; otherwise a
+//       fixed `rMultiple` fallback. `useChandelier` switches to a trailing
+//       ATR stop (spec default 1x ATR) instead of a fixed target.
+//    6. SESSION: optional trading-hours filter + flatten at session end.
+//  One trade at a time. Works on spot indices too (no volume/VWAP dependency).
+//  Simplifications, documented rather than hidden: only the single most
+//  recent swing high/low is tracked (not a basket of untouched levels); a
+//  sweep in progress is abandoned once any matching-direction FVG is found,
+//  even if its risk check fails (it does not keep hunting within the same
+//  window); the opposing target uses the NEAREST qualifying level, not the
+//  farthest, for a more achievable R multiple.
+// ============================================================================
+strategy("SMC Liquidity Sweep + FVG v1.0", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+// ============ INPUTS ============
+grpStruct = "Structure"
+swingLen    = input.int(10, "Swing pivot length (bars each side)", minval=2, group=grpStruct)
+useDaily    = input.bool(true, "Include Previous Day High/Low as liquidity", group=grpStruct)
+
+grpFVG = "Displacement / FVG"
+maxDispBars = input.int(5, "Max bars after sweep to find displacement", minval=1, group=grpFVG)
+minDispATR  = input.float(1.0, "Min displacement-candle range (x ATR14)", step=0.1, group=grpFVG)
+
+grpEntry = "Entry"
+maxPullbackBars = input.int(10, "Max bars to wait for FVG pullback", minval=1, group=grpEntry)
+coolBars    = input.int(2, "Cooldown bars after a closed trade", minval=0, group=grpEntry)
+
+grpRisk = "Risk"
+slBufferATR = input.float(0.1, "SL buffer beyond sweep wick (x ATR14)", step=0.05, group=grpRisk)
+maxStopATR  = input.float(3.0, "Max stop distance to accept a setup (x ATR14, 0=off)", step=0.25, group=grpRisk)
+useDynTarget= input.bool(true, "Target opposing liquidity pool (else fixed R)", group=grpRisk)
+minTargetR  = input.float(1.5, "Min R to accept the dynamic target, else fallback", step=0.1, group=grpRisk)
+rMultiple   = input.float(3.0, "Fallback Target R:R", step=0.1, group=grpRisk)
+useChandelier = input.bool(false, "Use ATR Chandelier trail instead of fixed target", group=grpRisk)
+chanATRLen  = input.int(14, "Chandelier ATR length", group=grpRisk)
+chanATRMult = input.float(1.0, "Chandelier ATR multiple", step=0.25, group=grpRisk)
+
+grpTime = "Session"
+useSess     = input.bool(false, "Session filter", group=grpTime)
+sess        = input.session("1730-2330", "Trading session (exchange time)", group=grpTime)
+useFlat     = input.bool(false, "Flatten at session end", group=grpTime)
+
+grpViz = "Visuals"
+showViz     = input.bool(true, "Show levels / sweeps / FVGs", group=grpViz)
+
+// ============ CORE DATA ============
+atr14   = ta.atr(14)
+atrChan = ta.atr(chanATRLen)
+inSess  = not useSess or not na(time(timeframe.period, sess))
+
+// ---- Previous day High/Low ----
+newDay = ta.change(time("D")) != 0
+var float dHi = na
+var float dLo = na
+var float pdh = na
+var float pdl = na
+var bool  pdhUsed = false
+var bool  pdlUsed = false
+if newDay
+    pdh := dHi
+    pdl := dLo
+    pdhUsed := false
+    pdlUsed := false
+    dHi := high
+    dLo := low
+else
+    dHi := na(dHi) ? high : math.max(dHi, high)
+    dLo := na(dLo) ? low  : math.min(dLo, low)
+
+// ---- Swing pivots (confirmed only, zero lookahead) ----
+ph = ta.pivothigh(high, swingLen, swingLen)
+pl = ta.pivotlow(low, swingLen, swingLen)
+var float swHigh = na
+var float swLow  = na
+var bool  swHighUsed = false
+var bool  swLowUsed  = false
+if not na(ph)
+    swHigh := ph
+    swHighUsed := false
+if not na(pl)
+    swLow := pl
+    swLowUsed := false
+
+// ============ 1. LIQUIDITY SWEEP DETECTION ============
+sweptSwingHigh = not swHighUsed and not na(swHigh) and high > swHigh and close < swHigh
+sweptPDH       = useDaily and not pdhUsed and not na(pdh) and high > pdh and close < pdh
+sweptSwingLow  = not swLowUsed  and not na(swLow)  and low  < swLow  and close > swLow
+sweptPDL       = useDaily and not pdlUsed and not na(pdl) and low  < pdl  and close > pdl
+
+bearishSweep = sweptSwingHigh or sweptPDH   // BSL swept -> watch for a short
+bullishSweep = sweptSwingLow  or sweptPDL   // SSL swept -> watch for a long
+
+if sweptSwingHigh
+    swHighUsed := true
+if sweptPDH
+    pdhUsed := true
+if sweptSwingLow
+    swLowUsed := true
+if sweptPDL
+    pdlUsed := true
+
+var int   pendingDir      = 0     // 1 = watching bullish setup, -1 = watching bearish setup
+var float pendingStopRef  = na    // sweep wick extreme
+var int   pendingSweepBar = na
+
+if bearishSweep
+    pendingDir := -1
+    pendingStopRef := high
+    pendingSweepBar := bar_index
+if bullishSweep
+    pendingDir := 1
+    pendingStopRef := low
+    pendingSweepBar := bar_index
+
+if pendingDir != 0 and not na(pendingSweepBar) and (bar_index - pendingSweepBar) > maxDispBars
+    pendingDir := 0
+
+// ============ 2. DISPLACEMENT / FVG ============
+dispRangeOK = (high[1] - low[1]) >= minDispATR * atr14[1]
+bullFVGnow  = high[2] < low[0]  and dispRangeOK
+bearFVGnow  = low[2]  > high[0] and dispRangeOK
+
+// ============ 3. ARM ENTRY (per-direction, mirrors the repo's other scripts) ============
+var bool  waitL  = false
+var float trigL  = na
+var float slLv   = na
+var float tpLv   = na
+var int   fvgBarL = na
+var bool  waitS  = false
+var float trigS  = na
+var float slSv   = na
+var float tpSv   = na
+var int   fvgBarS = na
+
+f_dynTargetLong(float entryApprox, float risk) =>
+    cands = array.new_float()
+    if not na(swHigh) and swHigh > entryApprox
+        array.push(cands, swHigh)
+    if useDaily and not na(pdh) and pdh > entryApprox
+        array.push(cands, pdh)
+    float tgt = array.size(cands) > 0 ? array.min(cands) : na
+    minAccept = entryApprox + minTargetR * risk
+    useDynTarget and not na(tgt) and tgt >= minAccept ? tgt : entryApprox + rMultiple * risk
+
+f_dynTargetShort(float entryApprox, float risk) =>
+    cands = array.new_float()
+    if not na(swLow) and swLow < entryApprox
+        array.push(cands, swLow)
+    if useDaily and not na(pdl) and pdl < entryApprox
+        array.push(cands, pdl)
+    float tgt = array.size(cands) > 0 ? array.max(cands) : na
+    minAccept = entryApprox - minTargetR * risk
+    useDynTarget and not na(tgt) and tgt <= minAccept ? tgt : entryApprox - rMultiple * risk
+
+if not waitL and pendingDir == 1 and bullFVGnow
+    pendingDir := 0
+    _top    = low[0]
+    _bottom = high[2]
+    _slRef  = pendingStopRef
+    _sl     = _slRef - slBufferATR * atr14
+    _risk   = _top - _sl
+    if _risk > 0 and (maxStopATR == 0 or _risk <= maxStopATR * atr14)
+        waitL   := true
+        trigL   := _top
+        slLv    := _sl
+        tpLv    := f_dynTargetLong(_top, _risk)
+        fvgBarL := bar_index
+
+if not waitS and pendingDir == -1 and bearFVGnow
+    pendingDir := 0
+    _top    = low[2]
+    _bottom = high[0]
+    _slRef  = pendingStopRef
+    _sl     = _slRef + slBufferATR * atr14
+    _risk   = _sl - _bottom
+    if _risk > 0 and (maxStopATR == 0 or _risk <= maxStopATR * atr14)
+        waitS   := true
+        trigS   := _bottom
+        slSv    := _sl
+        tpSv    := f_dynTargetShort(_bottom, _risk)
+        fvgBarS := bar_index
+
+// expiry / invalidation while armed, not yet filled
+if waitL and strategy.position_size == 0 and ((bar_index - fvgBarL) > maxPullbackBars or close < slLv)
+    waitL := false
+if waitS and strategy.position_size == 0 and ((bar_index - fvgBarS) > maxPullbackBars or close > slSv)
+    waitS := false
+
+// ============ 4. COOLDOWN ============
+var int lastExitBar = na
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    lastExitBar := bar_index
+coolOK = coolBars == 0 or na(lastExitBar) or (bar_index - lastExitBar) > coolBars
+
+// ============ 5. ENTRIES ============
+if waitL and strategy.position_size == 0 and coolOK and inSess
+    strategy.entry("Long", strategy.long, stop=trigL)
+else
+    strategy.cancel("Long")
+if waitS and strategy.position_size == 0 and coolOK and inSess
+    strategy.entry("Short", strategy.short, stop=trigS)
+else
+    strategy.cancel("Short")
+
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+var float chanExtreme = na
+if longEntryBar
+    waitL := false
+    chanExtreme := high
+if shortEntryBar
+    waitS := false
+    chanExtreme := low
+
+// ============ 6. EXITS ============
+if strategy.position_size > 0
+    if useChandelier
+        chanExtreme := math.max(nz(chanExtreme, high), high)
+        slLv := math.max(slLv, chanExtreme - chanATRMult * atrChan)
+        strategy.exit("XL", "Long", stop=slLv)
+    else
+        strategy.exit("XL", "Long", stop=slLv, limit=tpLv)
+    if useFlat and not inSess
+        strategy.close("Long", comment="Session end")
+if strategy.position_size < 0
+    if useChandelier
+        chanExtreme := math.min(nz(chanExtreme, low), low)
+        slSv := math.min(slSv, chanExtreme + chanATRMult * atrChan)
+        strategy.exit("XS", "Short", stop=slSv)
+    else
+        strategy.exit("XS", "Short", stop=slSv, limit=tpSv)
+    if useFlat and not inSess
+        strategy.close("Short", comment="Session end")
+
+// ============ VISUALS ============
+plot(showViz ? swHigh : na, "Swing High", color=color.new(color.red, 40), style=plot.style_circles, linewidth=2)
+plot(showViz ? swLow  : na, "Swing Low",  color=color.new(color.green, 40), style=plot.style_circles, linewidth=2)
+plot(showViz and useDaily ? pdh : na, "PDH", color=color.new(color.orange, 30), style=plot.style_stepline)
+plot(showViz and useDaily ? pdl : na, "PDL", color=color.new(color.blue, 30), style=plot.style_stepline)
+plotshape(showViz and bearishSweep, "BSL swept", shape.xcross, location.abovebar, color.new(color.red, 0), size=size.tiny)
+plotshape(showViz and bullishSweep, "SSL swept", shape.xcross, location.belowbar, color.new(color.green, 0), size=size.tiny)
+if showViz and waitL and not waitL[1]
+    box.new(bar_index[2], trigL, bar_index, slLv > 0 ? math.min(trigL, high[2]) : trigL, border_color=color.new(color.teal, 40), bgcolor=color.new(color.teal, 85))
+if showViz and waitS and not waitS[1]
+    box.new(bar_index[2], math.max(trigS, low[2]), bar_index, trigS, border_color=color.new(color.maroon, 40), bgcolor=color.new(color.maroon, 85))
+plotshape(showViz and longEntryBar,  "Long",  shape.triangleup,   location.belowbar, color.new(color.teal, 0), size=size.small, text="LONG",  textcolor=color.white)
+plotshape(showViz and shortEntryBar, "Short", shape.triangledown, location.abovebar, color.new(color.maroon, 0), size=size.small, text="SHORT", textcolor=color.white)
+plot(strategy.position_size > 0 ? slLv : strategy.position_size < 0 ? slSv : na, "SL", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size > 0 and not useChandelier ? tpLv : strategy.position_size < 0 and not useChandelier ? tpSv : na, "TP", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
