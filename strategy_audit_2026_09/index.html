@@ -18,7 +18,7 @@
 <div class="max-w-7xl mx-auto">
   <header class="mb-6">
     <h1 class="text-2xl md:text-3xl font-bold text-white">Multi-Asset Strategy Sweep Dashboard</h1>
-    <p class="text-slate-400 text-sm mt-1">CrudeOil, BankNifty, XAUUSD, BTCUSD — 76+ strategy variants tested, tiled walk-forward, 5m, points per lot/contract. Generated 13 Sep 2026.</p>
+    <p class="text-slate-400 text-sm mt-1">CrudeOil, BankNifty, XAUUSD, BTCUSD — 79+ strategy variants and iterations tested, tiled walk-forward, points per lot/contract. Updated 14 Sep 2026.</p>
   </header>
 
   <!-- Summary cards -->
@@ -56,10 +56,11 @@
   </div>
 
   <footer class="text-xs text-slate-500 mt-6 pb-8">
-    Points are per lot/contract (fiat P&amp;L ÷ syminfo.pointvalue). Costs: 1 lot, 0.02% commission per side, no added slippage.
+    Points are per lot/contract (fiat P&amp;L ÷ syminfo.pointvalue). Costs: 1 lot, 0.02% commission per side, no added slippage (BankNifty rows below include 5-pt slippage baked into the script itself).
     Tiled non-overlapping-window walk-forward method throughout. "Period" is the total history span covered by that strategy's non-overlapping windows.
     One row (XAUUSD SMC v1.1) has an approximate period, scaled from its window count against the matching 12-window span above it, since its exact date range wasn't separately logged.
-    Full method notes: <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>.
+    v0.5 and the v0.4+v13 portfolio (14 Sep 2026) were tested on a 6-window/35.6-month span, one window longer than v0.4's own 5-window/30.2-month audit above it -- not a like-for-like period, though the extra window is older history and doesn't favor either result.
+    Full method notes: <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>, <code>bnf_v0.5_loosened_results.md</code>, <code>bnf_portfolio_v04_v13_results.md</code>.
   </footer>
 </div>
 
@@ -69,19 +70,23 @@ const DATA = [
   {instrument:"CrudeOil", strategy:"v2.0 EMA pullback (sep 0.5xATR)", trades:1345, winRate:37.9, pf:1.09, points:2195, maxDD:2358, months:29.7, windows:11, source:"Existing audit"},
   {instrument:"CrudeOil", strategy:"v4.0 SHA flip RR3", trades:842, winRate:28.0, pf:1.09, points:2136, maxDD:2339, months:29.7, windows:11, source:"Existing audit + Lab v1 V21 + Lab v2 V01 (all reproduce)"},
   {instrument:"CrudeOil", strategy:"v2.1 EMA pullback (sep 1.5xATR)", trades:518, winRate:37.3, pf:1.14, points:1304, maxDD:900, months:29.7, windows:11, source:"Existing audit"},
-  {instrument:"CrudeOil", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:420, winRate:29.3, pf:1.10, points:1225, maxDD:1804, months:29.7, windows:11, source:"Lab v2"},
+  {instrument:"CrudeOil", strategy:"Lab v3 V04: SHA flip + outside prior value (volume-profile lab)", trades:420, winRate:29.3, pf:1.10, points:1225, maxDD:1804, months:29.7, windows:11, source:"Lab v3 (volume profile)"},
   {instrument:"CrudeOil", strategy:"SMC v1.2 (swingLen=10, US session)", trades:178, winRate:55.3, pf:1.25, points:655, maxDD:454, months:29.7, windows:11, source:"Existing audit"},
   {instrument:"CrudeOil", strategy:"SMC v1.1 (swingLen=20, US session)", trades:86, winRate:52.3, pf:1.40, points:546, maxDD:302, months:29.7, windows:11, source:"Existing audit, thin sample"},
-  {instrument:"CrudeOil", strategy:"Lab v2 V13: pPOC bounce RR3", trades:500, winRate:28.6, pf:1.07, points:373, maxDD:665, months:29.7, windows:11, source:"Lab v2"},
+  {instrument:"CrudeOil", strategy:"Lab v3 V13: pPOC bounce RR3 (volume-profile lab)", trades:500, winRate:28.6, pf:1.07, points:373, maxDD:665, months:29.7, windows:11, source:"Lab v3 (volume profile)"},
   {instrument:"CrudeOil", strategy:"Master Adaptive Strategy v2 (user's own)", trades:1011, winRate:30.8, pf:0.93, points:-1461, maxDD:2135, months:29.7, windows:11, source:"Existing audit"},
 
-  // BankNifty -- 5 windows, 30.2 months (Mar 2024 -> Sep 2026), same span for every BankNifty row below
-  {instrument:"BankNifty", strategy:"v0.4 EMA pullback + 15m ADX gate", trades:74, winRate:41.9, pf:1.33, points:1403, maxDD:1620, months:30.2, windows:5, source:"Existing audit"},
+  // BankNifty -- solo strategies: 5 windows, 30.2 months (Mar 2024 -> Sep 2026)
+  {instrument:"BankNifty", strategy:"v0.4 EMA pullback + 15m ADX gate", trades:74, winRate:41.9, pf:1.33, points:1403, maxDD:1620, months:30.2, windows:5, source:"Existing audit -- best of the best"},
   {instrument:"BankNifty", strategy:"v10.3 PD sweep + daily trend", trades:106, winRate:38.1, pf:1.10, points:924, maxDD:2631, months:30.2, windows:5, source:"Existing audit"},
   {instrument:"BankNifty", strategy:"v13 sweep-fade (bear)", trades:233, winRate:32.5, pf:1.06, points:914, maxDD:2642, months:30.2, windows:5, source:"Existing audit"},
-  {instrument:"BankNifty", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:273, winRate:39.2, pf:1.00, points:-45, maxDD:3758, months:30.2, windows:5, source:"Lab v2, best of 20 variants"},
+  {instrument:"BankNifty", strategy:"Lab v3 V04: SHA flip + outside prior value (volume-profile lab)", trades:273, winRate:39.2, pf:1.00, points:-45, maxDD:3758, months:30.2, windows:5, source:"Lab v3, best of 20 variants"},
   {instrument:"BankNifty", strategy:"SMC v1.2 (NSE 0945-1515 + 0.2 ATR buffer)", trades:61, winRate:50.6, pf:0.80, points:-2928, maxDD:4356, months:30.2, windows:5, source:"Existing audit"},
   {instrument:"BankNifty", strategy:"SMC v1.1 (no session filter)", trades:61, winRate:45.9, pf:0.77, points:-1236, maxDD:2337, months:30.2, windows:5, source:"Existing audit"},
+  // BankNifty -- v0.4 iteration attempts, 14 Sep 2026, 6 windows each (extra older window vs the 5 above)
+  {instrument:"BankNifty", strategy:"Portfolio: v0.4 + v13 combined (pyramiding=2)", trades:355, winRate:33.2, pf:1.04, points:964, maxDD:1764, months:35.6, windows:6, source:"Combined script, 42% of naive +2,317 estimate"},
+  {instrument:"BankNifty", strategy:"v0.5: v0.4 loosened (ADX 20, no volume gate, RR 2.0) -- 5m", trades:693, winRate:35.5, pf:0.71, points:-12330, maxDD:4608, months:35.6, windows:6, source:"Rejected: edge destroyed"},
+  {instrument:"BankNifty", strategy:"v0.5: v0.4 loosened (ADX 20, no volume gate, RR 2.0) -- 3m", trades:394, winRate:36.0, pf:0.68, points:-7350, maxDD:2797, months:21.5, windows:6, source:"Rejected: edge destroyed"},
 
   // XAUUSD -- Lab v1 rows: 12 windows, 31.4 months (2024-01-31 -> 2026-09-13), reaches TV's data floor
   {instrument:"XAUUSD", strategy:"Lab v1 V21: SHA flip RR3 (= crude v4.0 logic)", trades:1032, winRate:28.7, pf:1.04, points:300, maxDD:405, months:31.4, windows:12, source:"New 24/7-patched Lab v1"},
