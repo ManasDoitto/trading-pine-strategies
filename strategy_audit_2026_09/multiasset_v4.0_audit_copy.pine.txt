@@ -1,0 +1,112 @@
+//@version=5
+// MULTI-ASSET AUDIT COPY of Crude v4.0 SHA flip RR3 (variant lab V21). Rules unchanged from the
+// protected script's logic; session filter defaulted OFF for 24/7 gold/bitcoin testing (no VWAP/
+// volume dependency in this script, so it is fully portable). Tiled-window audit block appended.
+strategy("CRUDE v4.0 SHA flip RR3 (multi-asset sweep)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_labels_count=500)
+
+shaLen1  = input.int(10, "SHA pre-smooth EMA", group="Trend")
+shaLen2  = input.int(10, "SHA post-smooth EMA", group="Trend")
+useEmaAl = input.bool(true, "Require EMA9 vs EMA22 alignment", group="Trend")
+use200   = input.bool(false, "Require close vs EMA200", group="Trend")
+swLen    = input.int(10, "SL swing lookback (bars)", group="Risk")
+swBuf    = input.float(0.1, "SL buffer beyond swing (x ATR)", step=0.05, group="Risk")
+minSL    = input.float(1.5, "SL min distance (x ATR)", step=0.1, group="Risk")
+maxSL    = input.float(3.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
+rr       = input.float(3.0, "Target R:R", step=0.1, group="Risk")
+useSess  = input.bool(false, "Session filter (off for 24/7 assets)", group="Time")
+sess     = input.session("0915-2330", "Entry session", group="Time")
+
+o1 = ta.ema(open, shaLen1)
+c1 = ta.ema(close, shaLen1)
+h1 = ta.ema(high, shaLen1)
+l1 = ta.ema(low, shaLen1)
+haC = (o1 + h1 + l1 + c1) / 4
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+shaUp = ta.ema(haC, shaLen2) > ta.ema(haO, shaLen2)
+flipUp = shaUp and not shaUp[1]
+flipDn = not shaUp and shaUp[1]
+
+e9   = ta.ema(close, 9)
+e22  = ta.ema(close, 22)
+e200 = ta.ema(close, 200)
+atr  = ta.atr(14)
+swLo = ta.lowest(low, swLen)
+swHi = ta.highest(high, swLen)
+
+trendL = (not useEmaAl or e9 > e22) and (not use200 or close > e200)
+trendS = (not useEmaAl or e9 < e22) and (not use200 or close < e200)
+inSess = not useSess or not na(time(timeframe.period, sess))
+flat = strategy.position_size == 0
+
+riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
+riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
+okL = flat and inSess and flipUp and trendL and riskL <= maxSL * atr
+okS = flat and inSess and flipDn and trendS and riskS <= maxSL * atr and not okL
+
+var float slPx = na
+var float tpPx = na
+if okL
+    slPx := close - riskL
+    tpPx := close + rr * riskL
+    strategy.entry("L", strategy.long)
+    strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+if okS
+    slPx := close + riskS
+    tpPx := close - rr * riskS
+    strategy.entry("S", strategy.short)
+    strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+
+plot(e9, "EMA9", color=color.aqua)
+plot(e22, "EMA22", color=color.orange)
+
+// ===== AUDIT BLOCK (appended for the walk-forward audit; not part of the strategy) =====
+var int aud_from = na
+if bar_index == 400
+    aud_from := (math.floor(time / 86400000.0) + 1) * 86400000
+var float aud_n = 0.0
+var float aud_w = 0.0
+var float aud_sw = 0.0
+var float aud_sl = 0.0
+var float aud_eq = 0.0
+var float aud_pk = 0.0
+var float aud_mn = 0.0
+var float aud_dd = 0.0
+var float aud_d2 = 0.0
+var float aud_dayP = 0.0
+var int aud_nD = 0
+var int aud_dayStart = 0
+aud_newDay = ta.change(time("D")) != 0
+if aud_newDay
+    if not na(aud_from) and aud_dayStart >= aud_from
+        aud_nD += 1
+        aud_d2 += aud_dayP * aud_dayP
+    aud_dayP := 0.0
+    aud_dayStart := time
+aud_nc = strategy.closedtrades - nz(strategy.closedtrades[1])
+if aud_nc > 0
+    for aud_k = 0 to aud_nc - 1
+        aud_i = strategy.closedtrades - 1 - aud_k
+        if not na(aud_from) and strategy.closedtrades.entry_time(aud_i) >= aud_from
+            aud_sz = math.abs(strategy.closedtrades.size(aud_i))
+            aud_p = strategy.closedtrades.profit(aud_i) / syminfo.pointvalue / (aud_sz > 0 ? aud_sz : 1)
+            aud_n += 1
+            if aud_p > 0
+                aud_w += 1
+                aud_sw += aud_p
+            else
+                aud_sl += aud_p
+            aud_eq += aud_p
+            aud_pk := math.max(aud_pk, aud_eq)
+            aud_mn := math.min(aud_mn, aud_eq)
+            aud_dd := math.max(aud_dd, aud_pk - aud_eq)
+            aud_dayP += aud_p
+if barstate.islastconfirmedhistory or barstate.islast
+    var table aud_t = table.new(position.bottom_center, 1, 1, bgcolor=color.new(color.black, 10))
+    aud_incl = not na(aud_from) and aud_dayStart >= aud_from
+    table.cell(aud_t, 0, 0, "AUD|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(aud_from) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(aud_nD + (aud_incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue) + "|" + str.tostring(aud_n) + "," + str.tostring(aud_w) + "," + str.tostring(aud_sw, "#.#") + "," + str.tostring(aud_sl, "#.#") + "," + str.tostring(aud_dd, "#.#") + "," + str.tostring(aud_d2 + (aud_incl ? aud_dayP * aud_dayP : 0), "#.#") + "," + str.tostring(aud_pk, "#.#") + "," + str.tostring(aud_mn, "#.#"), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
