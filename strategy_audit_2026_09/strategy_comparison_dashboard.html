@@ -104,13 +104,24 @@
 <body>
 
 <div class="nav"><div class="nav-inner">
-  <a href="#hero">Overview</a>
-  <a href="#instruments">Instruments</a>
-  <a href="#cross">Cross-Instrument</a>
-  <a href="#families">Family Rankings</a>
-  <a href="#calculator">Option Calculator</a>
-  <a href="#timeline">Evolution</a>
+  <a href="#hero" data-jump="hero">Overview</a>
+  <a href="#instruments" data-jump="instruments">Instruments</a>
+  <a href="#cross" data-jump="cross">Cross-Instrument</a>
+  <a href="#families" data-jump="families">Family Rankings</a>
+  <a href="#calculator" data-jump="calculator">Option Calculator</a>
+  <a href="#timeline" data-jump="timeline">Evolution</a>
 </div></div>
+<script>
+// Some embedded/sandboxed file viewers don't process native #hash anchor jumps.
+// Drive the scroll from JS directly so nav links work regardless of viewer.
+document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
+  a.addEventListener('click', function(e){
+    e.preventDefault();
+    var target = document.getElementById(a.dataset.jump);
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+</script>
 
 <div class="wrap">
 
