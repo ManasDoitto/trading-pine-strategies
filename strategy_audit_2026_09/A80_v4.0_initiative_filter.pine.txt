@@ -1,0 +1,166 @@
+//@version=5
+// CRUDE v4.0 + INITIATIVE FILTER (= variant lab v3's V04: "SHA flip + outside prior value")
+// Identical core logic to v4.0 (SHA flip, EMA9/22 agreement, swing-based stop >=1.5 ATR
+// skip >3 ATR, RR3). The ONLY addition: only take the signal if close is already outside
+// yesterday's 70%-volume value area in the trade's direction (skip mean-reversion days).
+// This variant was picked because, unlike vanilla v4.0, it is net positive on BOTH
+// Mar24-Jan26 (train) and Jan26-Sep26 (holdout) -- not just carried by 2026's volatility.
+strategy("CRUDE v4.0 + Initiative Filter (V04)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_labels_count=500)
+
+shaLen1  = input.int(10, "SHA pre-smooth EMA", group="Trend")
+shaLen2  = input.int(10, "SHA post-smooth EMA", group="Trend")
+swLen    = input.int(10, "SL swing lookback (bars)", group="Risk")
+swBuf    = input.float(0.1, "SL buffer beyond swing (x ATR)", step=0.05, group="Risk")
+minSL    = input.float(1.5, "SL min distance (x ATR)", step=0.1, group="Risk")
+maxSL    = input.float(3.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
+rr       = input.float(3.0, "Target R:R", step=0.1, group="Risk")
+useSess  = input.bool(true, "Session filter", group="Time")
+sess     = input.session("0915-2330", "Entry session", group="Time")
+bs       = input.float(2.0, "Volume-profile bin size (points)", group="VP")
+vaPct    = input.float(0.70, "Value area share of volume", step=0.05, group="VP")
+
+o1 = ta.ema(open, shaLen1)
+c1 = ta.ema(close, shaLen1)
+h1 = ta.ema(high, shaLen1)
+l1 = ta.ema(low, shaLen1)
+haC = (o1 + h1 + l1 + c1) / 4
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+shaUp = ta.ema(haC, shaLen2) > ta.ema(haO, shaLen2)
+flipUp = shaUp and not shaUp[1]
+flipDn = not shaUp and shaUp[1]
+
+e9   = ta.ema(close, 9)
+e22  = ta.ema(close, 22)
+atr  = ta.atr(14)
+swLo = ta.lowest(low, swLen)
+swHi = ta.highest(high, swLen)
+
+trendL = e9 > e22
+trendS = e9 < e22
+inSess = not useSess or not na(time(timeframe.period, sess))
+flat = strategy.position_size == 0
+
+// ---- previous-day 70% volume value area (same construction as variant lab v3) ----
+NB = 800
+HALF = 400
+newDay = ta.change(time("D")) != 0
+var vol  = array.new_float(NB, 0.0)
+var int   base = na
+var float dMax = 0.0
+var int   dPocBin = na
+var float pVAH = na
+var float pVAL = na
+if na(base)
+    base := math.floor(open / bs) - HALF
+if newDay
+    if not na(dPocBin) and dMax > 0
+        float tot = 0.0
+        for i = 0 to NB - 1
+            tot += array.get(vol, i)
+        int lo = dPocBin
+        int hi = dPocBin
+        float acc = array.get(vol, dPocBin)
+        while acc < vaPct * tot and (lo > 0 or hi < NB - 1)
+            float up = hi < NB - 1 ? array.get(vol, hi + 1) : -1.0
+            float dn = lo > 0 ? array.get(vol, lo - 1) : -1.0
+            if up >= dn
+                hi += 1
+                acc += up
+            else
+                lo -= 1
+                acc += dn
+        pVAH := (base + hi + 1) * bs
+        pVAL := (base + lo) * bs
+    array.fill(vol, 0.0)
+    base := math.floor(open / bs) - HALF
+    dMax := 0.0
+    dPocBin := na
+else
+    b0 = math.max(0, math.floor(low / bs) - base)
+    b1 = math.min(NB - 1, math.floor(high / bs) - base)
+    if b1 >= b0
+        float per = nz(volume) / (b1 - b0 + 1)
+        for b = b0 to b1
+            nv = array.get(vol, b) + per
+            array.set(vol, b, nv)
+            if nv > dMax
+                dMax := nv
+                dPocBin := b
+
+initiativeL = not na(pVAH) and close > pVAH
+initiativeS = not na(pVAL) and close < pVAL
+
+riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
+riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
+okL = flat and inSess and flipUp and trendL and initiativeL and riskL <= maxSL * atr
+okS = flat and inSess and flipDn and trendS and initiativeS and riskS <= maxSL * atr and not okL
+
+var float slPx = na
+var float tpPx = na
+if okL
+    slPx := close - riskL
+    tpPx := close + rr * riskL
+    strategy.entry("L", strategy.long)
+    strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+if okS
+    slPx := close + riskS
+    tpPx := close - rr * riskS
+    strategy.entry("S", strategy.short)
+    strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+
+plot(e9, "EMA9", color=color.aqua)
+plot(e22, "EMA22", color=color.orange)
+plot(pVAH, "Prev-day VAH", color=color.new(color.orange, 30), style=plot.style_stepline)
+plot(pVAL, "Prev-day VAL", color=color.new(color.orange, 30), style=plot.style_stepline)
+
+// ===== AUDIT BLOCK (tiled non-overlapping-window walk-forward, same as every other audit) =====
+var int aud_from = na
+if bar_index == 400
+    aud_from := (math.floor(time / 86400000.0) + 1) * 86400000
+var float aud_n = 0.0
+var float aud_w = 0.0
+var float aud_sw = 0.0
+var float aud_sl = 0.0
+var float aud_eq = 0.0
+var float aud_pk = 0.0
+var float aud_mn = 0.0
+var float aud_dd = 0.0
+var float aud_d2 = 0.0
+var float aud_dayP = 0.0
+var int aud_nD = 0
+var int aud_dayStart = 0
+aud_newDay = ta.change(time("D")) != 0
+if aud_newDay
+    if not na(aud_from) and aud_dayStart >= aud_from
+        aud_nD += 1
+        aud_d2 += aud_dayP * aud_dayP
+    aud_dayP := 0.0
+    aud_dayStart := time
+aud_nc = strategy.closedtrades - nz(strategy.closedtrades[1])
+if aud_nc > 0
+    for aud_k = 0 to aud_nc - 1
+        aud_i = strategy.closedtrades - 1 - aud_k
+        if not na(aud_from) and strategy.closedtrades.entry_time(aud_i) >= aud_from
+            aud_sz = math.abs(strategy.closedtrades.size(aud_i))
+            aud_p = strategy.closedtrades.profit(aud_i) / syminfo.pointvalue / (aud_sz > 0 ? aud_sz : 1)
+            aud_n += 1
+            if aud_p > 0
+                aud_w += 1
+                aud_sw += aud_p
+            else
+                aud_sl += aud_p
+            aud_eq += aud_p
+            aud_pk := math.max(aud_pk, aud_eq)
+            aud_mn := math.min(aud_mn, aud_eq)
+            aud_dd := math.max(aud_dd, aud_pk - aud_eq)
+            aud_dayP += aud_p
+if barstate.islastconfirmedhistory or barstate.islast
+    var table aud_t = table.new(position.bottom_center, 1, 1, bgcolor=color.new(color.black, 10))
+    aud_incl = not na(aud_from) and aud_dayStart >= aud_from
+    table.cell(aud_t, 0, 0, "AUD|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(aud_from) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(aud_nD + (aud_incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue) + "|" + str.tostring(aud_n) + "," + str.tostring(aud_w) + "," + str.tostring(aud_sw, "#.#") + "," + str.tostring(aud_sl, "#.#") + "," + str.tostring(aud_dd, "#.#") + "," + str.tostring(aud_d2 + (aud_incl ? aud_dayP * aud_dayP : 0), "#.#") + "," + str.tostring(aud_pk, "#.#") + "," + str.tostring(aud_mn, "#.#"), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
