@@ -113,15 +113,23 @@ function pfColor(pf){
   return `rgb(${r},${g},${b})`;
 }
 function ptsColor(pts, maxAbs){
-  // red negative -> green highly positive
-  const t = Math.max(-1, Math.min(1, pts / maxAbs));
-  if (t >= 0) {
-    const g = Math.round(68 + t*(197-68));
-    const r = Math.round(239 - t*(239-34));
-    return `rgb(${r},${g},68)`;
+  // Any positive value is green, any negative value is red -- magnitude only
+  // controls shade intensity (log-scaled so one huge outlier, e.g. BTCUSD's
+  // -252,444, doesn't wash out every smaller value toward a neutral color).
+  if (pts === 0) return "rgb(148,163,184)";
+  const t = Math.max(0.25, Math.min(1, Math.log10(1 + Math.abs(pts)) / Math.log10(1 + maxAbs)));
+  if (pts > 0) {
+    // light green (small win) -> strong green (large win)
+    const r = Math.round(187 - t*(187-34));
+    const g = Math.round(247 - t*(247-197));
+    const b = Math.round(208 - t*(208-94));
+    return `rgb(${r},${g},${b})`;
   } else {
-    const r = Math.round(148 + (-t)*(239-148));
-    return `rgb(${r},68,68)`;
+    // light red (small loss) -> strong red (large loss)
+    const r = Math.round(254 - t*(254-185));
+    const g = Math.round(202 - t*(202-28));
+    const b = Math.round(202 - t*(202-28));
+    return `rgb(${r},${g},${b})`;
   }
 }
 
