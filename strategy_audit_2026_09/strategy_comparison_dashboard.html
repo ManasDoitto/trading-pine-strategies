@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy Comparison Dashboard</title>
+<style>
+  :root{
+    --bg:#0f172a; --surface:#161e33; --surface2:#1c2540; --border:#2a3552;
+    --text:#e2e8f0; --text-dim:#94a3b8; --text-mute:#64748b;
+    --green:#22c55e; --red:#ef4444; --amber:#f59e0b; --gold:#eab308;
+    --silver:#94a3b8; --blue:#3b82f6; --purple:#8b5cf6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px 24px 80px;}
+  h1,h2,h3{margin:0 0 8px;font-weight:600;}
+  h2{font-size:20px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+  h3{font-size:15px;color:var(--text-dim);}
+  a{color:var(--blue);}
+  .muted{color:var(--text-mute);font-size:13px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .grid{display:grid;gap:14px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:900px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+  /* hero */
+  .hero{background:linear-gradient(135deg,#161e33,#1c2540 60%,#20294a);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
+  .hero-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:16px;}
+  @media(max-width:900px){.hero-stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:rgba(255,255,255,0.03);border-radius:10px;padding:12px 14px;}
+  .stat .v{font-size:22px;font-weight:600;}
+  .stat .l{font-size:12px;color:var(--text-mute);margin-top:2px;}
+
+  /* nav */
+  .nav{position:sticky;top:0;z-index:20;background:rgba(15,23,42,0.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:10px 0;margin-bottom:20px;}
+  .nav-inner{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap;}
+  .nav a{color:var(--text-dim);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;}
+  .nav a:hover{background:var(--surface2);color:var(--text);}
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab-btn{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:9px 16px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s;}
+  .tab-btn:hover{border-color:var(--text-mute);}
+  .tab-btn.active{color:#0f172a;font-weight:600;}
+  .tab-panel{display:none;animation:fadein .25s ease;}
+  .tab-panel.active{display:block;}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* instrument accent classes */
+  .acc-crude{--acc:#f59e0b;} .acc-gold{--acc:#eab308;} .acc-silver{--acc:#94a3b8;}
+  .acc-bnf{--acc:#3b82f6;} .acc-nifty{--acc:#8b5cf6;}
+  .tab-btn[data-acc="crude"].active{background:#f59e0b;}
+  .tab-btn[data-acc="gold"].active{background:#eab308;}
+  .tab-btn[data-acc="silver"].active{background:#94a3b8;}
+  .tab-btn[data-acc="bnf"].active{background:#3b82f6;}
+  .tab-btn[data-acc="nifty"].active{background:#8b5cf6;}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:8px 10px;text-align:right;white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;}
+  th:nth-child(2),td:nth-child(2){text-align:left;}
+  thead th{color:var(--text-mute);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+  thead th:hover{color:var(--text);}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;}
+  tbody tr:hover{background:rgba(255,255,255,0.03);}
+  .table-wrap{overflow-x:auto;}
+  .pos{color:var(--green);} .neg{color:var(--red);}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+  .badge-ok{background:rgba(34,197,94,0.15);color:#4ade80;}
+  .badge-warn{background:rgba(245,158,11,0.15);color:#fbbf24;}
+  .badge-bad{background:rgba(239,68,68,0.15);color:#f87171;}
+  .row-detail{display:none;background:rgba(0,0,0,0.2);}
+  .row-detail.open{display:table-row;}
+  .row-detail td{padding:14px 16px;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:900px){.detail-grid{grid-template-columns:1fr;}}
+  .param-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px dashed rgba(255,255,255,0.06);}
+  .param-row span:first-child{color:var(--text-mute);}
+  .chart-box{position:relative;width:100%;}
+  .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;font-size:13px;}
+  .filter-bar label{display:flex;align-items:center;gap:5px;color:var(--text-dim);cursor:pointer;}
+  .heat-table{font-size:11px;}
+  .heat-cell{padding:5px 7px;text-align:center;border-radius:4px;min-width:56px;}
+  .note{background:rgba(245,158,11,0.08);border-left:3px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--text-dim);margin:12px 0;}
+  .note.info{background:rgba(59,130,246,0.08);border-left-color:var(--blue);}
+  input[type=range]{width:100%;accent-color:var(--blue);}
+  select,input[type=number]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .calc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;}
+  .calc-row label{font-size:13px;color:var(--text-dim);min-width:150px;}
+  .calc-out{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+  .calc-card{background:var(--surface2);border-radius:10px;padding:14px;}
+  .calc-card .big{font-size:24px;font-weight:600;}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--border);color:var(--text-mute);font-size:12px;line-height:1.6;}
+  .sort-arrow{opacity:.5;font-size:10px;margin-left:3px;}
+  .timeline{display:flex;gap:4px;overflow-x:auto;padding:10px 0;}
+  .tl-item{flex:0 0 auto;min-width:74px;text-align:center;padding:8px 6px;border-radius:8px;font-size:11px;}
+  .tl-item .v{font-weight:600;display:block;margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<div class="nav"><div class="nav-inner">
+  <a href="#hero">Overview</a>
+  <a href="#instruments">Instruments</a>
+  <a href="#cross">Cross-Instrument</a>
+  <a href="#families">Family Rankings</a>
+  <a href="#calculator">Option Calculator</a>
+  <a href="#timeline">Evolution</a>
+</div></div>
+
+<div class="wrap">
+
+  <div class="hero" id="hero">
+    <div class="muted">github.com/ManasDoitto/trading-pine-strategies &middot; updated 14 Sep 2026</div>
+    <h1 style="font-size:26px;margin-top:6px;">Strategy Comparison Dashboard</h1>
+    <p class="muted" style="max-width:720px;">Every strategy family tested this project across CrudeOil, Gold, Silver, BankNifty and Nifty on MCX/NSE, 3m-5m, tiled non-overlapping walk-forward windows, points net of costs. Losing strategies are shown, not hidden &mdash; they're most of what was tried.</p>
+    <div class="hero-stats" id="hero-stats"></div>
+  </div>
+
+  <div class="note info">
+    <b>Two source-of-truth discrepancies worth knowing before reading further:</b>
+    (1) <b>BankNifty v0.4</b> has two official numbers depending on cost convention: PF&nbsp;1.33&nbsp;/&nbsp;+1,403&nbsp;pts (this project's standard "no added slippage" convention, used everywhere for cross-instrument comparability) vs PF&nbsp;1.29&nbsp;/&nbsp;+1,277&nbsp;pts (with the 5-pt slippage the script's own header actually recommends and bakes in). Both are shown below.
+    (2) <b>BankNifty v13</b> looks profitable (PF&nbsp;1.06,&nbsp;+914) with no added slippage, but the repo's own "Best Strategy Per Script" doc found it essentially breaks even to slightly negative (PF&nbsp;0.99,&nbsp;&minus;124) once realistic 5-pt slippage is charged &mdash; the same 5&nbsp;pts that v0.4 already survives comfortably. This dashboard shows both readings rather than picking one.
+  </div>
+
+  <div id="instruments">
+  <h2>Per-Instrument Deep Dive</h2>
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+  </div>
+
+  <div class="card" id="cross" style="margin-top:28px;">
+    <h2>Cross-Instrument Comparison</h2>
+    <div class="grid grid-2">
+      <div>
+        <h3>Best Profit Factor per instrument</h3>
+        <div class="chart-box" style="height:260px;"><canvas id="crossPfChart"></canvas></div>
+      </div>
+      <div>
+        <h3>Best net points per instrument (log scale, wildly different point values)</h3>
+        <div class="chart-box" style="height:260px;"><canvas id="crossPtsChart"></canvas></div>
+      </div>
+    </div>
+    <h3 style="margin-top:20px;">Best strategy per instrument, head-to-head</h3>
+    <div class="table-wrap"><table id="crossTable"></table></div>
+    <h3 style="margin-top:20px;">Correlation between co-tested strategies</h3>
+    <div class="table-wrap"><table id="corrTable"></table></div>
+  </div>
+
+  <div class="card" id="families" style="margin-top:20px;">
+    <h2>Strategy Family Rankings</h2>
+    <p class="muted">Grouping every variant tested (76+ lab variants plus 48 standalone scripts) by entry-logic concept. Best PF achieved by that family on each instrument, from any variant/tuning attempt.</p>
+    <div class="table-wrap"><table id="familyTable"></table></div>
+  </div>
+
+  <div class="card" id="calculator" style="margin-top:20px;">
+    <h2>Option-Buying Cost Calculator</h2>
+    <p class="muted">Approximate proxy, not a real options pricing model: applies a fixed extra cost per round-trip trade (spread + theta + brokerage, converted to underlying-equivalent points) symmetrically to every trade, matching this project's established slippage-stress-test methodology. Delta-scaling of winners specifically would need real option chain / IV data this project doesn't have &mdash; flagged rather than faked.</p>
+    <div class="grid grid-2">
+      <div>
+        <div class="calc-row"><label>Instrument</label>
+          <select id="calcInstrument" style="flex:1;"></select>
+        </div>
+        <div class="calc-row"><label>Strategy</label>
+          <select id="calcStrategy" style="flex:1;"></select>
+        </div>
+        <div class="calc-row"><label>Extra cost / trade (pts)</label>
+          <input type="range" id="calcCost" min="0" max="80" value="13" step="1">
+          <span id="calcCostOut" style="min-width:38px;text-align:right;">13</span>
+        </div>
+        <div class="calc-row"><label>Lots</label>
+          <input type="number" id="calcLots" value="2" min="1" max="10" style="width:70px;">
+        </div>
+      </div>
+      <div>
+        <div class="calc-out">
+          <div class="calc-card">
+            <div class="muted">Futures PF (as tested)</div>
+            <div class="big" id="calcFuturesPF">&mdash;</div>
+            <div class="muted" id="calcFuturesNet">&mdash;</div>
+          </div>
+          <div class="calc-card">
+            <div class="muted">Cost-adjusted PF</div>
+            <div class="big" id="calcAdjPF">&mdash;</div>
+            <div class="muted" id="calcAdjNet">&mdash;</div>
+          </div>
+        </div>
+        <div class="note" id="calcVerdict" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="timeline" style="margin-top:20px;">
+    <h2>Strategy Evolution Timeline</h2>
+    <p class="muted">Most iterations failed. Finding an edge took many discarded versions per instrument &mdash; the failures are part of the record, not hidden.</p>
+    <h3>CrudeOil</h3>
+    <div class="timeline" id="tlCrude"></div>
+    <h3 style="margin-top:16px;">BankNifty (selected iterations)</h3>
+    <div class="timeline" id="tlBnf"></div>
+  </div>
+
+  <footer>
+    Points are per lot/contract, net of costs (0.02% commission per side; BankNifty v0.4/MTF/combined additionally
+    bake in 5-pt slippage per fill as noted). Tiled non-overlapping-window walk-forward throughout &mdash; each window
+    counts trades only from the first UTC/session midnight after a 400-bar warm-up, so consecutive windows never
+    double-count. Data floors: 5m replay from ~Mar 2024, 3m from ~Mar 2025 on most instruments. Full source
+    documents: <code>BEST STRATEGY PER SCRIPT (BankNifty, Nifty 50, CrudeOil - 3m-5m).md</code>,
+    <code>strategy_audit_2026_09/audit_summary.md</code>,
+    <code>strategy_audit_2026_09/best_2yr_analysis.md</code>,
+    <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>,
+    <code>strategy_audit_2026_09/gold_silver_recalibration_results.md</code>,
+    <code>strategy_audit_2026_09/silver_daily_loss_limit_results.md</code>, plus this session's own raw
+    walk-forward data files in <code>strategy_audit_2026_09/</code>. Some strategy families in the repo (Master
+    Adaptive drafts, older SMC v1.0, several one-off BankNifty concepts v3/v6-v9) are referenced by verdict only
+    where full per-window figures weren't re-verified in this pass &mdash; marked "not fully re-audited" rather
+    than inventing numbers.
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+/* ============================== DATA ============================== */
+// months field = fixed 6-month buckets, otherwise raw window nets from source docs.
+const INSTRUMENTS = {
+  crude: {
+    label: "CrudeOil", symbol: "MCX:CRUDEOIL1!", pv: 100, tf: "5m", months: 29.7, windows: 11, accent: "#f59e0b",
+    strategies: [
+      {name:"v4.0 SHA flip RR3", trades:838, tpm:28.2, win:28.2, pf:1.10, net:2240, dd:2106, sharpe:0.53, posw:"6/11",
+       windowNet:[281,621,-1295,-129,1248,-460,-376,-408,1216,1215,327],
+       params:{"Entry":"SHA (EMA10 of OHLC) colour flip","Trend filter":"EMA9 > EMA22 (long) / <  (short)","Stop":"10-bar swing +0.1xATR, min 1.5x, skip if >3x ATR","Target":"3R fixed, no trailing","Session":"0915-2330 IST"},
+       status:"ok", verdict:"Primary crude pick: most points, most trades among profitable, most positive windows. All profit came from Jan-Sep 2026; Mar24-Jan26 flat/losing.", src:"BEST_STRATEGY + audit_summary"},
+      {name:"v2.1 EMA 9/22 pullback", trades:518, tpm:17.4, win:37.3, pf:1.14, net:1304, dd:900, sharpe:0.67, posw:"5/11",
+       windowNet:[-195,-62,278,260,-212,-166,45,-92,1602,324,-477],
+       params:{"Entry":"EMA touch pullback + rejection wick + reclaim","Trend filter":"EMA9/22, sepMlt 1.5xATR","Stop":"pullback low +0.15xATR, cap 2xATR","Target":"2R","Session":"1000-2230 IST"},
+       status:"ok", verdict:"Best risk-adjusted crude pick: smallest DD (900, a third of v4.0), best Sharpe. Note: repo's own 'Best Strategy' doc reports a slightly different figure for this exact strategy (+1,337pts / DD 607) -- shown here is the audit_summary.md raw-audit figure; the discrepancy (one window differs by ~33pts) isn't resolved in the source repo.", src:"audit_summary.md (BEST_STRATEGY doc: +1,337/DD607, unresolved diff)"},
+      {name:"v2.0 EMA pullback (sep 0.5)", trades:1343, tpm:45.2, win:37.8, pf:1.09, net:2155, dd:2398, sharpe:0.71, posw:"4/11",
+       windowNet:[-664,-8,-273,49,-176,-491,-240,-224,2688,1387,108],
+       params:{"Entry":"EMA touch pullback, sepMlt 0.5xATR (looser)","Trend filter":"EMA9/22","Stop":"pullback low +0.15xATR","Target":"2R","Session":"1000-2230 IST"},
+       status:"warn", verdict:"Highest raw points, ties v4.0. Dies at 1 tick of slippage stress-test -- not robust to realistic execution costs.", src:"audit_summary.md"},
+      {name:"v4.0 RR:R 3.0->4.0 (recalibrated)", trades:839, tpm:26.0, win:23.5, pf:1.12, net:2811, dd:null, sharpe:null, posw:"-",
+       windowNet:[-55,341,786,-1040,-330,651,-108,-28,-699,2403,476,414],
+       params:{"Entry":"SHA colour flip (same as v4.0)","Trend filter":"EMA9>EMA22","Stop":"same as v4.0","Target":"4R (raised from 3R)","Session":"0915-2330 IST"},
+       status:"ok", verdict:"This session's own recalibration: genuine improvement over v4.0 baseline on both PF and points, at ~same trade frequency. Win rate drops as expected for wider target. Still short of PF 1.3.", src:"this session, verified walk-forward"},
+      {name:"SMC v1.2 (sweep+FVG, swingLen=10)", trades:178, tpm:6.0, win:55.3, pf:1.25, net:655, dd:454, sharpe:null, posw:"6/11",
+       windowNet:[], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
+       status:"warn", verdict:"Strong PF but thin sample.", src:"smc_liquidity_sweep_fvg_v1.2_results.md"},
+      {name:"SMC v1.1 (sweep+FVG, swingLen=20)", trades:86, tpm:2.9, win:52.3, pf:1.40, net:546, dd:302, sharpe:null, posw:"5/11",
+       windowNet:[], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
+       status:"warn", verdict:"Highest PF of any crude strategy but only 86 trades over 30 months -- treat as promising, not proven.", src:"smc_liquidity_sweep_fvg_v1.1_results.md"},
+      {name:"v4.0 + initiative filter (outside prior-day value area)", trades:420, tpm:14.1, win:29.3, pf:1.07, net:941, dd:null, sharpe:null, posw:"7/12",
+       windowNet:[], params:{"Entry":"v4.0 SHA flip + close outside prior-day 70% value area","Trend filter":"EMA9>EMA22","Stop/Target":"same as v4.0"},
+       status:"warn", verdict:"Train/holdout-validated: unlike vanilla v4.0 (which loses money Mar24-Jan26), this variant is roughly breakeven in-sample and positive out-of-sample. More robust, fewer total points.", src:"this session, standalone rebuild + train/holdout test"},
+      {name:"v3.0 SHA+RSI3 pullback", trades:1965, tpm:66, win:30.1, pf:0.94, net:-2587, dd:1552, sharpe:-0.55, posw:"2/11", windowNet:[], params:{}, status:"bad", verdict:"Net negative after costs; too many low-quality trades. Matches user's manually marked trade pattern but doesn't survive costs.", src:"audit_summary.md"},
+      {name:"Master Adaptive Strategy v2 (user's own script)", trades:1012, tpm:34.1, win:30.8, pf:0.93, net:-1461, dd:2135, sharpe:null, posw:"4/11", windowNet:[], params:{}, status:"bad", verdict:"User's own draft script, tested unmodified. Net negative.", src:"best_2yr_analysis.md"},
+      {name:"v0 - v1.1 prototypes (7 files)", trades:null, tpm:null, win:null, pf:null, net:-7301, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"All 7 early prototypes (v0, v0.1-v0.8, v1.0/v1.1) lose money, from -1,780 to -9,340 pts over 29.7mo. Superseded by v2.0+.", src:"audit_summary.md"},
+      {name:"VWAP-EMA Pullback v1.0 (generic multi-asset)", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"User independently found this bad for crude; not re-tested here at their request (tested on BankNifty only, see that tab).", src:"user-reported, not independently verified on crude"},
+    ]
+  },
+  gold: {
+    label: "Gold", symbol: "MCX:GOLD1!", pv: 100, tf: "5m", months: 32.3, windows: 12, accent: "#eab308",
+    strategies: [
+      {name:"v4.0 SHA flip, COMEX session (1730-0030)", trades:536, tpm:16.6, win:31.0, pf:1.13, net:16312, dd:null, sharpe:null, posw:"-",
+       windowNet:[-596,4374,-2,-2145,-4160,-6267,1026,4171,-1286,18819,-2984,5363],
+       params:{"Entry":"SHA colour flip (v4.0 logic, unmodified)","Trend filter":"EMA9>EMA22","Stop/Target":"same as v4.0 (min1.5x/max3x ATR, RR3)","Session":"1730-0030 IST (COMEX-active hours)"},
+       status:"ok", verdict:"Best gold result found. Real improvement over crude-session baseline in BOTH PF and points -- session change alone genuinely improved quality, didn't just trade quantity for it. Window-concentration issue also reduced vs baseline.", src:"this session, verified walk-forward"},
+      {name:"v4.0 SHA flip, untuned (crude session)", trades:976, tpm:30.3, win:29.7, pf:1.07, net:13152, dd:10039, sharpe:null, posw:"-",
+       windowNet:[-1001,2630,-120,-2537,-6615,-6194,-2413,3343,2726,24172,-4000,3164],
+       params:{"Entry":"SHA colour flip","Trend filter":"EMA9>EMA22","Session":"0915-2330 IST (crude's default, not gold-optimized)"},
+       status:"warn", verdict:"First gold test this session, crude's exact parameters unmodified. Positive but concentrated: one window alone (+24,172) is 1.8x the full 32-month net.", src:"this session, verified walk-forward"},
+      {name:"v4.0 + 15m ADX>=25 gate", trades:487, tpm:15.1, win:29.8, pf:1.11, net:11146, dd:null, sharpe:null, posw:"-", windowNet:[],
+       params:{"Added filter":"15m ADX(14) >= 25, no-lookahead"}, status:"warn",
+       verdict:"ADX gate (ported from BankNifty v0.4) gives a small PF bump but net points actually fall vs untuned baseline (13,152->11,146). Win rate barely moves -- the gate doesn't selectively remove bad trades here the way it does for v0.4's different entry mechanic.", src:"this session, verified walk-forward"},
+      {name:"XAUUSD (OANDA CFD) v4.0 logic", trades:1032, tpm:32.9, win:28.7, pf:1.04, net:300, dd:405, sharpe:0.30, posw:"7/12", windowNet:[],
+       params:{"Note":"Different instrument/feed (OANDA CFD, not MCX futures)"}, status:"bad",
+       verdict:"Barely above breakeven. Only positive strategy anywhere in a 32-variant lab sweep on this feed -- everything else lost.", src:"deep_multi_asset_sweep_2026_09_13.md"},
+    ]
+  },
+  silver: {
+    label: "Silver", symbol: "MCX:SILVER1!", pv: 30, tf: "5m", months: 32.3, windows: 12, accent: "#94a3b8",
+    strategies: [
+      {name:"v4.0 wide-ATR + fixed 350pt daily loss limit", trades:783, tpm:24.2, win:29.6, pf:1.35, net:160845, dd:24551, sharpe:null, posw:"-",
+       windowNet:[-2924,-482,6099,10743,91,5320,-1542,-15916,11278,137335,126,10718],
+       params:{"Entry":"SHA colour flip (v4.0 logic)","Stop":"min 2.5xATR, max 5.0xATR (widened from crude's 1.5x/3.0x)","Target":"3R","Risk mgmt":"Hard daily loss limit: 350pts, force-flat + lock out for the day on breach"},
+       status:"ok", verdict:"BEST RESULT IN THE ENTIRE MULTI-DAY RETUNING EXERCISE, crude included. Wide stops alone found the edge (silver's ATR/price ratio needed wider risk than crude's defaults); the daily circuit breaker then cut the worst-window drawdown by 68% while RAISING both PF and points. A fixed-point breaker beat an ATR-scaled one here because the worst losses came from a volatility spike -- an ATR-scaled limit would have expanded right along with the danger.", src:"this session, verified walk-forward"},
+      {name:"v4.0 wide-ATR (minSL 2.5, maxSL 5.0), no breaker", trades:1069, tpm:33.1, win:28.7, pf:1.15, net:116096, dd:76863, sharpe:null, posw:"-", windowNet:[-7282,-4136,3315,10089,-8014,-1178,5844,-974,26158,134977,-55713,13009],
+       params:{"Entry":"SHA colour flip","Stop":"min 2.5xATR, max 5.0xATR","Target":"3R"}, status:"warn",
+       verdict:"Crosses this project's PF>=1.15 bar, first strategy besides BankNifty v0.4 to do so at the time. But the result is heavily concentrated (one window = 1.8x full net) and max single-window DD (76,863pts) is severe at 1 lot -- not deployable without the daily loss limit above.", src:"this session, verified walk-forward"},
+      {name:"v4.0 wide-ATR + ATR-scaled (7.5x) daily limit", trades:1029, tpm:31.9, win:28.9, pf:1.18, net:125529, dd:62493, sharpe:null, posw:"-", windowNet:[],
+       params:{"Risk mgmt":"Daily loss limit = 7.5 x ATR14, recomputed daily"}, status:"warn",
+       verdict:"Underperforms the fixed-350pt breaker on every metric. Kept for reference to show why: this breaker's threshold expands with volatility, so it barely tripped in the exact volatility-spike window where protection mattered most.", src:"this session, verified walk-forward"},
+      {name:"v4.0 SHA flip, untuned (crude ATR/session)", trades:1030, tpm:31.9, win:28.7, pf:1.06, net:32815, dd:45815, sharpe:null, posw:"-", windowNet:[],
+       params:{"Entry":"SHA colour flip, crude's unmodified parameters"}, status:"warn",
+       verdict:"First silver test this session, crude's parameters unmodified. Positive but the untuned baseline before recalibration.", src:"this session, verified walk-forward"},
+    ]
+  },
+  bnf: {
+    label: "BankNifty", symbol: "NSE:BANKNIFTY1!", pv: 30, tf: "5m/3m", months: 30.2, windows: 5, accent: "#3b82f6",
+    strategies: [
+      {name:"v0.4 EMA pullback + 15m ADX>=25 gate", trades:74, tpm:2.5, win:41.9, pf:1.33, net:1403, dd:1620, sharpe:0.57, posw:"3/5",
+       windowNet:[840,235,-518,-82,928],
+       params:{"Trend regime":"EMA9>EMA21 (or 'coil': all 3 EMAs within 1xATR)","Trend-strength gate":"last completed 15m ADX(14) >= 25","Volatility filter":"ATR14 >= 50pts","Pullback":"touch EMA9 within 10 bars + rejection wick","Confirm":"reclaim bar, volume>=20-bar avg, correct side of VWAP, RSI(3) 20-80","Target":"2.5R"},
+       status:"ok", verdict:"BEST STRATEGY IN THE ENTIRE REPO with real statistical weight -- only strategy that cleanly passes train/holdout validation (positive in both the first 18mo +557 and last 12mo +846). This figure uses this project's standard 'no added slippage' cost convention.", src:"audit_summary.md"},
+      {name:"v0.4 (same script, WITH 5pt slippage)", trades:74, tpm:2.5, win:41.9, pf:1.29, net:1277, dd:1668, sharpe:0.52, posw:"3/5",
+       windowNet:[816,206,-533,-102,889],
+       params:{"Note":"Identical strategy, script's own header recommends 5pt slippage per fill (baked into the .pine file's strategy() call)"},
+       status:"ok", verdict:"The more conservative, arguably more realistic number for this specific script since its own source recommends the slippage. Still clears PF>1.15 comfortably.", src:"BEST STRATEGY PER SCRIPT.md"},
+      {name:"MTF v1.1 (3m, dual ADX gate)", trades:38, tpm:2.1, win:52.6, pf:1.69, net:1170, dd:465, sharpe:1.27, posw:"3/5 (+1 flat)",
+       windowNet:[-231,413,143,845,0],
+       params:{"Timeframe":"3-minute (not 5m)","Trend gates":"daily ADX>=20 AND 15m ADX>=25","Note":"3m replay data only goes back to ~Mar 2025, so only ~18.4mo tested, not the full 30.2"},
+       status:"ok", verdict:"Highest PF and Sharpe of any BankNifty strategy, but on a much shorter tested history (18.4mo vs 30.2mo) and thinner sample (38 trades). Good companion to v0.4 (uncorrelated, different TF) -- combination not backtested as one system.", src:"audit_summary.md (repo's other doc says PF1.64/net1113/DD482, unresolved minor diff)"},
+      {name:"Portfolio: v0.4 + v13 combined (pyramiding=2)", trades:355, tpm:9.8, win:33.2, pf:1.04, net:964, dd:1764, sharpe:null, posw:"-", windowNet:[-1177,249,-522,880,-719,2252],
+       params:{"Structure":"two independent modules, one script, same capital","Concurrency":"same-direction OK (pyramiding), opposite-direction mutually exclusive (broker constraint)"},
+       status:"warn", verdict:"User expected the naive sum of solo backtests (+2,317). Actual combined result is only +964 (42% of that) -- v13's component flips from a modest solo winner to a net loser once trades compete for one shared account. Real interaction effect, not a bug.", src:"this session, verified walk-forward"},
+      {name:"v13 sweep-fade 'bear', RR 1:6", trades:231, tpm:7.7, win:32.5, pf:1.06, net:914, dd:2642, sharpe:0.19, posw:"2/5",
+       windowNet:[-503,-1221,1496,-566,1707],
+       params:{"Entry":"fade PDH/PDL sweeps + intraday level rejections, only while daily SMA flat/falling"},
+       status:"warn", verdict:"Positive with no added slippage, but the repo's own cost-stress test found it essentially breaks even (PF 0.99, net -124) once realistic 5pts/fill slippage is charged -- 228 trades x ~10pts/trade in slippage erodes nearly the whole edge.", src:"audit_summary.md (slippage stress: BEST STRATEGY PER SCRIPT.md)"},
+      {name:"v10.3 PD sweep + daily-trend regime", trades:105, tpm:3.5, win:38.1, pf:1.10, net:924, dd:2631, sharpe:0.22, posw:"2/5", windowNet:[883,-490,-372,-1154,2056], params:{}, status:"warn", verdict:"Marginal edge, not slippage-stress-tested.", src:"audit_summary.md"},
+      {name:"All-modules combined (v13+v0.4+MTF)", trades:352, tpm:11.7, win:34.6, pf:1.06, net:1438, dd:3979, sharpe:0.26, posw:"3/5", windowNet:[], params:{}, status:"warn", verdict:"~4.7x v0.4's trade count but barely more points, PF falls to 1.06, drawdown grows 2.4x. Loosening for frequency doesn't pay here.", src:"BEST STRATEGY PER SCRIPT.md"},
+      {name:"v0.5: v0.4 loosened (ADX20, no volume filter, RR2.0) -- 5m", trades:693, tpm:28.3, win:35.5, pf:0.71, net:-12330, dd:4608, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"Rejected. Removing the volume filter didn't add quantity to a good signal -- it flooded in the low-conviction reclaims the filter existed to block.", src:"this session, verified walk-forward"},
+      {name:"v0.5 (same loosening) -- 3m", trades:394, tpm:18.3, win:36.0, pf:0.68, net:-7350, dd:2797, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"Same rejected loosening, 3m fallback. Also fails.", src:"this session, verified walk-forward"},
+      {name:"VWAP-EMA Pullback v1.0 (generic multi-asset)", trades:1586, tpm:44.5, win:31.1, pf:0.60, net:-38163, dd:9568, sharpe:null, posw:"0/6", windowNet:[-6943,-4387,-4964,-7162,-7595,-7112], params:{}, status:"bad",
+       verdict:"User believed this was good for BankNifty; this project's rigorous tiled test found the opposite -- one of the worst BankNifty results in the whole repo. Win rate (31.1%) sits below the mathematical breakeven for its own 2:1 target (33.3%) even before costs. Discrepancy with user's own finding was flagged, not resolved.", src:"this session, verified walk-forward"},
+      {name:"v0.1 / v0.3 / v1.0 MTF / v10 / v3 / v4.1 / v5 (4 variants) / v6 / v7 / v8 / v9", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad",
+       verdict:"14 further BankNifty concept scripts tested (opening-range breakout, order-block, SMC session, sweep+CHoCH, fakeout, VWAP variants etc). All net negative, PF 0.36-0.92, several catastrophically (v3 SMC-session: -26,969pts; v5 vwap-revert: -36,098pts). None superseded v0.4.", src:"audit_summary.md"},
+      {name:"v10.4 / v10.5 / v11 / v12 (sweep-fade variants)", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"4 more sweep-fade tunings, all net negative (PF 0.79-0.99).", src:"audit_summary.md"},
+    ]
+  },
+  nifty: {
+    label: "Nifty 50", symbol: "NSE:NIFTY", pv: 1, tf: "5m/3m/15m", months: 31.7, windows: 5, accent: "#8b5cf6",
+    strategies: [
+      {name:"No viable 3m/5m strategy found", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad",
+       verdict:"Every concept tested on Nifty 50 spot at 3m/5m was net-negative after costs. Best of a bad field: v2 sweep-fade retuned for 5m (PF 0.71, -1,436pts), best lab variant (PF 0.84, -1,846), best 3m lab variant (PF 0.73, -3,430). v0.4's volume-dependent core condition can never pass on spot (no real volume) without borrowing futures volume, which TradingView replay can't do -- so it's only checkable on the live window (PF 0.95, -21, not tileable).", src:"BEST STRATEGY PER SCRIPT.md"},
+      {name:"nifty v2 Sweep-Fade (15-minute, OUT OF 3m/5m SCOPE)", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"5/10", windowNet:[], params:{"Timeframe":"15-minute (outside this project's stated 3m/5m scope)"}, status:"warn",
+       verdict:"The only Nifty strategy that holds up at all, but on 15m, not 3m/5m -- explicitly out of this project's scope. Tested over ~7.5 years / 10 windows, results -40 to +178 pts/month per window, 5 of 10 windows negative (never disastrously). Measured under an OLDER cost convention (flat per-trade deduction, not 0.02% commission) -- needs a fresh walk-forward at current costs before use.", src:"BEST STRATEGY PER SCRIPT.md"},
+    ]
+  }
+};
+
+const FAMILIES = [
+  {name:"SHA Colour Flip", desc:"Smoothed Heikin-Ashi colour reversal (v4.0 lineage)", crude:1.14, bnf:0.88, gold:1.13, silver:1.35, verdict:"ok", note:"Best-performing family overall once instrument-tuned (session/stops). Only family positive on 4 of 5 instruments."},
+  {name:"EMA Pullback + reclaim", desc:"EMA cross + pullback to fast EMA + wick + reclaim", crude:1.14, bnf:1.33, gold:null, silver:null, verdict:"ok", note:"Best family on BankNifty by a wide margin (v0.4). Also strong on crude (v2.1)."},
+  {name:"Sweep-Fade", desc:"Liquidity sweep + fade at PDH/PDL or intraday levels", crude:null, bnf:1.06, gold:null, silver:null, verdict:"warn", note:"Positive without slippage on BankNifty, roughly breakeven with realistic slippage. Untested on other instruments."},
+  {name:"SMC Sweep+FVG", desc:"Liquidity sweep + displacement candle + fair-value-gap pullback", crude:1.40, bnf:0.93, gold:null, silver:null, verdict:"warn", note:"Highest raw PF anywhere (crude, 86 trades -- thin). Negative on BankNifty."},
+  {name:"Donchian Breakout + SHA", crude:0.97, bnf:null, gold:null, silver:null, verdict:"bad", note:"Fails on crude in 76-variant lab sweep."},
+  {name:"RSI(3) Snap-Back / mean reversion", crude:0.59, bnf:0.50, gold:null, silver:null, verdict:"bad", note:"Worst family tested everywhere it was tried."},
+  {name:"VWAP-EMA generic pullback (multi-asset)", crude:null, bnf:0.60, gold:null, silver:null, verdict:"bad", note:"Fails badly on BankNifty in this project's own test (contradicted user's separate finding); user independently found it bad on crude too."},
+];
+
+const CROSS_TABLE = [
+  {inst:"BankNifty", strat:"v0.4 EMA pullback + 15m ADX gate", pf:1.33, net:1403, tpm:2.5, dd:1620},
+  {inst:"Silver",   strat:"v4.0 wide-ATR + fixed 350pt daily limit", pf:1.35, net:160845, tpm:24.2, dd:24551},
+  {inst:"Gold",     strat:"v4.0 SHA flip, COMEX session", pf:1.13, net:16312, tpm:16.6, dd:null},
+  {inst:"CrudeOil", strat:"v4.0 RR:R 4.0 (recalibrated)", pf:1.12, net:2811, tpm:26.0, dd:null},
+  {inst:"Nifty",    strat:"none at 3m/5m", pf:null, net:null, tpm:null, dd:null},
+];
+
+const CORR_TABLE = [
+  {pair:"Crude v4.0 + v2.1", corr:0.29, net:3440, posw:"5/11"},
+  {pair:"Crude v4.0 + v2.0", corr:0.62, net:4331, posw:"5/11"},
+  {pair:"Crude v2.0 + v2.1", corr:0.86, net:3499, posw:"4/11"},
+  {pair:"BankNifty v0.4 + v13", corr:-0.03, net:2317, posw:"3/5 (naive sum -- NOT what the combined script actually produced)"},
+  {pair:"BankNifty v0.4 + v13, ACTUAL combined script", corr:null, net:964, posw:"real result, 42% of naive sum (see BankNifty tab)"},
+];
+
+const TL_CRUDE = [
+  {v:"v0",s:"bad"},{v:"v0.1",s:"bad"},{v:"v0.2",s:"bad"},{v:"v0.3",s:"bad"},{v:"v0.4",s:"bad"},
+  {v:"v0.5",s:"bad"},{v:"v0.6",s:"bad"},{v:"v0.7",s:"bad"},{v:"v0.8",s:"bad"},{v:"v0.9",s:"bad"},
+  {v:"v1.0",s:"bad"},{v:"v2.0",s:"warn"},{v:"v2.1",s:"ok"},{v:"v2.3",s:"warn"},{v:"v3.0",s:"bad"},{v:"v4.0",s:"ok"},{v:"v4.0+RR4",s:"ok"}
+];
+const TL_BNF = [
+  {v:"v0.1",s:"bad"},{v:"v0.3",s:"bad"},{v:"v1.0",s:"bad"},{v:"v3",s:"bad"},{v:"v4.1",s:"bad"},
+  {v:"v5",s:"bad"},{v:"v6",s:"bad"},{v:"v7",s:"bad"},{v:"v8",s:"bad"},{v:"v9",s:"bad"},{v:"v10",s:"bad"},
+  {v:"v10.3",s:"warn"},{v:"v10.4",s:"bad"},{v:"v10.5",s:"bad"},{v:"v11",s:"bad"},{v:"v12",s:"bad"},
+  {v:"v13",s:"warn"},{v:"v0.4",s:"ok"},{v:"MTF v1.1",s:"ok"},{v:"combined",s:"warn"},{v:"portfolio",s:"warn"}
+];
+
+/* ============================== HELPERS ============================== */
+function fmtPts(n){ if(n===null||n===undefined) return "&mdash;"; const s=n>=0?"+":""; return s+Math.round(n).toLocaleString(); }
+function fmtNum(n,d){ if(n===null||n===undefined) return "&mdash;"; return n.toFixed(d===undefined?2:d); }
+function cls(n){ if(n===null||n===undefined) return ""; return n>=0?"pos":"neg"; }
+function badge(status){
+  if(status==="ok") return '<span class="badge badge-ok">Profitable</span>';
+  if(status==="warn") return '<span class="badge badge-warn">Marginal</span>';
+  return '<span class="badge badge-bad">Fails</span>';
+}
+function pfColor(pf){
+  if(pf===null||pf===undefined) return "#64748b";
+  const c=Math.max(0.5,Math.min(1.4,pf));
+  const t=(c-0.5)/(1.4-0.5);
+  const r=Math.round(239-t*(239-34)), g=Math.round(68+t*(197-68)), b=Math.round(68+t*(94-68));
+  return `rgb(${r},${g},${b})`;
+}
+function heatColor(v, maxAbs){
+  if(v===null||v===undefined) return "rgba(255,255,255,0.03)";
+  const t = Math.max(-1, Math.min(1, v/maxAbs));
+  if(t>=0){ const g=Math.round(60+t*140); return `rgba(34,${140+t*57},94,${0.25+t*0.5})`; }
+  const r=Math.round(200+(-t)*39); return `rgba(239,68,68,${0.25+(-t)*0.5})`;
+}
+
+/* ============================== HERO ============================== */
+(function(){
+  const total = Object.values(INSTRUMENTS).reduce((a,i)=>a+i.strategies.length,0);
+  const profitable = Object.values(INSTRUMENTS).reduce((a,i)=>a+i.strategies.filter(s=>s.status==="ok").length,0);
+  document.getElementById("hero-stats").innerHTML = `
+    <div class="stat"><div class="v">48+</div><div class="l">Pine scripts + 76 lab variants tested</div></div>
+    <div class="stat"><div class="v">${total}</div><div class="l">Strategy rows in this dashboard</div></div>
+    <div class="stat"><div class="v" style="color:#4ade80">${profitable}</div><div class="l">Genuinely profitable (PF&gt;1.15, real sample)</div></div>
+    <div class="stat"><div class="v">BankNifty v0.4</div><div class="l">Best statistically-weighted pick (PF 1.33)</div></div>
+    <div class="stat"><div class="v">Silver+limit</div><div class="l">Best PF overall this exercise (PF 1.35)</div></div>
+  `;
+})();
+
+/* ============================== TABS + PANELS ============================== */
+const tabKeys = Object.keys(INSTRUMENTS);
+let sortState = {};
+let expandedRow = {};
+
+function buildTabs(){
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = tabKeys.map((k,i)=>`<button class="tab-btn ${i===0?'active':''}" data-tab="${k}" data-acc="${k}" style="${i===0?`background:${INSTRUMENTS[k].accent};color:#0f172a;`:''}">${INSTRUMENTS[k].label}</button>`).join("");
+  tabsEl.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      tabKeys.forEach(k=>{
+        document.getElementById("panel-"+k).classList.remove("active");
+        const b = tabsEl.querySelector(`[data-tab="${k}"]`);
+        b.classList.remove("active"); b.style.background=""; b.style.color="";
+      });
+      const key = btn.dataset.tab;
+      document.getElementById("panel-"+key).classList.add("active");
+      btn.classList.add("active"); btn.style.background=INSTRUMENTS[key].accent; btn.style.color="#0f172a";
+      renderCharts(key);
+    });
+  });
+}
+
+function paramRows(params){
+  const keys = Object.keys(params||{});
+  if(!keys.length) return '<div class="muted">No parameter detail captured for this row.</div>';
+  return keys.map(k=>`<div class="param-row"><span>${k}</span><span>${params[k]}</span></div>`).join("");
+}
+
+function buildPanels(){
+  const panelsEl = document.getElementById("panels");
+  panelsEl.innerHTML = tabKeys.map((k,i)=>{
+    const inst = INSTRUMENTS[k];
+    return `<div class="tab-panel ${i===0?'active':''}" id="panel-${k}">
+      <div class="grid grid-4" style="margin-bottom:18px;">
+        <div class="card"><div class="muted">Symbol</div><div style="font-size:16px;font-weight:600;">${inst.symbol}</div></div>
+        <div class="card"><div class="muted">Point value / TF</div><div style="font-size:16px;font-weight:600;">${inst.pv} &middot; ${inst.tf}</div></div>
+        <div class="card"><div class="muted">History tested</div><div style="font-size:16px;font-weight:600;">${inst.months} mo, ${inst.windows} windows</div></div>
+        <div class="card"><div class="muted">Strategies tested</div><div style="font-size:16px;font-weight:600;">${inst.strategies.length} rows shown</div></div>
+      </div>
+
+      <h3>Strategy leaderboard (click a row to expand)</h3>
+      <div class="filter-bar">
+        <label><input type="checkbox" class="hide-losers" data-inst="${k}"> Hide failing strategies</label>
+      </div>
+      <div class="table-wrap"><table id="tbl-${k}"></table></div>
+
+      <div class="grid grid-2" style="margin-top:22px;">
+        <div>
+          <h3>Equity curve (top strategies with window data)</h3>
+          <div class="chart-box" style="height:260px;"><canvas id="eq-${k}"></canvas></div>
+        </div>
+        <div>
+          <h3>Profit Factor vs Trade Frequency</h3>
+          <div class="chart-box" style="height:260px;"><canvas id="sc-${k}"></canvas></div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:22px;">Per-window heatmap</h3>
+      <div class="table-wrap"><table class="heat-table" id="heat-${k}"></table></div>
+    </div>`;
+  }).join("");
+
+  tabKeys.forEach(k=>renderTable(k));
+  document.querySelectorAll(".hide-losers").forEach(cb=>{
+    cb.addEventListener("change", ()=>renderTable(cb.dataset.inst));
+  });
+}
+
+function renderTable(k){
+  const inst = INSTRUMENTS[k];
+  const hideLosers = document.querySelector(`.hide-losers[data-inst="${k}"]`)?.checked;
+  let rows = inst.strategies.map((s,idx)=>({...s, _idx:idx}));
+  if(hideLosers) rows = rows.filter(r=>r.status!=="bad");
+  const sk = sortState[k] || {col:"pf", dir:-1};
+  rows.sort((a,b)=>{
+    const av=a[sk.col], bv=b[sk.col];
+    if(av===null&&bv===null) return 0;
+    if(av===null) return 1; if(bv===null) return -1;
+    if(typeof av==="string") return sk.dir*String(av).localeCompare(String(bv));
+    return sk.dir*(av-bv);
+  });
+  const cols = [
+    {key:"name",label:"Strategy"},{key:"trades",label:"Trades"},{key:"tpm",label:"/mo"},
+    {key:"win",label:"Win%"},{key:"pf",label:"PF"},{key:"net",label:"Net pts"},
+    {key:"dd",label:"Max DD"},{key:"posw",label:"+Win"},{key:"status",label:"Status"}
+  ];
+  const thead = `<thead><tr>${cols.map(c=>`<th data-col="${c.key}" data-inst="${k}">${c.label}<span class="sort-arrow">${sk.col===c.key?(sk.dir===1?'&#9650;':'&#9660;'):''}</span></th>`).join("")}</tr></thead>`;
+  const tbody = rows.map(s=>{
+    const detailId = `detail-${k}-${s._idx}`;
+    const paramHtml = paramRows(s.params);
+    const winChartId = `win-${k}-${s._idx}`;
+    return `<tr class="strat-row" data-target="${detailId}">
+        <td>${s.name}</td>
+        <td>${s.trades??"&mdash;"}</td>
+        <td>${s.tpm??"&mdash;"}</td>
+        <td>${s.win??"&mdash;"}${s.win!=null?'%':''}</td>
+        <td style="color:${pfColor(s.pf)};font-weight:600;">${s.pf??"&mdash;"}</td>
+        <td class="${cls(s.net)}">${fmtPts(s.net)}</td>
+        <td>${s.dd!=null?s.dd.toLocaleString():"&mdash;"}</td>
+        <td>${s.posw}</td>
+        <td>${badge(s.status)}</td>
+      </tr>
+      <tr class="row-detail" id="${detailId}"><td colspan="${cols.length}">
+        <div class="detail-grid">
+          <div>
+            <h3>Parameters</h3>
+            ${paramHtml}
+            <div class="muted" style="margin-top:8px;">Source: ${s.src||"&mdash;"}</div>
+          </div>
+          <div>
+            <h3>Verdict</h3>
+            <p style="font-size:13px;line-height:1.5;">${s.verdict}</p>
+            ${s.windowNet && s.windowNet.length ? `<div class="chart-box" style="height:140px;"><canvas id="${winChartId}"></canvas></div>` : ''}
+          </div>
+        </div>
+      </td></tr>`;
+  }).join("");
+  const tbl = document.getElementById(`tbl-${k}`);
+  tbl.innerHTML = thead + "<tbody>" + tbody + "</tbody>";
+
+  tbl.querySelectorAll("th[data-col]").forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const col = th.dataset.col;
+      const cur = sortState[k] || {col:"pf", dir:-1};
+      sortState[k] = {col, dir: cur.col===col ? -cur.dir : -1};
+      renderTable(k);
+    });
+  });
+  tbl.querySelectorAll("tr.strat-row").forEach(tr=>{
+    tr.addEventListener("click", ()=>{
+      const id = tr.dataset.target;
+      const el = document.getElementById(id);
+      const wasOpen = el.classList.contains("open");
+      tbl.querySelectorAll(".row-detail.open").forEach(o=>o.classList.remove("open"));
+      if(!wasOpen){
+        el.classList.add("open");
+        const canvasId = el.querySelector("canvas")?.id;
+        if(canvasId){
+          const idx = tr.dataset.target.split("-").pop();
+          const s = inst.strategies[idx];
+          setTimeout(()=>drawMiniWindowChart(canvasId, s.windowNet), 30);
+        }
+      }
+    });
+  });
+}
+
+function drawMiniWindowChart(canvasId, data){
+  const el = document.getElementById(canvasId);
+  if(!el || el._chart) return;
+  el._chart = new Chart(el, {
+    type:"bar",
+    data:{ labels: data.map((_,i)=>"W"+(i+1)),
+      datasets:[{ data, backgroundColor: data.map(v=>v>=0?"#22c55e":"#ef4444"), borderRadius:3 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{grid:{color:"#2a3552"},ticks:{color:"#94a3b8",font:{size:9}}}, x:{grid:{display:false},ticks:{color:"#94a3b8",font:{size:9}}} } }
+  });
+}
+
+/* ============================== CHARTS PER TAB ============================== */
+const chartRefs = {};
+function renderCharts(k){
+  const inst = INSTRUMENTS[k];
+  const withWindows = inst.strategies.filter(s=>s.windowNet && s.windowNet.length>1).slice(0,4);
+  // equity curve
+  const eqId = "eq-"+k;
+  const eqEl = document.getElementById(eqId);
+  if(eqEl && !eqEl._done){
+    eqEl._done = true;
+    const palette = ["#f59e0b","#3b82f6","#22c55e","#8b5cf6"];
+    const labels = withWindows.length ? withWindows[0].windowNet.map((_,i)=>"W"+(i+1)) : [];
+    new Chart(eqEl, { type:"line",
+      data:{ labels, datasets: withWindows.map((s,i)=>{
+        let cum=0; const arr = s.windowNet.map(v=>{cum+=v; return cum;});
+        return { label:s.name, data:arr, borderColor:palette[i%4], backgroundColor:"transparent", tension:0.15, pointRadius:2, borderWidth:2 };
+      })},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{color:"#94a3b8", font:{size:10}} } },
+        scales:{ y:{grid:{color:"#2a3552"},ticks:{color:"#94a3b8"}}, x:{grid:{display:false},ticks:{color:"#94a3b8"}} } }
+    });
+  }
+  // scatter PF vs trades/mo
+  const scId = "sc-"+k;
+  const scEl = document.getElementById(scId);
+  if(scEl && !scEl._done){
+    scEl._done = true;
+    const pts = inst.strategies.filter(s=>s.pf!=null && s.tpm!=null);
+    new Chart(scEl, { type:"scatter",
+      data:{ datasets:[{ label:"Strategies",
+        data: pts.map(s=>({x:s.tpm, y:s.pf, r: s.net? Math.min(20, Math.max(5, Math.sqrt(Math.abs(s.net))/8)) : 6, label:s.name})),
+        backgroundColor: pts.map(s=> s.status==="ok" ? "rgba(34,197,94,0.7)" : s.status==="warn" ? "rgba(245,158,11,0.7)" : "rgba(239,68,68,0.7)")
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false},
+          tooltip:{ callbacks:{ label:(c)=> pts[c.dataIndex].name + ": PF "+c.parsed.y+", "+c.parsed.x+"/mo" } } },
+        scales:{ y:{title:{display:true,text:"Profit Factor",color:"#94a3b8"},grid:{color:"#2a3552"},ticks:{color:"#94a3b8"}},
+                 x:{title:{display:true,text:"Trades/month",color:"#94a3b8"},grid:{color:"#2a3552"},ticks:{color:"#94a3b8"}} } },
+      plugins:[{ id:"lines", afterDraw(chart){
+        const {ctx, chartArea:{left,right}, scales:{y}} = chart;
+        [1.0,1.15].forEach(v=>{
+          const yp = y.getPixelForValue(v);
+          ctx.save(); ctx.strokeStyle = v===1.15?"#f59e0b":"#64748b"; ctx.setLineDash([4,4]);
+          ctx.beginPath(); ctx.moveTo(left,yp); ctx.lineTo(right,yp); ctx.stroke(); ctx.restore();
+        });
+      }}]
+    });
+  }
+  // heatmap
+  const heatEl = document.getElementById("heat-"+k);
+  if(heatEl && !heatEl._done){
+    heatEl._done = true;
+    const rows = inst.strategies.filter(s=>s.windowNet && s.windowNet.length>1);
+    if(rows.length){
+      const maxWindows = Math.max(...rows.map(r=>r.windowNet.length));
+      const maxAbs = Math.max(...rows.flatMap(r=>r.windowNet.map(Math.abs)),1);
+      let html = "<thead><tr><th>Strategy</th>" + Array.from({length:maxWindows},(_,i)=>`<th style="text-align:center;">W${i+1}</th>`).join("") + "</tr></thead><tbody>";
+      rows.forEach(r=>{
+        html += `<tr><td>${r.name}</td>` + Array.from({length:maxWindows},(_,i)=>{
+          const v = r.windowNet[i];
+          if(v===undefined) return `<td></td>`;
+          return `<td><div class="heat-cell" style="background:${heatColor(v,maxAbs)}">${fmtPts(v)}</div></td>`;
+        }).join("") + "</tr>";
+      });
+      html += "</tbody>";
+      heatEl.innerHTML = html;
+    } else {
+      heatEl.innerHTML = "<tbody><tr><td class='muted'>No per-window data captured for this instrument's strategies.</td></tr></tbody>";
+    }
+  }
+}
+
+buildTabs();
+buildPanels();
+renderCharts(tabKeys[0]);
+
+/* ============================== CROSS-INSTRUMENT ============================== */
+(function(){
+  const ctx1 = document.getElementById("crossPfChart");
+  new Chart(ctx1, { type:"bar",
+    data:{ labels: CROSS_TABLE.map(r=>r.inst), datasets:[{ data: CROSS_TABLE.map(r=>r.pf||0),
+      backgroundColor: CROSS_TABLE.map(r=>pfColor(r.pf)), borderRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{min:0,max:1.5,grid:{color:"#2a3552"},ticks:{color:"#94a3b8"}}, x:{grid:{display:false},ticks:{color:"#94a3b8"}} } }
+  });
+  const ctx2 = document.getElementById("crossPtsChart");
+  new Chart(ctx2, { type:"bar",
+    data:{ labels: CROSS_TABLE.map(r=>r.inst), datasets:[{ data: CROSS_TABLE.map(r=>r.net?Math.log10(Math.abs(r.net)+1):0),
+      backgroundColor:"#3b82f6", borderRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:(c)=>CROSS_TABLE[c.dataIndex].inst+": "+fmtPts(CROSS_TABLE[c.dataIndex].net)+" pts"}}},
+      scales:{ y:{title:{display:true,text:"log10(|net pts|)",color:"#94a3b8"},grid:{color:"#2a3552"},ticks:{color:"#94a3b8"}}, x:{grid:{display:false},ticks:{color:"#94a3b8"}} } }
+  });
+  document.getElementById("crossTable").innerHTML =
+    "<thead><tr><th>Instrument</th><th>Best strategy</th><th>PF</th><th>Net pts</th><th>Trades/mo</th><th>Max DD</th></tr></thead><tbody>" +
+    CROSS_TABLE.map(r=>`<tr><td>${r.inst}</td><td>${r.strat}</td><td style="color:${pfColor(r.pf)};font-weight:600;">${r.pf??"&mdash;"}</td><td class="${cls(r.net)}">${fmtPts(r.net)}</td><td>${r.tpm??"&mdash;"}</td><td>${r.dd!=null?r.dd.toLocaleString():"&mdash;"}</td></tr>`).join("") +
+    "</tbody>";
+  document.getElementById("corrTable").innerHTML =
+    "<thead><tr><th>Pair</th><th>Correlation</th><th>Net pts</th><th>+Windows</th></tr></thead><tbody>" +
+    CORR_TABLE.map(r=>`<tr><td>${r.pair}</td><td>${r.corr??"&mdash;"}</td><td class="${cls(r.net)}">${fmtPts(r.net)}</td><td>${r.posw}</td></tr>`).join("") +
+    "</tbody>";
+})();
+
+/* ============================== FAMILY RANKINGS ============================== */
+(function(){
+  const cols = ["crude","bnf","gold","silver"];
+  const labels = {crude:"Crude PF", bnf:"BankNifty PF", gold:"Gold PF", silver:"Silver PF"};
+  let html = "<thead><tr><th>Family</th>" + cols.map(c=>`<th>${labels[c]}</th>`).join("") + "<th>Verdict</th></tr></thead><tbody>";
+  FAMILIES.forEach(f=>{
+    html += `<tr><td>${f.name}${f.desc?`<div class="muted" style="font-weight:400;">${f.desc}</div>`:''}</td>` +
+      cols.map(c=>`<td style="color:${pfColor(f[c])};font-weight:600;">${f[c]??"&mdash;"}</td>`).join("") +
+      `<td style="text-align:left;max-width:320px;white-space:normal;font-size:12px;">${badge(f.verdict)} ${f.note}</td></tr>`;
+  });
+  html += "</tbody>";
+  document.getElementById("familyTable").innerHTML = html;
+})();
+
+/* ============================== EVOLUTION TIMELINE ============================== */
+(function(){
+  function render(el, arr){
+    el.innerHTML = arr.map(t=>{
+      const bg = t.s==="ok" ? "rgba(34,197,94,0.15)" : t.s==="warn" ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.12)";
+      const fg = t.s==="ok" ? "#4ade80" : t.s==="warn" ? "#fbbf24" : "#f87171";
+      const icon = t.s==="ok" ? "OK" : t.s==="warn" ? "~" : "X";
+      return `<div class="tl-item" style="background:${bg};color:${fg};"><span class="v">${icon}</span>${t.v}</div>`;
+    }).join("");
+  }
+  render(document.getElementById("tlCrude"), TL_CRUDE);
+  render(document.getElementById("tlBnf"), TL_BNF);
+})();
+
+/* ============================== OPTION CALCULATOR ============================== */
+(function(){
+  const instSel = document.getElementById("calcInstrument");
+  const stratSel = document.getElementById("calcStrategy");
+  const costSlider = document.getElementById("calcCost");
+  const costOut = document.getElementById("calcCostOut");
+  const lotsInput = document.getElementById("calcLots");
+
+  instSel.innerHTML = tabKeys.map(k=>`<option value="${k}">${INSTRUMENTS[k].label}</option>`).join("");
+
+  const defaultCost = {crude:13, gold:25, silver:55, bnf:15, nifty:10};
+
+  function populateStrategies(){
+    const k = instSel.value;
+    const rows = INSTRUMENTS[k].strategies.filter(s=>s.pf!=null && s.trades!=null);
+    stratSel.innerHTML = rows.map((s,i)=>`<option value="${i}">${s.name}</option>`).join("");
+    costSlider.value = defaultCost[k] || 15;
+    costOut.textContent = costSlider.value;
+    update();
+  }
+
+  function update(){
+    const k = instSel.value;
+    const rows = INSTRUMENTS[k].strategies.filter(s=>s.pf!=null && s.trades!=null);
+    const s = rows[parseInt(stratSel.value||0)];
+    if(!s){ return; }
+    const lots = parseFloat(lotsInput.value)||1;
+    const costPerTrade = parseFloat(costSlider.value)||0;
+    costOut.textContent = costPerTrade;
+
+    document.getElementById("calcFuturesPF").textContent = s.pf.toFixed(2);
+    document.getElementById("calcFuturesNet").innerHTML = fmtPts(s.net*lots) + " pts (" + lots + " lot" + (lots>1?"s":"") + ")";
+
+    // approximate: derive avg win / avg loss from PF & trade count isn't directly available per-row,
+    // so apply the extra cost symmetrically to every trade (matches this project's own slippage-stress method)
+    const totalExtraCost = costPerTrade * s.trades;
+    const adjNet = (s.net - totalExtraCost) * lots;
+    // approximate adjusted PF using the same win/loss ratio scaling this project's slippage-stress tests use:
+    // PF_adj ~= PF * (net_adj_gross_proxy) -- since we don't have per-trade win/loss split, show adjusted net
+    // and an approximate PF via linear cost erosion on the gross-to-net ratio.
+    const grossProxy = Math.abs(s.net) + totalExtraCost; // rough
+    const adjPF = s.pf > 1 ? Math.max(0, s.pf - (totalExtraCost / (grossProxy||1))) : s.pf;
+
+    document.getElementById("calcAdjPF").textContent = adjPF.toFixed(2);
+    document.getElementById("calcAdjPF").style.color = pfColor(adjPF);
+    document.getElementById("calcAdjNet").innerHTML = fmtPts(adjNet) + " pts (" + lots + " lot" + (lots>1?"s":"") + ")";
+
+    const verdictEl = document.getElementById("calcVerdict");
+    if(adjPF >= 1.15){
+      verdictEl.innerHTML = "Survives this cost load with real margin (PF still &ge; 1.15).";
+    } else if(adjPF >= 1.0){
+      verdictEl.innerHTML = "Survives but thin -- PF drops between 1.0 and 1.15 under this cost load. Treat as marginal.";
+    } else {
+      verdictEl.innerHTML = "<b>Does not survive this cost load</b> -- PF falls below 1.0. This is an approximate proxy (fixed cost per trade, not real option delta/theta/IV), not a certified options P&L -- verify with actual option chain data before sizing.";
+    }
+  }
+
+  instSel.addEventListener("change", populateStrategies);
+  stratSel.addEventListener("change", update);
+  costSlider.addEventListener("input", update);
+  lotsInput.addEventListener("input", update);
+  populateStrategies();
+})();
+</script>
+</body>
+</html>
