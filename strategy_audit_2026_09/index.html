@@ -42,6 +42,7 @@
         <tr class="bg-slate-800 text-slate-300 text-left">
           <th class="sortable px-3 py-2" data-key="instrument">Instrument<span class="sort-arrow"></span></th>
           <th class="sortable px-3 py-2" data-key="strategy">Strategy<span class="sort-arrow"></span></th>
+          <th class="sortable px-3 py-2 text-right" data-key="months">Period<span class="sort-arrow"></span></th>
           <th class="sortable px-3 py-2 text-right" data-key="trades">Trades<span class="sort-arrow"></span></th>
           <th class="sortable px-3 py-2 text-right" data-key="winRate">Win%<span class="sort-arrow"></span></th>
           <th class="sortable px-3 py-2 text-right" data-key="pf">PF<span class="sort-arrow"></span></th>
@@ -56,46 +57,50 @@
 
   <footer class="text-xs text-slate-500 mt-6 pb-8">
     Points are per lot/contract (fiat P&amp;L ÷ syminfo.pointvalue). Costs: 1 lot, 0.02% commission per side, no added slippage.
-    Tiled non-overlapping-window walk-forward method throughout. Full method notes: <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>.
+    Tiled non-overlapping-window walk-forward method throughout. "Period" is the total history span covered by that strategy's non-overlapping windows.
+    One row (XAUUSD SMC v1.1) has an approximate period, scaled from its window count against the matching 12-window span above it, since its exact date range wasn't separately logged.
+    Full method notes: <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>.
   </footer>
 </div>
 
 <script>
 const DATA = [
-  // CrudeOil
-  {instrument:"CrudeOil", strategy:"v2.0 EMA pullback (sep 0.5xATR)", trades:1345, winRate:37.9, pf:1.09, points:2195, maxDD:2358, source:"Existing audit, 11 windows / 29.7mo"},
-  {instrument:"CrudeOil", strategy:"v4.0 SHA flip RR3", trades:842, winRate:28.0, pf:1.09, points:2136, maxDD:2339, source:"Existing audit + Lab v1 V21 + Lab v2 V01 (all reproduce)"},
-  {instrument:"CrudeOil", strategy:"v2.1 EMA pullback (sep 1.5xATR)", trades:518, winRate:37.3, pf:1.14, points:1304, maxDD:900, source:"Existing audit"},
-  {instrument:"CrudeOil", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:420, winRate:29.3, pf:1.10, points:1225, maxDD:1804, source:"Lab v2, 11 windows"},
-  {instrument:"CrudeOil", strategy:"SMC v1.2 (swingLen=10, US session)", trades:178, winRate:55.3, pf:1.25, points:655, maxDD:454, source:"Existing audit"},
-  {instrument:"CrudeOil", strategy:"SMC v1.1 (swingLen=20, US session)", trades:86, winRate:52.3, pf:1.40, points:546, maxDD:302, source:"Existing audit, thin sample"},
-  {instrument:"CrudeOil", strategy:"Lab v2 V13: pPOC bounce RR3", trades:500, winRate:28.6, pf:1.07, points:373, maxDD:665, source:"Lab v2"},
-  {instrument:"CrudeOil", strategy:"Master Adaptive Strategy v2 (user's own)", trades:1011, winRate:30.8, pf:0.93, points:-1461, maxDD:2135, source:"Existing audit"},
+  // CrudeOil -- 11 windows, 29.7 months (Mar 2024 -> Sep 2026), same span for every crude row below
+  {instrument:"CrudeOil", strategy:"v2.0 EMA pullback (sep 0.5xATR)", trades:1345, winRate:37.9, pf:1.09, points:2195, maxDD:2358, months:29.7, windows:11, source:"Existing audit"},
+  {instrument:"CrudeOil", strategy:"v4.0 SHA flip RR3", trades:842, winRate:28.0, pf:1.09, points:2136, maxDD:2339, months:29.7, windows:11, source:"Existing audit + Lab v1 V21 + Lab v2 V01 (all reproduce)"},
+  {instrument:"CrudeOil", strategy:"v2.1 EMA pullback (sep 1.5xATR)", trades:518, winRate:37.3, pf:1.14, points:1304, maxDD:900, months:29.7, windows:11, source:"Existing audit"},
+  {instrument:"CrudeOil", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:420, winRate:29.3, pf:1.10, points:1225, maxDD:1804, months:29.7, windows:11, source:"Lab v2"},
+  {instrument:"CrudeOil", strategy:"SMC v1.2 (swingLen=10, US session)", trades:178, winRate:55.3, pf:1.25, points:655, maxDD:454, months:29.7, windows:11, source:"Existing audit"},
+  {instrument:"CrudeOil", strategy:"SMC v1.1 (swingLen=20, US session)", trades:86, winRate:52.3, pf:1.40, points:546, maxDD:302, months:29.7, windows:11, source:"Existing audit, thin sample"},
+  {instrument:"CrudeOil", strategy:"Lab v2 V13: pPOC bounce RR3", trades:500, winRate:28.6, pf:1.07, points:373, maxDD:665, months:29.7, windows:11, source:"Lab v2"},
+  {instrument:"CrudeOil", strategy:"Master Adaptive Strategy v2 (user's own)", trades:1011, winRate:30.8, pf:0.93, points:-1461, maxDD:2135, months:29.7, windows:11, source:"Existing audit"},
 
-  // BankNifty
-  {instrument:"BankNifty", strategy:"v0.4 EMA pullback + 15m ADX gate", trades:74, winRate:41.9, pf:1.33, points:1403, maxDD:1620, source:"Existing audit, 5 windows / 30.2mo"},
-  {instrument:"BankNifty", strategy:"v10.3 PD sweep + daily trend", trades:106, winRate:38.1, pf:1.10, points:924, maxDD:2631, source:"Existing audit"},
-  {instrument:"BankNifty", strategy:"v13 sweep-fade (bear)", trades:233, winRate:32.5, pf:1.06, points:914, maxDD:2642, source:"Existing audit"},
-  {instrument:"BankNifty", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:273, winRate:39.2, pf:1.00, points:-45, maxDD:3758, source:"Lab v2, best of 20 variants"},
-  {instrument:"BankNifty", strategy:"SMC v1.2 (NSE 0945-1515 + 0.2 ATR buffer)", trades:61, winRate:50.6, pf:0.80, points:-2928, maxDD:4356, source:"Existing audit"},
-  {instrument:"BankNifty", strategy:"SMC v1.1 (no session filter)", trades:61, winRate:45.9, pf:0.77, points:-1236, maxDD:2337, source:"Existing audit"},
+  // BankNifty -- 5 windows, 30.2 months (Mar 2024 -> Sep 2026), same span for every BankNifty row below
+  {instrument:"BankNifty", strategy:"v0.4 EMA pullback + 15m ADX gate", trades:74, winRate:41.9, pf:1.33, points:1403, maxDD:1620, months:30.2, windows:5, source:"Existing audit"},
+  {instrument:"BankNifty", strategy:"v10.3 PD sweep + daily trend", trades:106, winRate:38.1, pf:1.10, points:924, maxDD:2631, months:30.2, windows:5, source:"Existing audit"},
+  {instrument:"BankNifty", strategy:"v13 sweep-fade (bear)", trades:233, winRate:32.5, pf:1.06, points:914, maxDD:2642, months:30.2, windows:5, source:"Existing audit"},
+  {instrument:"BankNifty", strategy:"Lab v2 V04: SHA flip + outside prior value", trades:273, winRate:39.2, pf:1.00, points:-45, maxDD:3758, months:30.2, windows:5, source:"Lab v2, best of 20 variants"},
+  {instrument:"BankNifty", strategy:"SMC v1.2 (NSE 0945-1515 + 0.2 ATR buffer)", trades:61, winRate:50.6, pf:0.80, points:-2928, maxDD:4356, months:30.2, windows:5, source:"Existing audit"},
+  {instrument:"BankNifty", strategy:"SMC v1.1 (no session filter)", trades:61, winRate:45.9, pf:0.77, points:-1236, maxDD:2337, months:30.2, windows:5, source:"Existing audit"},
 
-  // XAUUSD
-  {instrument:"XAUUSD", strategy:"Lab v1 V21: SHA flip RR3 (= crude v4.0 logic)", trades:1032, winRate:28.7, pf:1.04, points:300, maxDD:405, source:"New 24/7-patched Lab v1, 12 windows / 31.4mo"},
-  {instrument:"XAUUSD", strategy:"Lab v1 V24: Donchian20 + SHA RR3", trades:1168, winRate:26.3, pf:0.97, points:-258, maxDD:530, source:"New 24/7-patched Lab v1"},
-  {instrument:"XAUUSD", strategy:"Lab v1 V20: SHA flip RR2", trades:1202, winRate:36.9, pf:0.97, points:-224, maxDD:466, source:"New 24/7-patched Lab v1"},
-  {instrument:"XAUUSD", strategy:"Lab v1 V22: SHA flip + EMA200 RR2", trades:992, winRate:36.5, pf:0.94, points:-322, maxDD:403, source:"New 24/7-patched Lab v1"},
-  {instrument:"XAUUSD", strategy:"Crude v2.1 logic (EMA 9/22, sep 1.5xATR)", trades:518, winRate:37.3, pf:0.75, points:-1125, maxDD:1206, source:"Prior round, 12 windows"},
-  {instrument:"XAUUSD", strategy:"SMC Liquidity Sweep + FVG v1.1", trades:132, winRate:44.5, pf:0.49, points:-308, maxDD:351, source:"Prior round, 11 windows"},
+  // XAUUSD -- Lab v1 rows: 12 windows, 31.4 months (2024-01-31 -> 2026-09-13), reaches TV's data floor
+  {instrument:"XAUUSD", strategy:"Lab v1 V21: SHA flip RR3 (= crude v4.0 logic)", trades:1032, winRate:28.7, pf:1.04, points:300, maxDD:405, months:31.4, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"XAUUSD", strategy:"Lab v1 V24: Donchian20 + SHA RR3", trades:1168, winRate:26.3, pf:0.97, points:-258, maxDD:530, months:31.4, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"XAUUSD", strategy:"Lab v1 V20: SHA flip RR2", trades:1202, winRate:36.9, pf:0.97, points:-224, maxDD:466, months:31.4, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"XAUUSD", strategy:"Lab v1 V22: SHA flip + EMA200 RR2", trades:992, winRate:36.5, pf:0.94, points:-322, maxDD:403, months:31.4, windows:12, source:"New 24/7-patched Lab v1"},
+  // Prior round (before this session's deep sweep): same 12-window date sequence, ~31.4mo
+  {instrument:"XAUUSD", strategy:"Crude v2.1 logic (EMA 9/22, sep 1.5xATR)", trades:518, winRate:37.3, pf:0.75, points:-1125, maxDD:1206, months:31.4, windows:12, source:"Prior round"},
+  // Prior round, one window short of the full sequence -- period is approximate (window-count-scaled from the 12-window/31.4mo span above), not separately logged
+  {instrument:"XAUUSD", strategy:"SMC Liquidity Sweep + FVG v1.1", trades:132, winRate:44.5, pf:0.49, points:-308, maxDD:351, months:28.8, windows:11, source:"Prior round, period approximate"},
 
-  // BTCUSD
-  {instrument:"BTCUSD", strategy:"Lab v1 V22: SHA flip + EMA200 RR2 (least-bad)", trades:1063, winRate:35.3, pf:0.96, points:-8982, maxDD:8870, source:"New 24/7-patched Lab v1, 12 windows / 30.7mo"},
-  {instrument:"BTCUSD", strategy:"Lab v1 V05: v3.0 RR3.0", trades:1583, winRate:26.7, pf:0.96, points:-20114, maxDD:15574, source:"New 24/7-patched Lab v1"},
-  {instrument:"BTCUSD", strategy:"Lab v1 V20: SHA flip RR2", trades:1251, winRate:34.1, pf:0.93, points:-20679, maxDD:9899, source:"New 24/7-patched Lab v1"},
-  {instrument:"BTCUSD", strategy:"Lab v1 V21: SHA flip RR3 (= crude v4.0 logic)", trades:1077, winRate:25.3, pf:0.89, points:-33230, maxDD:10295, source:"New 24/7-patched Lab v1"},
-  {instrument:"BTCUSD", strategy:"Crude v2.1 logic (EMA 9/22, sep 1.5xATR)", trades:428, winRate:35.4, pf:0.85, points:-25310, maxDD:33527, source:"Prior round"},
-  {instrument:"BTCUSD", strategy:"SMC Liquidity Sweep + FVG v1.1", trades:169, winRate:41.7, pf:0.64, points:-10427, maxDD:11593, source:"Prior round"},
-  {instrument:"BTCUSD", strategy:"Lab v1 V28: Sweep-fade RR2 (worst)", trades:8849, winRate:32.8, pf:0.60, points:-252444, maxDD:33572, source:"New 24/7-patched Lab v1"},
+  // BTCUSD -- Lab v1 rows: 12 windows, 30.7 months (2024-02-21 -> 2026-09-13), reaches TV's data floor
+  {instrument:"BTCUSD", strategy:"Lab v1 V22: SHA flip + EMA200 RR2 (least-bad)", trades:1063, winRate:35.3, pf:0.96, points:-8982, maxDD:8870, months:30.7, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"BTCUSD", strategy:"Lab v1 V05: v3.0 RR3.0", trades:1583, winRate:26.7, pf:0.96, points:-20114, maxDD:15574, months:30.7, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"BTCUSD", strategy:"Lab v1 V20: SHA flip RR2", trades:1251, winRate:34.1, pf:0.93, points:-20679, maxDD:9899, months:30.7, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"BTCUSD", strategy:"Lab v1 V21: SHA flip RR3 (= crude v4.0 logic)", trades:1077, winRate:25.3, pf:0.89, points:-33230, maxDD:10295, months:30.7, windows:12, source:"New 24/7-patched Lab v1"},
+  {instrument:"BTCUSD", strategy:"Crude v2.1 logic (EMA 9/22, sep 1.5xATR)", trades:428, winRate:35.4, pf:0.85, points:-25310, maxDD:33527, months:30.7, windows:12, source:"Prior round"},
+  {instrument:"BTCUSD", strategy:"SMC Liquidity Sweep + FVG v1.1", trades:169, winRate:41.7, pf:0.64, points:-10427, maxDD:11593, months:30.7, windows:12, source:"Prior round"},
+  {instrument:"BTCUSD", strategy:"Lab v1 V28: Sweep-fade RR2 (worst)", trades:8849, winRate:32.8, pf:0.60, points:-252444, maxDD:33572, months:30.7, windows:12, source:"New 24/7-patched Lab v1"},
 ];
 
 const INSTRUMENTS = ["All", "CrudeOil", "BankNifty", "XAUUSD", "BTCUSD"];
@@ -217,6 +222,7 @@ function renderTable(){
     <tr class="border-t border-slate-800 hover:bg-slate-800/50">
       <td class="px-3 py-2 font-medium text-slate-300">${r.instrument}</td>
       <td class="px-3 py-2 text-slate-200">${r.strategy}</td>
+      <td class="px-3 py-2 text-right text-slate-400 whitespace-nowrap">${r.months.toFixed(1)} mo <span class="text-slate-600">(${r.windows}w)</span></td>
       <td class="px-3 py-2 text-right text-slate-400">${r.trades.toLocaleString()}</td>
       <td class="px-3 py-2 text-right text-slate-400">${r.winRate.toFixed(1)}%</td>
       <td class="px-3 py-2 text-right font-semibold" style="color:${pfColor(r.pf)}">${r.pf.toFixed(2)}</td>
