@@ -1859,3 +1859,117 @@ Not in this data. The profitable BankNifty strategies and their frequencies:
   10 trades a month lost after costs.
 - 20 a month would need a lower cost per trade, such as a low-cost broker or
   limit entries. That has not been tested here.
+
+---
+
+## Deep multi-day retuning exercise, Gold and Silver added (14 Sep 2026)
+
+Three things happened this day: a much broader sweep to check whether a
+better strategy than the existing picks existed anywhere in the repo (it
+didn't), a bounded retuning exercise on v4.0 across Crude/Gold/Silver, and
+Gold and Silver being individually tuned for the first time. Full detail in
+`strategy_audit_2026_09/` (files listed per finding below) and the updated
+`BEST STRATEGY PER SCRIPT (BankNifty, Nifty 50, CrudeOil - 3m-5m).md`
+sections 5-6 (new Gold/Silver sections) and the 14 Sep audit-update box near
+the top of that doc.
+
+### Deep sweep: 76+ lab variants across all instruments, no new winner found
+
+Re-ran variant lab v1's 32 variants (24/7-session-patched) across the full
+XAUUSD and BTCUSD history, on top of lab v1/v2/v3's already-exhaustive
+Crude/BankNifty/Nifty coverage. Nothing beat the existing picks anywhere:
+v4.0 and v2.1 remain best on crude, v0.4 uncontested on BankNifty (every one
+of 76 generic lab variants loses there except v0.4 itself), only v4.0's own
+logic clears breakeven on XAUUSD (PF 1.04), and literally all 32 variants
+lose on BTCUSD. See `strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md`.
+
+### Train/holdout validation: the honest reason not to chase a higher PF on crude
+
+When asked to push crude's PF above 1.5 by re-tuning, a proper train/holdout
+split was run instead (train = Mar24-Jan26, holdout = Jan-Sep26, the same
+split point the 2-year analysis already used). **Vanilla v4.0/v2.0/v2.1 all
+lose money in the training period** and are profitable only because of
+Jan-Sep 2026's volatility (v4.0: -623 train / +2,759 holdout). A candidate
+found in the lab data (v4.0 + "outside prior-day value area" filter) looked
+robust in both halves per the lab's synthetic-fill estimate, but when
+independently rebuilt as a real standalone strategy and re-verified on
+TradingView's actual fill engine, the real numbers were weaker than the lab
+estimated: PF 1.07 (not the hoped-for >1.3), train roughly breakeven, holdout
++972. **No crude strategy in this repo passes train/holdout cleanly at a
+high PF** -- chasing a higher number by re-tuning against the same fixed
+history would mean overfitting, and was declined for that reason.
+BankNifty v0.4, by contrast, already passes cleanly with no new tuning
+needed (positive in both halves). See `strategy_audit_2026_09/v4.0_initiative_filter_train_holdout.md`.
+
+### v4.0 tested on other MCX commodities, then instrument-tuned
+
+Crude v4.0's unmodified logic was tested on Natural Gas, Gold and Silver.
+Natural Gas lost money (PF 0.95). Gold and Silver were both positive but
+concentrated in 1-2 windows (PF 1.06-1.07) -- the same fragility already
+flagged for crude. See `strategy_audit_2026_09/v4.0_mcx_naturalgas_gold_silver_results.md`.
+
+A 15m ADX>=25 trend gate (the mechanism behind BankNifty v0.4's edge) was
+ported onto v4.0 and tested on Crude, Gold and Silver, at two thresholds
+(25 and 18). **It made crude worse** (PF 1.09→1.02) and only marginally
+helped Gold/Silver while cutting trade count roughly in half, with net
+points falling on Crude and Gold. Lowering the threshold made things worse
+on every instrument tested, not better. The gate's success is specific to
+v0.4's pullback+wick+volume entry mechanic and does not transfer to the
+SHA-flip signal family. See `strategy_audit_2026_09/v4.0_adx_gate_mcx_results.md`
+and `strategy_audit_2026_09/v4.0_recalibration_results.md`.
+
+What *did* work, one change at a time, no ADX gate:
+- **Crude: R:R 3.0 -> 4.0.** PF 1.09 -> 1.12, net +2,136 -> +2,811, at
+  essentially the same trade frequency. Now the crude v4.0 pick.
+- **Gold: session changed to COMEX-active hours (1730-0030), from crude's
+  daytime default.** PF 1.07 -> 1.13, net +13,152 -> +16,312 -- a real
+  improvement in both PF and points together, and the window-concentration
+  problem got smaller, not worse.
+- **Silver: stop multiples widened (minSL 1.5->2.5 ATR, maxSL 3.0->5.0
+  ATR)**, since silver's ATR/price ratio is higher than crude's and the
+  tight defaults were cutting valid trades short. PF 1.06 -> 1.15, net
+  +32,815 -> +116,096, at unchanged trade frequency -- but single-window
+  drawdown got *worse* (45,815 -> 76,863), because wider stops also let
+  losing trades run further before being cut.
+- **Silver, on top of the above: a hard 350-point daily loss circuit
+  breaker** (force-flat + lock out for the rest of the day once realized
+  daily loss hits the limit). PF 1.15 -> **1.35**, net +116,096 ->
+  **+160,845**, max single-window drawdown 76,863 -> **24,551 (-68%)**.
+  A volatility-scaled version of the same breaker (limit = 7.5x ATR14) was
+  tested and lost on every metric (PF only 1.18) -- the worst-loss window
+  was exactly the one where ATR itself spiked, so a scaled breaker's
+  threshold expanded right along with the danger. **Silver + wide stops +
+  fixed daily limit is now the highest-PF strategy in the entire repo.**
+  See `strategy_audit_2026_09/gold_silver_recalibration_results.md` and
+  `strategy_audit_2026_09/silver_daily_loss_limit_results.md`.
+
+### Three more BankNifty attempts, all rejected in favour of v0.4 alone
+
+- **v0.4 + v13 combined in one script** (independent modules, same
+  capital, `pyramiding=2`): expected the naive sum of solo backtests
+  (+2,317), got +964 (PF 1.04) -- v13's component turns into a net loser
+  once its signals compete with v0.4's for the same account.
+- **v0.5** (v0.4 with a lower ADX threshold, no volume filter, tighter
+  R:R, aimed at more frequency): PF collapsed to 0.71 (5m) / 0.68 (3m).
+  The removed volume filter was load-bearing, not a bottleneck.
+- **A generic "VWAP-EMA Pullback" script**, believed promising for
+  BankNifty: PF 0.60, -38,163 pts -- one of the worst BankNifty results in
+  the repo, contradicting the belief that motivated testing it. Flagged as
+  an unresolved discrepancy, not adopted.
+
+See `strategy_audit_2026_09/bnf_portfolio_v04_v13_results.md`,
+`strategy_audit_2026_09/bnf_v0.5_loosened_results.md`, and
+`strategy_audit_2026_09/vwap_ema_pullback_bnf_results.md`.
+
+### Interactive dashboard
+
+`strategy_audit_2026_09/strategy_comparison_dashboard.html` -- a
+single-file, offline dashboard comparing every strategy family across all
+five instruments: sortable/expandable leaderboards, equity curves,
+per-window heatmaps, PF-vs-frequency scatter plots, cross-instrument
+comparison, family rankings, an option-cost calculator, and an evolution
+timeline. Built from the repo's own verified source documents rather than
+any single request's claimed figures -- it surfaces two unresolved
+discrepancies in the repo's own docs (BankNifty v0.4's two different
+slippage conventions; v13's profitability flipping under 5pt slippage)
+rather than picking one silently.

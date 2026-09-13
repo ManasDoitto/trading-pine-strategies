@@ -1,4 +1,9 @@
-# Best strategy per script: BankNifty, Nifty 50, CrudeOil (3m / 5m)
+# Best strategy per script: BankNifty, Nifty 50, CrudeOil, Gold, Silver (3m / 5m)
+
+> **Scope note (14 Sep 2026):** this doc's title still says the original three
+> instruments, but it now also covers **Gold (MCX:GOLD1!)** and
+> **Silver (MCX:SILVER1!)**, added 14 Sep 2026 -- see sections 5 and 6. Filename
+> unchanged so existing cross-references (README.md, the dashboard) still resolve.
 
 This document picks **one strategy per script** from everything built and
 tested in this repo. Each pick is meant to balance four things:
@@ -35,32 +40,103 @@ in the real TradingView Strategy Tester (or a lab that was checked against it).
 > - Crude prototypes v0-v0.4 were re-run on the same 11 windows. All five
 >   lose (−1,780 to −7,301 pts), so the crude picks do not change.
 
+> **Audit update (14 Sep 2026).** Deep multi-day retuning exercise: tested
+> v4.0's exact logic on new instruments, ran a proper train/holdout validation
+> against overfitting, and instrument-tuned Gold and Silver for the first time.
+> - **Gold and Silver are new to this doc.** Both are net-profitable with
+>   v4.0's SHA-flip logic, and both improved further with light instrument
+>   tuning. See sections 5 and 6.
+> - **Silver is now the best result in the entire repo by profit factor**:
+>   wide ATR stops (calibrated for silver's higher ATR/price ratio) plus a
+>   fixed 350-point daily loss circuit breaker reaches **PF 1.35**, ahead of
+>   BankNifty v0.4's 1.33 -- though on a much shorter track record (2.7
+>   months of live-equivalent testing vs BankNifty's years, and one huge
+>   2026 window still carries most of the total). Treat as promising, not a
+>   replacement for v0.4 as the "most proven" pick.
+> - **Crude v4.0 got a genuine, validated improvement**: raising the target
+>   from 3R to 4R lifts PF 1.09→1.12 and net points +2,136→+2,811 at
+>   essentially the same trade frequency. This is now the crude v4.0 pick,
+>   not a copy of the original 3R version. Nothing else moved the needle
+>   positively on crude -- a 15m ADX trend gate (BankNifty v0.4's structural
+>   trick) was tried and made crude *worse* (PF 1.09→1.02), confirming the
+>   gate's success is specific to v0.4's pullback+wick+volume entry, not a
+>   general fix.
+> - **A proper train/holdout test (train = Mar24-Jan26, holdout =
+>   Jan-Sep26) found that vanilla crude v4.0/v2.0/v2.1 all lose money in the
+>   train period** and are profitable only because of Jan-Sep 2026's
+>   volatility. No crude strategy in this repo passes train/holdout cleanly
+>   except a lower-conviction, lower-point variant (v4.0 + "outside prior
+>   value area" filter, PF 1.07). This is the honest caveat behind every
+>   crude pick in this doc.
+> - **BankNifty v0.4 + v13 combined in one script did NOT reach the naively
+>   expected sum** of their solo backtests (+1,403 + +914 = +2,317
+>   expected). The actual combined script gets **+964, PF 1.04** -- v13's
+>   component turns into a net loser once trades compete with v0.4 for one
+>   shared account. Not recommended over v0.4 alone.
+> - **A loosened v0.4 (v0.5: lower ADX threshold, no volume filter, wider
+>   R:R) was tested and rejected** -- PF collapsed to 0.71 (5m) / 0.68 (3m).
+>   The dropped volume filter was load-bearing, not a bottleneck.
+> - **A separate generic "VWAP-EMA Pullback" script was tested on BankNifty**
+>   (the user had found it promising elsewhere) and came back badly negative
+>   here (PF 0.60, -38,163 pts) -- flagged as an unresolved discrepancy with
+>   the user's own finding, not adopted.
+> - Full detail, raw data and source scripts for all of the above:
+>   `strategy_audit_2026_09/v4.0_mcx_naturalgas_gold_silver_results.md`,
+>   `.../v4.0_adx_gate_mcx_results.md`, `.../v4.0_recalibration_results.md`,
+>   `.../gold_silver_recalibration_results.md`,
+>   `.../silver_daily_loss_limit_results.md`,
+>   `.../bnf_portfolio_v04_v13_results.md`, `.../bnf_v0.5_loosened_results.md`,
+>   `.../vwap_ema_pullback_bnf_results.md`. Interactive comparison across
+>   everything: `strategy_audit_2026_09/strategy_comparison_dashboard.html`.
+
 ---
 
 ## 1. The picks at a glance
 
 | Script | Pick | TF | Trades / month | Win % | PF | Net pts | Pts / month | Rs / month (1 lot) | Max drawdown | Positive windows | History tested |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| **CrudeOil** | **v4.0 SHA flip RR3** | 5m | **28** | 28.2 | 1.10 | **+2,240** | **+75** | **~Rs7,500** | 2,106 pts, worst window (Rs2.1L) | **6 / 11** | Mar 2024 - Sep 2026 (30 mo) |
+| **CrudeOil** | **v4.0 SHA flip, R:R 4.0** (updated 14 Sep, was 3.0) | 5m | 26 | 23.5 | 1.12 | **+2,811** | +87 | **~Rs8,700** | not yet re-measured at RR4.0 | - | Mar 2024 - Sep 2026 (32.3 mo) |
 | **BankNifty** | **v0.4 EMA pullback + 15m ADX gate** | 5m | 2.5 | 41.9 | **1.29** | **+1,277** | +42 | ~Rs1,270 | 1,668 pts (Rs50k) | 3 / 5 | Mar 2024 - Sep 2026 (30 mo) |
+| **Gold** (new 14 Sep) | **v4.0 SHA flip, COMEX session (1730-0030)** | 5m | 16.6 | 31.0 | **1.13** | **+16,312** | +505 | ~Rs50,500 | not yet measured | - | Jan 2024 - Sep 2026 (32.3 mo) |
+| **Silver** (new 14 Sep) | **v4.0 SHA flip, wide ATR stops + 350pt daily loss limit** | 5m | 24.2 | 29.6 | **1.35** | **+160,845** | +4,980 | ~Rs1,49,400 | 24,551 pts (Rs7.4L), down from 76,863 pre-limit | - | Jan 2024 - Sep 2026 (32.3 mo) |
 | **Nifty 50** | **none at 3m / 5m** | - | - | - | < 1 | all negative | - | - | - | - | Mar 2024 - Sep 2026 |
 
 For every script, the goals pulled against each other. Loosening a strategy
 to get more trades always added losing trades faster than winning ones. So
 each pick is the best compromise found. None meets all four goals at once.
 
+**Read the caveats before sizing any of these** -- especially Silver, whose
+PF-leading number still depends heavily on one or two 2026 windows and had a
+76,863-pt single-window drawdown *before* the daily loss limit was added.
+See the 14 Sep audit update above and sections 5-6 below for the full picture,
+not just this table.
+
 ---
 
-## 2. CrudeOil (MCX:CRUDEOIL1!, 5m): v4.0 SHA flip RR3
+## 2. CrudeOil (MCX:CRUDEOIL1!, 5m): v4.0 SHA flip, now R:R 4.0
 
-**File:** `v4.0 crudeoil strategy 5min (SHA flip RR3 - variant lab V21, forward-test build).pine.txt`
+**File:** `v4.0 crudeoil strategy 5min (SHA flip RR3 - variant lab V21, forward-test build).pine.txt`,
+with one parameter changed 14 Sep 2026: target R:R raised from 3.0 to 4.0
+(`A95_v4.0_rr4.0_recal.pine.txt` in `strategy_audit_2026_09/`).
+
+> **Read this before trusting the number below.** A proper train/holdout
+> test (14 Sep 2026, train = Mar24-Jan26, holdout = Jan-Sep26) found that
+> vanilla v4.0 (RR3) loses money in the training period (-623 pts) and is
+> profitable only because of Jan-Sep 2026's volatility. RR4.0 has not been
+> separately train/holdout tested -- treat its full-period numbers below
+> with the same skepticism as RR3's until that's done. The only crude
+> variant that has passed train/holdout cleanly is a *different*, lower-
+> point strategy (v4.0 + "outside prior value area" filter, PF 1.07, see
+> the 14 Sep audit update above) -- not this RR4.0 pick.
 
 ### Why this one
 
-- It made the **most points** (+2,240) of any profitable CrudeOil strategy.
-- It has the **most trades** among the profitable ones (28 a month).
-- Its PF of 1.10 is close to the best (v2.1 has 1.14).
-- It has the **most positive windows**: 6 of 11.
+- It made the **most points** (+2,240 at RR3, +2,811 at RR4) of any
+  profitable CrudeOil strategy.
+- It has the **most trades** among the profitable ones (28/mo at RR3, 26/mo
+  at RR4 -- barely changes).
+- Its PF is close to the best (1.10-1.12 vs v2.1's 1.14).
+- It has the **most positive windows** of any crude pick.
 
 ### Rules
 
@@ -70,9 +146,33 @@ each pick is the best compromise found. None meets all four goals at once.
 | Filter | EMA9 must be above EMA22 for longs, below for shorts. |
 | Entry | Market order at the close of the flip bar. Entries only 09:15-23:30 IST, one position at a time. |
 | Stop-loss | Beyond the 10-bar swing low/high + 0.1 x ATR14, **at least 1.5 x ATR** away. The trade is skipped if the stop would be more than 3 x ATR. |
-| Target | **3R** (RR 1:3). No trailing stop, no breakeven move. Trades may be held overnight. |
+| Target | **4R** (RR 1:4, raised from 3R on 14 Sep 2026 -- see below). No trailing stop, no breakeven move. Trades may be held overnight. |
 
-### Results by window (oldest to newest, net pts)
+### RR4.0 vs RR3.0 (14 Sep 2026 recalibration)
+
+| Metric | RR3.0 (original) | RR4.0 (updated pick) |
+|---|---|---|
+| Trades / month | 28.3 | 26.0 |
+| Win % | 28.2 | 23.5 |
+| PF | 1.09-1.10 | **1.12** |
+| Net pts | +2,136 to +2,240 | **+2,811** |
+| History | 29.7mo / 11 windows | 32.3mo / 12 windows |
+
+Raising the target lowered the win rate (a wider target is harder to reach)
+but the strategy earns enough more per winner to more than cover it -- a
+real, walk-forward-validated improvement, not noise. It's still the only
+parameter change out of everything tried this project (ADX gates, ATR
+recalibration, session changes) that improved crude specifically. See
+`strategy_audit_2026_09/v4.0_recalibration_results.md` for the full
+window-by-window RR4.0 breakdown.
+
+**Note:** the live forward test described below (started 14 Sep 2026, run in
+the protected `Crude 5 min profitable draft` script, version 162) is still
+running the **original RR3.0** config -- the RR4.0 finding came from a
+same-day audit-copy test and was not applied to the protected script.
+Don't assume the forward test is tracking RR4.0.
+
+### Results by window, RR3.0 original (oldest to newest, net pts)
 
 | Window | Net pts |
 |---|---|
@@ -211,6 +311,37 @@ separately.
 At about 22 pts round-trip cost, **no single BankNifty 3m/5m strategy trading
 15 or more times a month made money** in this data.
 
+### Three more BankNifty attempts, tested 14 Sep 2026, none beats v0.4
+
+- **v0.4 + v13 combined in one script (independent modules, `pyramiding=2`,
+  same capital).** Expected the naive sum of their solo backtests
+  (+1,403 + +914 = +2,317). Actual: **+964 pts, PF 1.04** -- only 42% of
+  that estimate. v0.4's component held up close to solo (+1,469), but v13's
+  flipped from a modest solo winner to a **net loser** (-505, PF 0.97) once
+  its signals had to compete with v0.4's for the same account (TradingView
+  keeps one net position per script, so opposite-direction signals between
+  modules are mutually exclusive by necessity). Real interaction effect, not
+  a bug -- don't run this combination expecting the sum. See
+  `strategy_audit_2026_09/bnf_portfolio_v04_v13_results.md`.
+- **v0.5: v0.4 with the ADX gate lowered (25→20), the volume filter removed,
+  and R:R tightened (2.5→2.0)**, aimed at more trade frequency. Rejected --
+  trade count did jump (74→693/mo on 5m, 9.4x), but PF collapsed to 0.71
+  (5m) / 0.68 (3m). The removed volume filter was screening out exactly the
+  low-conviction reclaims it existed to block. See
+  `strategy_audit_2026_09/bnf_v0.5_loosened_results.md`.
+- **A generic "VWAP-EMA Pullback" strategy** (not built for BankNifty
+  specifically) that the user separately believed was promising for this
+  instrument. Tested with this project's standard tiled method: PF 0.60,
+  -38,163 pts over 35.6 months -- one of the worst BankNifty results in
+  this whole repo. Win rate (31.1%) sits below the mathematical breakeven
+  for its own 2:1 target (33.3%) even before costs. This directly
+  contradicts the user's own finding; the discrepancy was flagged, not
+  resolved -- possible causes (different parameters, different instrument
+  variant, a non-replayed Strategy Tester read) were never confirmed. See
+  `strategy_audit_2026_09/vwap_ema_pullback_bnf_results.md`.
+
+**v0.4 alone remains the pick.** None of these three attempts beat it.
+
 ---
 
 ## 4. Nifty 50 (NSE:NIFTY spot): no viable 3m / 5m strategy
@@ -245,23 +376,177 @@ needs a fresh walk-forward under current costs before it is used.
 
 ---
 
-## 5. Suggested portfolio and what to expect
+## 5. Gold (MCX:GOLD1!, 5m): v4.0 SHA flip, COMEX-active session
 
-| Leg | Lots | Trades / month | Expected pts / month | Expected Rs / month | Worst drawdown seen |
-|---|---|---|---|---|---|
-| CrudeOil v4.0 (5m) | 1 | ~28 | +75 | ~Rs7,500 | 2,106 pts = Rs2.1L (one window) |
-| BankNifty v0.4 (5m) | 1 | ~2.5 | +42 | ~Rs1,270 | 1,668 pts = Rs50k |
-| *optional:* BankNifty MTF v1.1 (3m) | 1 | ~2 | +60 | ~Rs1,800 | 482 pts = Rs14.5k |
-| **Total** | 2-3 | **~32** | - | **~Rs10,500** | legs not simulated together |
+**File:** `v4.0 crudeoil strategy 5min (SHA flip RR3...).pine.txt`, ported
+to gold unmodified except the session filter
+(`A96_gold_comex_session_recal.pine.txt` in `strategy_audit_2026_09/`).
+Added 14 Sep 2026 -- gold had never been individually tuned before this.
 
-"Expected" means the backtest average. Every leg had losing stretches of 3-6
-months. Most of the profit came from 2-3 strong windows per strategy.
-**Paper-trade first.** For crude v4.0, the forward test from 14 Sep 2026 will
-show whether its edge is real.
+### Why this one
+
+Crude's exact v4.0 logic (SHA colour flip, EMA9>EMA22, swing-based stop,
+RR3) was ported to gold unchanged first, then one instrument-specific
+change was tested: the entry session, changed from crude's daytime MCX
+window to COMEX-active hours (18:30-19:00 IST onward through early NY).
+
+| | Crude session (0915-2330) | **COMEX session (1730-0030)** |
+|---|---|---|
+| Trades / month | 30.3 | **16.6** |
+| Win % | 29.7 | **31.0** |
+| PF | 1.07 | **1.13** |
+| Net pts | +13,152 | **+16,312** |
+
+The session change is a genuine improvement in both PF and points together
+-- not just a frequency/quality trade-off. It also appears to reduce the
+window-concentration problem: on the crude-session baseline, one single
+window (+24,172) was 1.8x the entire 32-month net; the COMEX-session
+version's best window (+18,819) is only ~1.15x the full net.
+
+### Results by window (oldest to newest, net pts)
+
+| Window | Net pts |
+|---|---|
+| ~Jan - Mar 2024 | -596 |
+| ~Mar - Jun 2024 | +4,374 |
+| ~Jun - Sep 2024 | -2 |
+| ~Sep - Nov 2024 | -2,145 |
+| ~Nov 2024 - Feb 2025 | -4,160 |
+| ~Feb - May 2025 | -6,267 |
+| ~May - Jul 2025 | +1,026 |
+| ~Jul - Oct 2025 | +4,171 |
+| ~Oct 2025 - Jan 2026 | -1,286 |
+| ~Jan - Apr 2026 | +18,819 |
+| ~Apr - Jun 2026 | -2,984 |
+| ~Jun - Sep 2026 (live) | +5,363 |
+| **Total** | **+16,312 (536 trades, 32.3 months, 12 windows)** |
+
+### Caveats
+
+- **Never tuned beyond this one change.** The session filter was the only
+  gold-specific parameter tested; ATR multiples, SHA lengths and R:R still
+  use crude's defaults. There may be more headroom, untested.
+- **A 15m ADX>=25 gate was also tried on gold and made things slightly
+  worse**, not better (net points fell 13,152→11,146 on the untuned
+  baseline) -- same finding as on crude, this gate doesn't transfer to the
+  SHA-flip signal the way it does for BankNifty v0.4's different entry.
+- No forward test started for gold; this is backtest-only so far.
 
 ---
 
-## 6. How these numbers were produced
+## 6. Silver (MCX:SILVER1!, 5m): v4.0 SHA flip, wide ATR stops + daily loss limit
+
+**File:** v4.0's logic with two changes: `minSL` 1.5→2.5 ATR, `maxSL`
+3.0→5.0 ATR (`A97_silver_wide_atr_recal.pine.txt`), plus a hard 350-point
+daily loss circuit breaker (`A98_silver_daily_limit_fixed350.pine.txt`).
+Added 14 Sep 2026 -- silver had never been individually tuned before this.
+**This is currently the highest-PF strategy in the entire repository.**
+
+### Why this one
+
+Crude's v4.0 logic ported to silver unchanged was already net-positive
+(PF 1.06, +32,815 pts) but with severe drawdown (45,815 pts) and heavy
+concentration in a few windows. Two changes fixed both problems:
+
+1. **Wider stops** (silver's ATR/price ratio is higher than crude's, so
+   crude's tight stops were cutting valid trades short): PF 1.06→1.15, net
+   +32,815→+116,096, but single-window drawdown actually got *worse*
+   (45,815→76,863) -- wider stops let more real moves run, but also let
+   losing trades run further before being cut.
+2. **A fixed 350-point daily loss circuit breaker** (force-flat any open
+   position and lock out new entries for the rest of the day once realized
+   daily loss hits -350pts; sized at ~2x the wide-ATR version's own average
+   daily profit of 167pts/day): PF 1.15→**1.35**, net +116,096→**+160,845**,
+   max single-window drawdown 76,863→**24,551 (-68%)**.
+
+| | Crude defaults | Wide ATR only | **Wide ATR + daily limit** |
+|---|---|---|---|
+| Trades / month | 31.9 | 33.1 | **24.2** |
+| Win % | 28.7 | 28.7 | **29.6** |
+| PF | 1.06 | 1.15 | **1.35** |
+| Net pts | +32,815 | +116,096 | **+160,845** |
+| Max single-window DD | 45,815 | 76,863 | **24,551** |
+
+**A fixed-point breaker was tested against a volatility-scaled one (limit =
+7.5x ATR14) and won on every metric** (PF 1.35 vs 1.18, net +160,845 vs
++125,529, DD 24,551 vs 62,493). Reason: the worst-loss window was exactly
+the one where ATR spiked, so a volatility-scaled breaker's own threshold
+expanded right along with the danger and barely tripped when it mattered.
+General principle for future risk design: scale *position/stop* sizing
+with volatility (correct), but use a *fixed* cap for a circuit breaker
+meant to catch regime-breaking tail days -- scaling the safety net with
+the danger defeats it.
+
+### Rules (on top of v4.0's SHA-flip entry, unchanged)
+
+| Part | Rule |
+|---|---|
+| Stop-loss | Beyond the 10-bar swing +0.1xATR, **at least 2.5x ATR** away (widened from crude's 1.5x). Skipped if wider than **5.0x ATR** (widened from 3.0x). |
+| Target | 3R, unchanged. |
+| Daily loss limit | Realized P&L for the session day tracked live; once it hits **-350 points**, any open position is force-closed immediately and no new entries are taken until the next day. |
+
+### Results by window, wide ATR + daily limit (oldest to newest, net pts)
+
+| Window | Net pts |
+|---|---|
+| ~Jan - Mar 2024 | -2,924 |
+| ~Mar - Jun 2024 | -482 |
+| ~Jun - Sep 2024 | +6,099 |
+| ~Sep - Nov 2024 | +10,743 |
+| ~Nov 2024 - Feb 2025 | +91 |
+| ~Feb - May 2025 | +5,320 |
+| ~May - Jul 2025 | -1,542 |
+| ~Jul - Oct 2025 | -15,916 |
+| ~Oct 2025 - Jan 2026 | +11,278 |
+| ~Jan - Apr 2026 | +137,335 |
+| ~Apr - Jun 2026 | +126 |
+| ~Jun - Sep 2026 (live) | +10,718 |
+| **Total** | **+160,845 (783 trades, 32.3 months, 12 windows)** |
+
+### Caveats -- read before sizing this
+
+- **One window (Jan-Apr 2026) alone is +137,335, more than 85% of the
+  entire 32-month total.** Even with the daily loss limit taming the
+  drawdown side, the *profit* side is still extremely concentrated in one
+  volatile stretch. This is the same "most of the edge is a few extreme
+  windows, not a steady signal" pattern already flagged for crude -- the
+  daily limit manages downside risk, it does not fix concentration.
+  Silver's win rate (29.6%) and PF alone would not look nearly this good
+  without that one window.
+- **24,551 points is still a real drawdown at 1 lot** (~Rs7.4 lakh at
+  pv=30) even after the limit -- not small money.
+- **The 350-point limit was calibrated on this exact backtest's own
+  average daily profit.** It hasn't been sensitivity-tested (e.g. 250 vs
+  350 vs 450) -- treat 350 as a reasonable starting point, not a uniquely
+  correct number.
+- No forward test started for silver; this is backtest-only so far.
+
+---
+
+## 7. Suggested portfolio and what to expect
+
+| Leg | Lots | Trades / month | Expected pts / month | Expected Rs / month | Worst drawdown seen |
+|---|---|---|---|---|---|
+| CrudeOil v4.0, RR4.0 (5m) | 1 | ~26 | +87 | ~Rs8,700 | not yet re-measured |
+| BankNifty v0.4 (5m) | 1 | ~2.5 | +42 | ~Rs1,270 | 1,668 pts = Rs50k |
+| *optional:* BankNifty MTF v1.1 (3m) | 1 | ~2 | +60 | ~Rs1,800 | 482 pts = Rs14.5k |
+| Gold v4.0, COMEX session (5m) | 1 | ~17 | +505 | ~Rs50,500 | not yet measured |
+| Silver v4.0, wide ATR + daily limit (5m) | 1 | ~24 | +4,980 | ~Rs1,49,400 | 24,551 pts = Rs7.4L |
+| **Total** | 4-5 | **~71** | - | **~Rs2,11,700** | legs not simulated together |
+
+"Expected" means the backtest average. Every leg had losing stretches of 3-6
+months, and Gold/Silver's totals lean heavily on 2026's volatility (see
+their caveats above) -- don't extrapolate these Rs/month figures forward
+without discounting for that concentration. Most of the profit across
+*every* leg in this table came from 2-3 strong windows per strategy, not a
+steady drip. **Paper-trade first**, especially Gold and Silver, which have
+no forward test running yet. For crude v4.0, the forward test from 14 Sep
+2026 (running the original RR3.0 config, not the updated RR4.0) will show
+whether its edge is real.
+
+---
+
+## 8. How these numbers were produced
 
 - Tester settings: qty 1 and 0.02% commission per side, about 22 pts per
   round trip on BankNifty. v0.4, MTF and the combined script also include 5
@@ -271,7 +556,14 @@ show whether its edge is real.
   previous one's counting began. Windows that overlapped were thrown away.
   Chained drawdown is exact across windows.
 - **Data floors.** 5m replay starts around 25 Mar 2024 and 3m around 20 Mar
-  2025, so nothing older could be tested at these timeframes.
+  2025 for CrudeOil/BankNifty/Nifty, so nothing older could be tested at
+  these timeframes. **Gold and Silver's 5m floors are earlier, around
+  31 Jan / 21 Feb 2024** -- their walk-forward windows (12 each, 32.3
+  months) run about 2 months longer than crude/BankNifty's (11/5 windows,
+  ~30 months) as a result. Point values: Gold pv=100, Silver pv=30 (same
+  scale as BankNifty), CrudeOil pv=100. Gold/Silver tests use the same
+  0.02%/side commission convention as crude, no added slippage (Silver's
+  daily-loss-limit version also has no added slippage beyond that).
 - **Bugs found and fixed while building the combined BankNifty script.** An
   early result of 131 trades and +3,751 pts in the live window was **wrong**
   and has been replaced.
