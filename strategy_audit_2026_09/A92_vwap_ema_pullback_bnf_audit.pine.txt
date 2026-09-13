@@ -1,0 +1,215 @@
+//@version=5
+// AUDIT COPY of "VWAP-EMA Pullback Intraday Strategy" -- BankNifty only, per user request.
+// Only two changes from the original: (1) added 0.02%/side commission to match this
+// project's standard cost model (the original strategy() call set no commission at all),
+// (2) appended the standard tiled-window AUD block. Every entry/exit/risk rule is untouched.
+strategy("VWAP-EMA Pullback Intraday Strategy", shorttitle = "VWAP-EMA",
+     overlay = true, default_qty_type = strategy.fixed, default_qty_value = 1,
+     pyramiding = 0, calc_on_every_tick = false,
+     commission_type = strategy.commission.percent, commission_value = 0.02)
+
+// --- Trend / Momentum Filter ---
+grpTrend      = "Trend & Momentum Filter"
+emaFastLen    = input.int(9, "Fast EMA Length", minval = 1, group = grpTrend)
+emaSlowLen    = input.int(21, "Slow EMA Length", minval = 1, group = grpTrend)
+slopeLookback = input.int(3, "EMA Slope Lookback (bars)", minval = 1, group = grpTrend)
+minEmaSeparationATR = input.float(0.0, "Min EMA Separation (x ATR)", minval = 0.0, step = 0.05, group = grpTrend)
+adxLen       = input.int(14, "ADX Length", minval = 1, group = grpTrend)
+adxThreshold = input.float(20, "ADX Sideways Threshold", minval = 0, step = 1, group = grpTrend)
+
+// --- Pullback Entry Trigger ---
+grpEntry           = "Pullback Entry"
+pullbackLookback   = input.int(6, "Pullback Touch Validity (bars)", minval = 1, group = grpEntry)
+useRejectionWick  = input.bool(true, "Also Allow Strong Rejection-Wick Entry", group = grpEntry)
+wickRejectionMult = input.float(1.5, "Rejection Wick Size (x candle body)", minval = 0.1, step = 0.1, group = grpEntry)
+
+// --- Risk Management ---
+grpRisk         = "Risk Management"
+swingLookback   = input.int(5, "Swing High/Low Lookback (bars)", minval = 1, group = grpRisk)
+atrLen          = input.int(14, "ATR Length", minval = 1, group = grpRisk)
+atrCapMult      = input.float(1.5, "Max Stop Loss (x ATR)", minval = 0.1, step = 0.1, group = grpRisk)
+rewardRiskRatio = input.float(2.0, "Reward : Risk Ratio", minval = 0.1, step = 0.1, group = grpRisk)
+
+// --- Session ---
+grpSession             = "Session"
+sessionInput           = input.session("0915-1515", "Trading Session (Exchange Time)", group = grpSession)
+flattenMinsBeforeClose = input.int(15, "Flatten Positions X Minutes Before Session Close", minval = 0, group = grpSession)
+orbMinutes = input.int(15, "Opening Range Duration (minutes)", minval = 1, group = grpSession)
+
+// --- Backtest Window (in-sample / out-of-sample split testing only) ---
+grpWindow  = "Backtest Window (testing only)"
+windowStart = input.time(timestamp("2000-01-01T00:00"), "New Entries Allowed From", group = grpWindow)
+windowEnd   = input.time(timestamp("2099-01-01T00:00"), "New Entries Allowed Until", group = grpWindow)
+
+dailyVWAP = ta.vwap(hlc3)
+emaFast   = ta.ema(close, emaFastLen)
+emaSlow   = ta.ema(close, emaSlowLen)
+atrValue  = ta.atr(atrLen)
+
+[diPlus, diMinus, adxValue] = ta.dmi(adxLen, adxLen)
+
+emaFastSlopeUp   = emaFast > emaFast[slopeLookback]
+emaFastSlopeDown = emaFast < emaFast[slopeLookback]
+emaSlowSlopeUp   = emaSlow > emaSlow[slopeLookback]
+emaSlowSlopeDown = emaSlow < emaSlow[slopeLookback]
+
+emaSeparationOk = math.abs(emaFast - emaSlow) >= minEmaSeparationATR * atrValue
+adxOk           = adxValue > adxThreshold
+
+longTrendOk  = close > dailyVWAP and emaFast > emaSlow and emaFastSlopeUp   and emaSlowSlopeUp   and emaSeparationOk and adxOk
+shortTrendOk = close < dailyVWAP and emaFast < emaSlow and emaFastSlopeDown and emaSlowSlopeDown and emaSeparationOk and adxOk
+
+inSession = not na(time(timeframe.period, sessionInput))
+
+sessCloseParts = str.split(sessionInput, "-")
+sessCloseRaw   = str.split(array.get(sessCloseParts, 1), ":")
+sessCloseStr   = array.get(sessCloseRaw, 0)
+sessCloseHour  = int(str.tonumber(str.substring(sessCloseStr, 0, 2)))
+sessCloseMin   = int(str.tonumber(str.substring(sessCloseStr, 2, 4)))
+
+minutesNow     = hour * 60 + minute
+minutesToClose = (sessCloseHour * 60 + sessCloseMin) - minutesNow
+nearClose      = inSession and minutesToClose >= 0 and minutesToClose <= flattenMinsBeforeClose
+
+inTestWindow = time >= windowStart and time <= windowEnd
+
+sessionStart = inSession and not inSession[1]
+
+var float orbHigh   = na
+var float orbLow    = na
+var bool  orbActive = false
+var bool  orbBroken = false
+var int   orbStartTime = na
+
+if sessionStart
+    orbHigh       := high
+    orbLow        := low
+    orbActive     := true
+    orbBroken     := false
+    orbStartTime  := time
+
+minutesSinceOpen = inSession and not na(orbStartTime) ? (time - orbStartTime) / 60000 : na
+
+if inSession and orbActive
+    orbHigh := math.max(orbHigh, high)
+    orbLow  := math.min(orbLow, low)
+    if minutesSinceOpen >= orbMinutes
+        orbActive := false
+
+if inSession and not orbActive and not orbBroken and (close > orbHigh or close < orbLow)
+    orbBroken := true
+
+tradingWindowOk = inSession and not nearClose and inTestWindow and orbBroken
+
+var bool longArmed  = false
+var bool shortArmed = false
+
+if not longTrendOk
+    longArmed := false
+if not shortTrendOk
+    shortArmed := false
+
+if orbBroken and not orbBroken[1]
+    longArmed  := false
+    shortArmed := false
+
+touchedLongBand  = low  <= emaFast or low  <= emaSlow
+touchedShortBand = high >= emaFast or high >= emaSlow
+
+if longTrendOk and touchedLongBand
+    longArmed := true
+if shortTrendOk and touchedShortBand
+    shortArmed := true
+
+barsSinceLongTouch  = ta.barssince(touchedLongBand)
+barsSinceShortTouch = ta.barssince(touchedShortBand)
+
+longTouchRecent  = not na(barsSinceLongTouch)  and barsSinceLongTouch  <= pullbackLookback
+shortTouchRecent = not na(barsSinceShortTouch) and barsSinceShortTouch <= pullbackLookback
+
+bodySize         = math.abs(close - open)
+bullishRejection = useRejectionWick and (close - low)  > wickRejectionMult * bodySize and close > open
+bearishRejection = useRejectionWick and (high - close) > wickRejectionMult * bodySize and close < open
+
+closeBackAboveFast = close > emaFast and close[1] <= emaFast[1]
+closeBackBelowFast = close < emaFast and close[1] >= emaFast[1]
+
+longTriggerCandle  = closeBackAboveFast or bullishRejection
+shortTriggerCandle = closeBackBelowFast or bearishRejection
+
+longEntrySignal  = longArmed  and longTrendOk  and longTouchRecent  and longTriggerCandle
+shortEntrySignal = shortArmed and shortTrendOk and shortTouchRecent and shortTriggerCandle
+
+swingLow  = ta.lowest(low, swingLookback)
+swingHigh = ta.highest(high, swingLookback)
+
+longStopDist  = math.max(math.min(close - swingLow,  atrCapMult * atrValue), syminfo.mintick)
+shortStopDist = math.max(math.min(swingHigh - close, atrCapMult * atrValue), syminfo.mintick)
+
+longStopPrice    = close - longStopDist
+longTargetPrice  = close + longStopDist * rewardRiskRatio
+shortStopPrice   = close + shortStopDist
+shortTargetPrice = close - shortStopDist * rewardRiskRatio
+
+if longEntrySignal and tradingWindowOk and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", from_entry = "Long", stop = longStopPrice, limit = longTargetPrice)
+    longArmed := false
+
+if shortEntrySignal and tradingWindowOk and strategy.position_size == 0
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", from_entry = "Short", stop = shortStopPrice, limit = shortTargetPrice)
+    shortArmed := false
+
+if nearClose or not inSession
+    strategy.close_all(comment = "Session Flatten")
+
+plot(dailyVWAP, "Daily VWAP", color = color.new(color.blue, 0), linewidth = 2)
+plot(emaFast, "EMA Fast", color = color.new(color.teal, 0))
+plot(emaSlow, "EMA Slow", color = color.new(color.orange, 0))
+
+// ===== AUDIT BLOCK (tiled non-overlapping-window walk-forward, same as every other audit) =====
+var int aud_from = na
+if bar_index == 400
+    aud_from := (math.floor(time / 86400000.0) + 1) * 86400000
+var float aud_n = 0.0
+var float aud_w = 0.0
+var float aud_sw = 0.0
+var float aud_sl = 0.0
+var float aud_eq = 0.0
+var float aud_pk = 0.0
+var float aud_mn = 0.0
+var float aud_dd = 0.0
+var float aud_d2 = 0.0
+var float aud_dayP = 0.0
+var int aud_nD = 0
+var int aud_dayStart = 0
+aud_newDay = ta.change(time("D")) != 0
+if aud_newDay
+    if not na(aud_from) and aud_dayStart >= aud_from
+        aud_nD += 1
+        aud_d2 += aud_dayP * aud_dayP
+    aud_dayP := 0.0
+    aud_dayStart := time
+aud_nc = strategy.closedtrades - nz(strategy.closedtrades[1])
+if aud_nc > 0
+    for aud_k = 0 to aud_nc - 1
+        aud_i = strategy.closedtrades - 1 - aud_k
+        if not na(aud_from) and strategy.closedtrades.entry_time(aud_i) >= aud_from
+            aud_sz = math.abs(strategy.closedtrades.size(aud_i))
+            aud_p = strategy.closedtrades.profit(aud_i) / syminfo.pointvalue / (aud_sz > 0 ? aud_sz : 1)
+            aud_n += 1
+            if aud_p > 0
+                aud_w += 1
+                aud_sw += aud_p
+            else
+                aud_sl += aud_p
+            aud_eq += aud_p
+            aud_pk := math.max(aud_pk, aud_eq)
+            aud_mn := math.min(aud_mn, aud_eq)
+            aud_dd := math.max(aud_dd, aud_pk - aud_eq)
+            aud_dayP += aud_p
+if barstate.islastconfirmedhistory or barstate.islast
+    var table aud_t = table.new(position.bottom_center, 1, 1, bgcolor=color.new(color.black, 10))
+    aud_incl = not na(aud_from) and aud_dayStart >= aud_from
+    table.cell(aud_t, 0, 0, "AUD|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(aud_from) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(aud_nD + (aud_incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue) + "|" + str.tostring(aud_n) + "," + str.tostring(aud_w) + "," + str.tostring(aud_sw, "#.#") + "," + str.tostring(aud_sl, "#.#") + "," + str.tostring(aud_dd, "#.#") + "," + str.tostring(aud_d2 + (aud_incl ? aud_dayP * aud_dayP : 0), "#.#") + "," + str.tostring(aud_pk, "#.#") + "," + str.tostring(aud_mn, "#.#"), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
