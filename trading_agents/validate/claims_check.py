@@ -27,7 +27,10 @@ from decimal import Decimal
 
 REQUIRED_SECTIONS = {
     "premarket": ["## Overview", "## Your risk reminders", "## Data notes"],
+    "session_close": ["## Overview", "## How this morning's call did", "## Your trades vs the strategy",
+                      "## Data notes"],
 }
+BIAS_KINDS = {"premarket"}                 # only the pre-market brief states a bias
 BIAS_VALUES = {"bullish", "bearish", "neutral"}
 INSTRUCTION_RE = re.compile(
     r"\b(you should (buy|sell|take|enter)|i (would )?recommend (buying|selling)|go (long|short)|"
@@ -157,7 +160,7 @@ def check(report, facts, kind="premarket"):
     for inst in instruments:
         if not re.search(rf"^## {re.escape(inst)}\b", body, re.M):
             errors.append(f"missing section '## {inst}'")
-        if str(bias.get(inst, "")).lower() not in BIAS_VALUES:
+        if kind in BIAS_KINDS and str(bias.get(inst, "")).lower() not in BIAS_VALUES:
             errors.append(f"bias for {inst} missing or not one of {sorted(BIAS_VALUES)}")
 
     # 5. instructions

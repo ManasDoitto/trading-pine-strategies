@@ -11,7 +11,9 @@ COLS = ["open", "high", "low", "close", "volume"]
 
 def _to_df(data):
     if not isinstance(data, dict) or not data.get("timestamp"):
-        return pd.DataFrame(columns=["time"] + COLS)
+        # keep dtypes so callers can still use .dt on an empty result (e.g. before the open)
+        return pd.DataFrame({"time": pd.Series(dtype="datetime64[ns]"),
+                             **{c: pd.Series(dtype="float64") for c in COLS}})
     df = pd.DataFrame({"time": data["timestamp"], **{c: data.get(c, []) for c in COLS}})
     df["time"] = pd.to_datetime(df["time"], unit="s") + IST_OFFSET
     return df

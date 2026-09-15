@@ -78,7 +78,11 @@ def events_for(underlying, as_of):
 
 def iv_history(as_of, underlying, chain):
     path = data_dir() / "iv_history.csv"
-    rows = list(csv.DictReader(open(path, encoding="utf-8"))) if path.exists() else []
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+    else:
+        rows = []
     iv = chain.get("atm_iv")
     if iv and chain.get("usable"):
         rows = [r for r in rows if not (r["date"] == as_of.isoformat() and r["underlying"] == underlying)]

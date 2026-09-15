@@ -89,6 +89,12 @@ r7_max_strikes_otm = 3
 [journal]
 rolling_sessions = 20
 
+# ---------------------------------------------------------------- session close
+[session_close]
+history_days = 60                  # 5m bars fetched (needed for the v4.0 warm-up)
+signal_match_minutes = 15          # how close your entry must be to a v4.0 signal to count as aligned
+flat_threshold_atr = 0.25          # |close-open| below this x ATR14 = a flat session (scorecard)
+
 # ---------------------------------------------------------------- pre-market
 [premarket]
 history_days = 60                  # 5m bars fetched per underlying (levels, ATR, RV, v4.0 state)
