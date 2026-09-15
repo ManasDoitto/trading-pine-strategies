@@ -1,0 +1,90 @@
+# trading_agents configuration. Option BUYING only, on the four underlyings below.
+
+[paths]
+data_dir = "journal_data"          # relative to repo root, gitignored
+
+# ---------------------------------------------------------------- instruments
+# Option contracts, lot sizes and strike steps are resolved live from the Dhan
+# scrip master (core/instruments.py) -- nothing about expiries is hardcoded here.
+# `underlying_*` = the reference series used for levels/moneyness.
+
+[instruments.BANKNIFTY]
+option_segment = "NSE_FNO"
+option_instrument = "OPTIDX"
+underlying_segment = "IDX_I"
+underlying_instrument = "INDEX"
+underlying_security_id = 25        # BANKNIFTY index (does not roll)
+chain_segment = "IDX_I"
+session = ["09:15", "15:30"]
+tv_symbol = "NSE:BANKNIFTY"
+r7_max_strikes_otm = 3             # 100-pt strikes -> 300 pts
+
+[instruments.CRUDEOIL]
+option_segment = "MCX_COMM"
+option_instrument = "OPTFUT"
+underlying_segment = "MCX_COMM"
+underlying_instrument = "FUTCOM"   # front-month future, resolved from scrip master
+chain_segment = "MCX_COMM"
+lot_size = 100                     # Dhan fill qty units per lot (MCX scrip master reports 1)
+future_max_gap_days = 10           # option expiry -> its underlying future's expiry; larger gap = wrong (expired) future
+session = ["09:00", "23:30"]       # 23:55 when US DST ends (from 2 Nov 2026)
+tv_symbol = "MCX:CRUDEOIL1!"
+r7_max_strikes_otm = 6             # 50-pt strikes -> 300 pts
+
+[instruments.SILVER]
+option_segment = "MCX_COMM"
+option_instrument = "OPTFUT"
+underlying_segment = "MCX_COMM"
+underlying_instrument = "FUTCOM"
+chain_segment = "MCX_COMM"
+lot_size = 30                      # kg -- verify against your first SILVER option fill
+future_max_gap_days = 75           # silver options sit on the next bi-monthly future
+session = ["09:00", "23:30"]
+tv_symbol = "MCX:SILVER1!"
+r7_max_strikes_otm = 5             # 1000-pt strikes
+
+[instruments.SILVERM]
+option_segment = "MCX_COMM"
+option_instrument = "OPTFUT"
+underlying_segment = "MCX_COMM"
+underlying_instrument = "FUTCOM"
+chain_segment = "MCX_COMM"
+lot_size = 5                       # kg -- verify against your first SILVERM option fill
+future_max_gap_days = 75
+session = ["09:00", "23:30"]
+tv_symbol = "MCX:SILVERM1!"
+r7_max_strikes_otm = 5
+
+# ---------------------------------------------------------------- rules
+# Option-buyer rule detectors (core/rules.py). Tune these to your own plan.
+[rules]
+# R1 averaging down: re-buying the same option below the running average entry.
+# Adds within r1_min_gap_minutes of the previous entry are treated as one
+# (sliced) order, not an add.
+r1_min_gap_minutes = 5
+r1_min_drop_pct = 0.0
+
+# R2 overnight hold of a bought option
+r2_enabled = true
+
+# R3 held into the final N calendar days before expiry (across a session close)
+r3_expiry_days = 2
+
+# R4 premium stop not respected: position closed down more than this % of entry premium
+r4_premium_stop_pct = 30.0
+
+# R5 daily realised loss limit, rupees (set to your own number)
+r5_daily_loss_limit_inr = 20000
+
+# R6 overtrading / revenge
+r6_max_positions_per_day = 10
+r6_revenge_window_minutes = 15
+r6_revenge_loss_inr = 5000
+
+# R7 deep-OTM "lottery" buy: at least this many strikes OTM at entry.
+# Fallback only -- each instrument sets its own r7_max_strikes_otm (strike steps differ).
+r7_max_strikes_otm = 3
+
+# ---------------------------------------------------------------- journal
+[journal]
+rolling_sessions = 20

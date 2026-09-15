@@ -5,3 +5,5 @@ screenshots/
 ai_gatekeeper/venv/
 __pycache__/
 *.pyc
+# trading_agents output: real account data, never commit
+journal_data/
