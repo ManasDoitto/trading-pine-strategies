@@ -9,8 +9,8 @@ arithmetic of their own.
 |---|---|---|
 | Trade journal keeper | `/journal` | **Stage 1: built** |
 | Pre-market analyst | `/premarket` | **Stage 2: built** |
-| Session-close analyst | `/session-close` | Stage 3 |
-| Supervisor / validator | wraps all of the above | Stage 4 |
+| Session-close analyst | `/session-close` | **Stage 3: built** |
+| Supervisor / validator | `/supervise`, and wraps all of the above | **Stage 4: built** |
 
 ## Safety
 - `core/dhan_client.py` exposes an allowlist of read methods only. Order placement, modification,
@@ -72,6 +72,28 @@ Chains that fail the quality gates are marked `usable=false`. The silver chains 
 - a number traces to nothing
 - a section or bias is missing
 - the report uses trade-instruction language
+
+## Session close and the scorecard
+```bash
+python -m trading_agents.facts.session_close --session MCX     # after the MCX close
+python -m trading_agents.validate.scorecard --date <date>      # grades the morning's bias
+```
+`/session-close` runs journal → session facts → scorecard → `session-close-analyst` → `claims_check`
+→ `supervisor-validator`. The scorecard accumulates in `journal_data/scorecard.csv` and reports
+running hit rates for both the analyst's bias and the deterministic `rule_bias`.
+
+## Supervision
+```bash
+python -m trading_agents.validate.house_rules <report.md>
+```
+`/supervise <report>` runs `claims_check` and `house_rules`, then the `supervisor-validator` subagent
+judges bias vs evidence, invented signals, unusable chains being quoted, missing approximation labels
+and buried violations. It stamps **PASS / PASS-WITH-EDITS / FAIL** onto the report.
+
+`house_rules` encodes what this repo already tested and rejected (partial TP on v4.0, ADX gates on the
+SHA-flip family, day-of-week skips, loosening v0.4, pullback-reclaim entries, ATR-scaled circuit
+breakers, tuning until a PF target, trailing stops) so no agent re-proposes them. It fires only when a
+rejected idea appears as a recommendation, so describing your own past trades is never flagged.
 
 ## Tests
 ```bash

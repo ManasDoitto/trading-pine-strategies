@@ -37,7 +37,10 @@ INSTRUCTION_RE = re.compile(
     r"enter (a )?(long|short)|place an? (buy|sell)? ?order|(buy|sell) (the )?\d[\d,]*\s*(ce|pe|call|put)s?\b)",
     re.I)
 CLAIMS_RE = re.compile(r"```claims\s*\n(.*?)\n```", re.S)
-STAMP_RE = re.compile(r"\n## Validation\b.*\Z", re.S)
+# replace only our own section, so a later ## Supervisor stamp survives a re-check
+STAMP_RE = re.compile(r"\n## Validation\b.*?(?=\n## |\Z)", re.S)
+# both stamps are tool output, not analyst prose: never scan them for claims
+STRIP_STAMPS_RE = re.compile(r"\n## (?:Validation|Supervisor)\b.*?(?=\n## |\Z)", re.S)
 # a number not glued to letters, dates, times or paths; 5m / R1 / 2026-09-16 / 17:34 are skipped
 NUM_RE = re.compile(r"(?<![\w.:/\-])[-+\u2212]?\d[\d,]*(?:\.\d+)?(?![\w:/\-]|\.\d)")
 SMALL_INT_IGNORE = 10
@@ -95,7 +98,7 @@ def body_numbers(body):
 
 def check(report, facts, kind="premarket"):
     errors, warnings = [], []
-    text = STAMP_RE.sub("", report)
+    text = STRIP_STAMPS_RE.sub("", report)
     blocks = CLAIMS_RE.findall(text)
     if len(blocks) != 1:
         errors.append(f"expected exactly one ```claims block, found {len(blocks)}")

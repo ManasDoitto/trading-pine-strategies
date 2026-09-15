@@ -78,6 +78,15 @@ class ClaimsCheckTest(unittest.TestCase):
         r = check(report(GOOD).replace("## CRUDEOIL", "## Crude"), FACTS)
         self.assertTrue(any("## CRUDEOIL" in e for e in r["errors"]))
 
+    def test_stamp_preserves_a_supervisor_section(self):
+        rep = report(GOOD)
+        once = stamp(rep, check(rep, FACTS))
+        with_sup = once + "\n## Supervisor\n\n**Verdict: PASS** after checking 12,345 numbers\n"
+        twice = stamp(with_sup, check(with_sup, FACTS))
+        self.assertIn("## Supervisor", twice)
+        self.assertEqual(twice.count("## Validation"), 1)
+        self.assertEqual(check(twice, FACTS)["verdict"], "PASS", "supervisor prose must not be scanned")
+
     def test_stamp_replaces_previous(self):
         rep = report(GOOD)
         once = stamp(rep, check(rep, FACTS))

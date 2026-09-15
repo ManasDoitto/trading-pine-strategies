@@ -37,7 +37,12 @@ after 23:30 IST (CRUDEOIL, SILVER, SILVERM).
    On FAIL, send the errors back to the same analyst once (SendMessage to its agent id), ask it to fix
    only those items, and re-run. Never edit its numbers yourself.
 
-6. **Report back** in at most 6 lines: review path, claims_check verdict, per-instrument one-liner,
-   whether this morning's call was right, and anything of yours still open.
+6. **Supervise.** Spawn the `supervisor-validator` subagent with the review path, the facts path and
+   kind `session_close`. It judges the reasoning (invented signals, unusable chains quoted, buried
+   violations, scorecard honesty) and stamps a `## Supervisor` verdict. On FAIL, do one analyst fix
+   pass as in step 5, then re-run the supervisor once.
+
+7. **Report back** in at most 6 lines: review path, claims_check + supervisor verdicts, per-instrument
+   one-liner, whether this morning's call was right, and anything of yours still open.
 
 Everything under `journal_data/` is gitignored real account data. Never `git add` it.

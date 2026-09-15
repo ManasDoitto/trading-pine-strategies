@@ -22,7 +22,12 @@ Arguments are optional. Date defaults to today; session defaults to ALL (it only
    the facts path printed in step 1 (`journal_data/facts/<date>_journal.json`) and the date.
    It writes `journal_data/journal/<date>.md`.
 
-3. **Report back** in at most 5 lines:
+3. **Supervise (optional but preferred).** Spawn the `supervisor-validator` subagent with the journal
+   path (`journal_data/journal/<date>.md`), the facts path and kind `journal`. It checks that the
+   journal's numbers match the facts and that violations aren't buried, then stamps a `## Supervisor`
+   verdict. On FAIL, ask `trade-journal-keeper` to fix only those items once, then re-run it.
+
+4. **Report back** in at most 5 lines:
    - journal path
    - today's realised net ₹
    - number of positions

@@ -27,9 +27,14 @@ description: Build the pre-market brief for option buying on BANKNIFTY / CRUDEOI
    agent id) and ask it to correct only those items. Then re-run step 3. If it still fails, leave
    the FAIL stamp in place. Never hand-edit the analyst's numbers yourself.
 
-5. **Report back** in at most 6 lines:
+5. **Supervise.** Spawn the `supervisor-validator` subagent with the report path, the facts path and
+   kind `premarket`. It re-runs the deterministic checks, judges the reasoning (bias vs evidence,
+   invented signals, unusable chains quoted, buried violations) and stamps a `## Supervisor` verdict.
+   On FAIL, do one analyst fix pass as in step 4, then re-run the supervisor once.
+
+6. **Report back** in at most 6 lines:
    - report path
-   - claims_check verdict
+   - claims_check + supervisor verdicts
    - one line per instrument: bias + key fact
 
 Everything under `journal_data/` is gitignored real account data. Never `git add` it.
