@@ -40,3 +40,11 @@ Source: `strategy_audit_2026_09/v4.0_mcx_naturalgas_gold_silver_results.md`.
   have already caught up), cutting into the same big trend-following
   winners this strategy depends on — same underlying lesson as crude's
   partial-TP result above.
+- **Not separately retested, but rejected by inference 15 Sep 2026:**
+  crude's "pullback-reclaim" continuation entry (see CrudeOil README)
+  failed badly there for a mechanistic reason — the loose "touch EMA9"
+  condition fires on almost every minor dip and floods the strategy with
+  low-quality trades — that applies identically to Silver's SHA-flip
+  family, so it wasn't re-run here. Would need BankNifty v0.4's full
+  quality-filter stack (wick + volume + VWAP + EMA-hold) to be viable,
+  not just the touch condition alone.

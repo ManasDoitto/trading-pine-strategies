@@ -35,3 +35,11 @@ frequency, modest cost to quality" option, not because it beats #1 outright.
   same test window, PF unchanged (~1.8). The manual-trading day-of-week
   pattern does not transfer to this systematic futures signal; don't
   re-apply it here without new evidence.
+- **Not tested — already covered, 15 Sep 2026:** the "pullback-reclaim
+  continuation entry" idea (re-enter after the initial flip/trend-start has
+  passed) was tested on Crude/Silver's SHA-flip family and failed badly
+  there. v0.4 doesn't need this add-on because its core mechanic *already
+  is* a pullback-reclaim design — it tracks pullbacks continuously while
+  in an established regime (not just at the flip moment) and gates them
+  with a wick + volume + VWAP + EMA21-hold quality filter, which is
+  exactly what kept the same idea from being noise on Crude/Silver.

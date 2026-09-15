@@ -34,3 +34,14 @@ structurally distinct alternative, not a tuned variant of #1/#2.
   rate) — capping them early removes exactly what funds the many small
   losses. Don't scale out of this entry mechanic; if partial profit-taking
   is wanted, it needs a structurally different (higher win-rate) entry.
+- **Tested 15 Sep 2026: added a "pullback-reclaim" continuation entry**
+  (catch trend legs after the SHA-flip bar has already passed — price dips
+  to touch EMA9 then next bar reclaims the dip bar's high). Result: badly
+  hurts #1 — PF 1.12→0.80 (combined) / 0.86 (pullback-only), net
+  +36,469→−168,641 / −117,335, trades 72→190. The loose "touch EMA9"
+  condition fires on almost every minor dip and floods the strategy with
+  low-quality trades, crowding out the good flip signals (both variants
+  ended up taking the same 190 trades). BankNifty v0.4's own pullback
+  mechanic avoids this because it requires a rejection wick + above-average
+  volume + VWAP-side + EMA21-hold together, not just a touch — don't
+  re-attempt this without that same quality-filter stack.
