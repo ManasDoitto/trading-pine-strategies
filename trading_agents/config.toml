@@ -74,7 +74,7 @@ r3_expiry_days = 2
 r4_premium_stop_pct = 30.0
 
 # R5 daily realised loss limit, rupees (set to your own number)
-r5_daily_loss_limit_inr = 20000
+r5_daily_loss_limit_inr = 10000
 
 # R6 overtrading / revenge
 r6_max_positions_per_day = 10

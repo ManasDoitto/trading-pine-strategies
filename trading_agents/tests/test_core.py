@@ -163,6 +163,26 @@ class RulesTest(unittest.TestCase):
         self.assertIn("R6", self.check(rows))
 
 
+class ChartTest(unittest.TestCase):
+    def test_svg_candles_markers_and_escaping(self):
+        from datetime import timedelta
+        from trading_agents.core.charts import candles_svg
+        t0 = datetime(2026, 9, 9, 9, 0)
+        bars = [dict(time=t0 + timedelta(minutes=5 * i), open=100 + i, high=102 + i, low=99 + i, close=101 + i)
+                for i in range(30)]
+        svg = candles_svg(bars, "T <&>", markers=[dict(time=t0 + timedelta(minutes=7), price=100.5, side="BUY",
+                                                       label="B 100@100.5")],
+                          vlines=[dict(time=t0 + timedelta(minutes=50), side="SELL", label="S 8000PE @38")])
+        self.assertTrue(svg.startswith("<svg") and svg.endswith("</svg>"))
+        self.assertEqual(svg.count('class="candle"'), 30)
+        self.assertEqual((svg.count('class="marker"'), svg.count('class="fill-line"')), (1, 1))
+        self.assertIn("T &lt;&amp;&gt;", svg)
+
+    def test_empty(self):
+        from trading_agents.core.charts import candles_svg
+        self.assertIsNone(candles_svg([], "x"))
+
+
 class LivePositionTest(unittest.TestCase):
     def test_mcx_lots_and_multiplier(self):
         # real shape seen 2026-09-16: Dhan unrealizedProfit (-597.8) omits the x100 multiplier

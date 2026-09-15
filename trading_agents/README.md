@@ -35,7 +35,9 @@ python -m trading_agents.facts.journal                 # today (live, read-only 
 python -m trading_agents.facts.journal --date 2026-09-09 --no-pull
 ```
 Then `/journal` in Claude Code has the `trade-journal-keeper` subagent write
-`journal_data/journal/<date>.md` and take TradingView snapshots in a separate tab.
+`journal_data/journal/<date>.md`. The charts are SVGs drawn from Dhan 5m bars by `core/charts.py`:
+the underlying with your fill times, and each option with fills at exact prices. TradingView is
+never touched.
 
 Rules flagged (thresholds in `config.toml [rules]`):
 

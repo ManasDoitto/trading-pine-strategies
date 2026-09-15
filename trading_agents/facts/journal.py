@@ -5,11 +5,12 @@ episodes, flag option-buyer rule violations, and write
     journal_data/trades.csv                  (all FIFO round trips)
     journal_data/episodes.csv                (all position episodes)
     journal_data/fills.json                  (de-duplicated raw fill store)
+    journal_data/snapshots/<date>/*.svg      (charts drawn from Dhan 5m bars)
 
 Usage (from repo root):
     python -m trading_agents.facts.journal                        # today, live pull
     python -m trading_agents.facts.journal --date 2026-09-09
-    python -m trading_agents.facts.journal --session MCX          # snapshot MCX charts only
+    python -m trading_agents.facts.journal --session MCX          # chart MCX underlyings only
     python -m trading_agents.facts.journal --import-file X.json   # seed store from an earlier pull
     python -m trading_agents.facts.journal --no-pull              # stored fills only (bars still fetched)
     python -m trading_agents.facts.journal --offline              # no Dhan calls at all
@@ -17,11 +18,12 @@ Usage (from repo root):
 import argparse
 import csv
 import json
+import re
 import sys
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 
-from ..core import instruments, rules, trades
+from ..core import charts, instruments, rules, trades
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
 from ..core.market_data import PriceLookup, intraday_bars
@@ -199,11 +201,56 @@ def violation_cost(violations, eps_by_id, window_ids=None):
     return out
 
 
-def snapshot_symbols(session, traded):
+def chart_underlyings(session, traded):
     inst = load_config()["instruments"]
     wanted = [u for u in inst if session == "ALL" or (session == "NSE") == inst[u]["option_segment"].startswith("NSE")]
-    chosen = [u for u in wanted if u in traded] or [u for u in wanted if u != "SILVERM"]
-    return [dict(underlying=u, tv_symbol=inst[u]["tv_symbol"]) for u in chosen]
+    return [u for u in wanted if u in traded] or [u for u in wanted if u != "SILVERM"]
+
+
+def build_charts(client, as_of, legs, open_eps, session, traded):
+    """SVG charts from Dhan 5m bars (instead of TradingView screenshots): each underlying with
+    today's fill times marked, and each option traded or held today with fills at exact prices."""
+    if client is None:
+        return []
+    out_dir = data_dir(f"snapshots/{as_of}")
+    day_legs = [l for l in legs if l["time"].date() == as_of]
+    last_leg = {l["symbol"]: l for l in legs}
+    out = []
+
+    def day_bars(sid, seg, inst):
+        b = intraday_bars(client, sid, seg, inst, as_of, as_of, interval=5)
+        return b[b["time"].dt.date == as_of]
+
+    def save(name, svg, **info):
+        path = out_dir / f"{re.sub(r'[^A-Za-z0-9_-]+', '_', name)}.svg"
+        path.write_text(svg, encoding="utf-8")
+        out.append(dict(path=path.relative_to(data_dir()).as_posix(), **info))
+
+    for u in chart_underlyings(session, traded):
+        u_legs = [l for l in day_legs if l["underlying"] == u]
+        symbols = list(dict.fromkeys([l["symbol"] for l in u_legs]
+                                     + [e["symbol"] for e in open_eps if e["underlying"] == u]))
+        ref = instruments.reference_series(u, last_leg[symbols[0]]["expiry"] if symbols else None)
+        bars = day_bars(ref["security_id"], ref["segment"], ref["instrument"]) if ref else None
+        if bars is None or bars.empty:
+            out.append(dict(underlying=u, kind="underlying", path=None, note=f"no {u} bars for {as_of}"))
+        else:
+            vl = [dict(time=l["time"], side=l["side"],
+                       label=f"{l['side'][0]} {l['strike']:g}{l['right']} @{l['price']:g}") for l in u_legs]
+            save(f"{u}_underlying", charts.candles_svg(bars, f"{ref['label']}  5m  {as_of}", vlines=vl),
+                 underlying=u, kind="underlying", fills_marked=len(vl))
+        for sym in symbols:
+            leg = last_leg[sym]
+            ob = day_bars(leg["security_id"], leg["segment"], leg["instrument"])
+            if ob.empty:
+                out.append(dict(underlying=u, kind="option", symbol=sym, path=None,
+                                note=f"no premium bars for {as_of} (illiquid or no trades)"))
+                continue
+            mk = [dict(time=l["time"], price=l["price"], side=l["side"], label=f"{l['side'][0]} {l['qty']}@{l['price']:g}")
+                  for l in u_legs if l["symbol"] == sym]
+            save(sym, charts.candles_svg(ob, f"{sym}  premium 5m  {as_of}", markers=mk),
+                 underlying=u, kind="option", symbol=sym, fills_marked=len(mk))
+    return out
 
 
 # ------------------------------------------------------------------ build
@@ -314,7 +361,8 @@ def build(as_of, rows, client, session="ALL"):
             expired_without_exit=[ep_view(e) for e in expired_open],
         ),
         open_positions=[ep_view(e) for e in eps if e["status"] == "OPEN" and not e["expired"]],
-        snapshots=snapshot_symbols(session, {e["underlying"] for e in today_eps}),
+        charts=build_charts(client, as_of, legs, [e for e in eps if e["status"] == "OPEN" and not e["expired"]],
+                            session, {e["underlying"] for e in today_eps}),
         caveats=caveats,
     )
     return facts, rts, eps
