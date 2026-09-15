@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tradingview": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\Manas\\Downloads\\tradingview-mcp-main\\tradingview-mcp-main\\src\\server.js"
+      ]
+    }
+  }
+}

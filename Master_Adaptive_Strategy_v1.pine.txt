@@ -1,0 +1,97 @@
+//@version=5
+// ============================================================================
+// Master Adaptive Strategy v1
+// Synthesized from: bnf v13-bear (Regime/Sweep), crude v1.0 / bnf v0.4 (EMA Pullback)
+// Automatically adapts to trending (ADX >= 25) vs ranging (ADX < 25) regimes.
+// Provides clear Entry, SL, and TP lines on the chart.
+// ============================================================================
+strategy("Master Adaptive Strategy v1", overlay=true, initial_capital=500000, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.02)
+
+// --- Inputs ---
+grp_risk = "Risk Management"
+inp_rr = input.float(3.0, "Reward:Risk Ratio", group=grp_risk, step=0.1)
+inp_sl_atr = input.float(1.5, "Stop Loss ATR Multiplier", group=grp_risk, step=0.1)
+inp_sl_cap = input.int(120, "Stop Loss Hard Cap (Points)", group=grp_risk)
+
+grp_regime = "Regime Filters"
+inp_adx_thresh = input.float(25.0, "15m ADX Trend Threshold", group=grp_regime)
+
+// --- Indicators ---
+atr = ta.atr(14)
+ema9 = ta.ema(close, 9)
+ema21 = ta.ema(close, 21)
+volSma = ta.sma(nz(volume), 20)
+
+// ADX (15m) for Trend vs Range
+[diPlus, diMinus, adx] = request.security(syminfo.tickerid, "15", ta.dmi(14, 14), lookahead=barmerge.lookahead_off)
+isTrending = not na(adx) and adx >= inp_adx_thresh
+isRanging = not na(adx) and adx < inp_adx_thresh
+
+// Macro Trend (8-day SMA)
+macroSma = request.security(syminfo.tickerid, "1D", ta.sma(close[1], 8), lookahead=barmerge.lookahead_off)
+macroBull = close > macroSma
+macroBear = close < macroSma
+
+// Prior Day Levels
+[pdh, pdl] = request.security(syminfo.tickerid, "1D", [high[1], low[1]], lookahead=barmerge.lookahead_off)
+
+// --- Setup A: Trend Pullback (Active in Trending Regime) ---
+// Wick logic
+rng = math.max(high - low, syminfo.mintick)
+lowerWick = (math.min(open, close) - low) >= 0.5 * rng
+upperWick = (high - math.max(open, close)) >= 0.5 * rng
+
+// Long Pullback
+trendPullbackLong = isTrending and macroBull and ema9 > ema21 and low <= ema9 and lowerWick and close > ema21 and volume > volSma
+// Short Pullback
+trendPullbackShort = isTrending and macroBear and ema9 < ema21 and high >= ema9 and upperWick and close < ema21 and volume > volSma
+
+// --- Setup B: Liquidity Sweep Fade (Active in Ranging Regime) ---
+// Long Sweep (sweeps PDL and closes above)
+sweepFadeLong = isRanging and macroBull and low < pdl and close > pdl
+// Short Sweep (sweeps PDH and closes below)
+sweepFadeShort = isRanging and macroBear and high > pdh and close < pdh
+
+// --- Execution Logic ---
+longCondition = trendPullbackLong or sweepFadeLong
+shortCondition = trendPullbackShort or sweepFadeShort
+
+var float sl_level = na
+var float tp_level = na
+
+if longCondition and strategy.position_size == 0
+    sl_raw = close - (atr * inp_sl_atr)
+    sl_level := math.max(sl_raw, close - inp_sl_cap) // Cap the max SL loss
+    tp_level := close + ((close - sl_level) * inp_rr)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", from_entry="Long", stop=sl_level, limit=tp_level)
+
+if shortCondition and strategy.position_size == 0
+    sl_raw = close + (atr * inp_sl_atr)
+    sl_level := math.min(sl_raw, close + inp_sl_cap)
+    tp_level := close - ((sl_level - close) * inp_rr)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", from_entry="Short", stop=sl_level, limit=tp_level)
+
+// Flatten at EOD (15:15 IST)
+inFlat = not na(time(timeframe.period, "1515-1530"))
+if inFlat
+    strategy.close_all(comment="EOD Flat")
+    sl_level := na
+    tp_level := na
+
+if strategy.position_size == 0
+    sl_level := na
+    tp_level := na
+
+// --- Visuals ---
+plot(ema9, "EMA9", color=color.aqua)
+plot(ema21, "EMA21", color=color.orange)
+plot(macroSma, "8D SMA", color=color.yellow, linewidth=2)
+
+// Plot Entry, SL, TP levels only when in a trade
+plot(strategy.position_size != 0 ? strategy.opentrades.entry_price(0) : na, "Entry", color=color.blue, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? sl_level : na, "Stop Loss", color=color.red, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tp_level : na, "Target", color=color.green, style=plot.style_linebr, linewidth=2)
+
+bgcolor(isTrending ? color.new(color.green, 90) : isRanging ? color.new(color.red, 90) : na, title="Regime Background")

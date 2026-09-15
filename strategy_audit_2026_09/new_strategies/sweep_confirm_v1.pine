@@ -1,0 +1,75 @@
+//@version=6
+strategy("Sweep + Confirm (EMA/VWAP)", overlay=true, calc_on_every_tick=false,
+         initial_capital=10000000, default_qty_type=strategy.fixed, default_qty_value=1,
+         commission_type=strategy.commission.percent, commission_value=0.02,
+         pyramiding=0)
+
+// ─── Inputs ───────────────────────────────────────────
+i_emaFast   = input.int(9,      "Fast EMA",                minval=2)
+i_emaSlow   = input.int(22,     "Slow EMA",                minval=2)
+i_atrLen    = input.int(14,     "ATR Length",               minval=1)
+i_atrBuf    = input.float(0.15, "Stop ATR Buffer",         step=0.05)
+i_rr        = input.float(1.5,  "Risk : Reward",           step=0.5, minval=0.5)
+i_session   = input.session("0915-2330", "Trading Session (exchange TZ)")
+i_useTimeFilt = input.bool(true, "Use Time Filter")
+i_useEma9Filt = input.bool(true, "Use EMA9 Filter")
+
+// ─── Core Indicators ─────────────────────────────────
+ema9     = ta.ema(close, i_emaFast)
+ema22    = ta.ema(close, i_emaSlow)
+vwapLine = ta.vwap
+atr      = ta.atr(i_atrLen)
+
+// ─── Regime (continuous, not cross-only) ─────────────
+bool bullRegime = ema9 > ema22
+bool bearRegime = ema9 < ema22
+
+// ─── Session Filter ──────────────────────────────────
+bool inSession = not na(time(timeframe.period, i_session))
+
+// ─── Sweep Detection (on THIS bar) ──────────────────
+//  Bull: in bullish regime, low dips below ANY of EMA22 / VWAP
+bool bullSweepBar = bullRegime and (low < ema22 or (not na(vwapLine) and low < vwapLine))
+//  Bear: in bearish regime, high pokes above ANY of EMA22 / VWAP
+bool bearSweepBar = bearRegime and (high > ema22 or (not na(vwapLine) and high > vwapLine))
+
+// ─── 1-Bar Confirmation (strict: next bar or nothing) ─
+//  Bull: previous bar was a sweep, THIS bar closes above the sweep bar's high
+bool bullConfirm = bullSweepBar[1] and close > high[1]
+//  Bear: previous bar was a sweep, THIS bar closes below the sweep bar's low
+bool bearConfirm = bearSweepBar[1] and close < low[1]
+
+// ─── Tweak 2: No long below 9EMA, no short above 9EMA
+if i_useEma9Filt
+    bullConfirm := bullConfirm and close > ema9
+    bearConfirm := bearConfirm and close < ema9
+
+// ─── Entry + Exit ────────────────────────────────────
+if bullConfirm and strategy.position_size == 0 and inSession
+    float sl   = low[1] - atr * i_atrBuf        // sweep candle's low − buffer
+    float risk = close - sl
+    float tp   = close + risk * i_rr
+    strategy.entry("Long", strategy.long)
+    strategy.exit("XL", "Long", stop=sl, limit=tp)
+
+if bearConfirm and strategy.position_size == 0 and inSession
+    float sl   = high[1] + atr * i_atrBuf       // sweep candle's high + buffer
+    float risk = sl - close
+    float tp   = close - risk * i_rr
+    strategy.entry("Short", strategy.short)
+    strategy.exit("XS", "Short", stop=sl, limit=tp)
+
+// ─── Flat by Session End ─────────────────────────────
+if strategy.position_size != 0 and not inSession
+    strategy.close_all("Session End")
+
+// ─── Plots ───────────────────────────────────────────
+plot(ema9,     "EMA9",  color=color.new(color.orange, 0), linewidth=1)
+plot(ema22,    "EMA22", color=color.new(color.blue,   0), linewidth=1)
+plot(vwapLine, "VWAP",  color=color.new(color.purple, 60), style=plot.style_circles)
+
+// Visual markers on confirmation bars
+plotshape(bullConfirm and inSession, "Bull Confirm", shape.triangleup,
+          location.belowbar, color.new(color.green, 0), size=size.small)
+plotshape(bearConfirm and inSession, "Bear Confirm", shape.triangledown,
+          location.abovebar, color.new(color.red, 0),   size=size.small)

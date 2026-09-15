@@ -1,0 +1,17 @@
+//@version=6
+strategy("Strat 16: Ichimoku Cloud Breakout", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+conversionPeriods = 9
+basePeriods = 26
+laggingSpan2Periods = 52
+displacement = 26
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+atr = ta.atr(14)
+
+long_cond = close > leadLine1[displacement-1] and close > leadLine2[displacement-1] and close[1] <= math.max(leadLine1[displacement-1], leadLine2[displacement-1])
+if (long_cond)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*2, limit=close + atr*4)

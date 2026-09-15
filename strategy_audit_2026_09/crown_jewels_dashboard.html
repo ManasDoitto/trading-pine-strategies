@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crown Jewels — Final Strategy Audit</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .metric-row:nth-child(even) { background-color: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen p-4 md:p-10">
+
+<div class="max-w-6xl mx-auto">
+
+  <header class="mb-8">
+    <p class="text-amber-400 text-xs font-semibold tracking-widest uppercase mb-2">Final Definitive Audit — 13 Sep 2026</p>
+    <h1 class="text-3xl md:text-4xl font-bold text-white">Crown Jewels</h1>
+    <p class="text-slate-400 text-sm mt-2 max-w-3xl">
+      Two winners, chosen strictly by data: every CrudeOil and BankNifty strategy in the repository with a
+      deep, tiled non-overlapping walk-forward audit (24&ndash;30 months, spanning Mar 2024 &rarr; Sep 2026)
+      was filtered to Profit Factor &gt; 1.15, then ranked by total points captured among survivors.
+    </p>
+  </header>
+
+  <!-- Crown Jewels header cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <div class="bg-gradient-to-br from-amber-500/10 to-slate-900 border border-amber-500/30 rounded-2xl p-6">
+      <p class="text-amber-400 text-xs font-semibold uppercase tracking-wide mb-1">🏆 CrudeOil Winner</p>
+      <h2 class="text-xl font-bold text-white leading-snug">SMC Liquidity Sweep + FVG v1.2</h2>
+      <p class="text-slate-400 text-sm mt-1"><span class="text-slate-300 font-medium">swingLen = 10</span> (v1.2 default) &middot; 5-minute chart &middot; MCX:CRUDEOIL1!</p>
+      <div class="mt-4 flex gap-4">
+        <div><div class="text-2xl font-bold text-emerald-400">1.25</div><div class="text-xs text-slate-500">Profit Factor</div></div>
+        <div><div class="text-2xl font-bold text-white">+655</div><div class="text-xs text-slate-500">Net points</div></div>
+        <div><div class="text-2xl font-bold text-white">454</div><div class="text-xs text-slate-500">Max DD (pts)</div></div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-amber-500/10 to-slate-900 border border-amber-500/30 rounded-2xl p-6">
+      <p class="text-amber-400 text-xs font-semibold uppercase tracking-wide mb-1">🏆 BankNifty Winner</p>
+      <h2 class="text-xl font-bold text-white leading-snug">EMA Pullback v0.4 + 15m ADX Gate</h2>
+      <p class="text-slate-400 text-sm mt-1"><span class="text-slate-300 font-medium">htfAdxMin = 25</span> &middot; 5-minute chart &middot; NSE:BANKNIFTY1!</p>
+      <div class="mt-4 flex gap-4">
+        <div><div class="text-2xl font-bold text-emerald-400">1.33</div><div class="text-xs text-slate-500">Profit Factor</div></div>
+        <div><div class="text-2xl font-bold text-white">+1,403</div><div class="text-xs text-slate-500">Net points</div></div>
+        <div><div class="text-2xl font-bold text-white">1,620</div><div class="text-xs text-slate-500">Max DD (pts)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exclusion notice -->
+  <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-8 text-sm text-slate-400">
+    <span class="text-slate-300 font-semibold">Note on scope:</span>
+    the new VWAP-EMA Pullback + ORB/ADX script ("VWAP Reject"), Master Adaptive v1, and v4.0 SHA-flip RR3 were all
+    evaluated and did not survive. v4.0 (PF 1.09) and every crude v0&ndash;v2.3 variant fall short of the PF&gt;1.15 bar
+    over the full 29.7-month audit. The new ORB/ADX script has no comparable multi-year audit yet &mdash; a partial
+    2024 check run this session showed it losing (PF 0.70 and 0.74 in two 2024 windows) despite strong 2026 numbers,
+    so it was excluded rather than crowned on incomplete data. Master Adaptive v2 (PF 0.93) is documented as losing
+    over the same 11 windows.
+  </div>
+
+  <!-- Metrics grids -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/50">
+        <h3 class="font-semibold text-white">CrudeOil — SMC Sweep + FVG v1.2</h3>
+      </div>
+      <table class="w-full text-sm">
+        <tbody id="crude-metrics"></tbody>
+      </table>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/50">
+        <h3 class="font-semibold text-white">BankNifty — EMA Pullback v0.4</h3>
+      </div>
+      <table class="w-full text-sm">
+        <tbody id="bnf-metrics"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Chart -->
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-8">
+    <h3 class="font-semibold text-white mb-1">Win Rate vs Profit Factor</h3>
+    <p class="text-xs text-slate-500 mb-4">Two axes: Win% (left, bars) and Profit Factor (right, bars) — different scales, same category.</p>
+    <div class="h-72">
+      <canvas id="compareChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Logic summaries -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-2">What drives the edge — CrudeOil</h3>
+      <p class="text-sm text-slate-400 leading-relaxed">
+        <span class="text-slate-200 font-medium">Liquidity sweep + Fair Value Gap reclaim, filtered by macro trend.</span>
+        Finds a swing pivot (10 bars each side) or the prior day's high/low, waits for price to sweep through it
+        (a stop-hunt wick beyond the level), then requires a displacement candle within 5 bars whose range clears
+        0.8&times; ATR(14) — the FVG. A sweep against the macro trend is discarded outright. Entry triggers on the
+        pullback into that FVG within 10 bars. Stop sits beyond the sweep wick plus a 0.2&times;ATR buffer; target is
+        either the opposing liquidity pool or a chandelier trail. Tested with the US session filter (1730&ndash;2330 IST).
+      </p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-2">What drives the edge — BankNifty</h3>
+      <p class="text-sm text-slate-400 leading-relaxed">
+        <span class="text-slate-200 font-medium">EMA pullback with a VWAP-side + volume reclaim gate, plus a
+        higher-timeframe trend-strength filter.</span> Price must pull back to EMA21 while EMA9 &gt; EMA21 (or the
+        inverse), holding VWAP-side, with a rejection wick and above-average volume on the reclaim candle, and the
+        two fast EMAs at least 0.4&times;ATR(14) apart. The distinguishing gate versus every earlier variant:
+        the <span class="text-slate-200">previous completed 15-minute ADX(14) must be &ge; 25</span> — a real,
+        already-confirmed trend on the higher timeframe, not a same-bar lookahead. Session 0930&ndash;1500 IST,
+        forced flat 1515&ndash;1530.
+      </p>
+    </div>
+  </div>
+
+  <footer class="text-xs text-slate-500 pb-8 leading-relaxed">
+    Points are per lot/contract (P&amp;L &divide; syminfo.pointvalue). Costs: 1 lot, 0.02% commission per side, no
+    added slippage. Both winners audited on the same tiled non-overlapping-window walk-forward method: CrudeOil 11
+    windows / 29.7 months (Mar 2024 &rarr; Sep 2026), BankNifty 5 windows / 30.2 months (Mar 2024 &rarr; Sep 2026).
+    Source: <code>strategy_audit_2026_09/best_2yr_analysis.md</code>,
+    <code>smc_liquidity_sweep_fvg_v1.2_results.md</code>, and <code>index.html</code>'s consolidated dataset — all
+    pre-existing audits from this repository, not re-run for this dashboard.
+    CrudeOil avg win/loss (+33.4 / &minus;32.75 pts) is <em>derived</em> from PF, net points and win rate — not a
+    directly logged figure. Max DD % uses an illustrative per-lot margin (CrudeOil &asymp;&#8377;65,000, BankNifty
+    &asymp;&#8377;1,70,000) — indicative only, not part of the audit data, and varies by broker and date.
+    A shorter-sample alternative exists for BankNifty on 3-minute (MTF v1.1, PF 1.69, +1,170 pts) but was excluded:
+    3m data only reaches back ~18.4 months, short of the 24-month bar every other row here clears.
+    "Profitability by time of day" was not captured in any existing audit for either winner — would require a new
+    instrumented test run to produce.
+  </footer>
+
+</div>
+
+<script>
+const crude = {
+  points: 655, pf: 1.25, winRate: 55.3, trades: 178, wins: 98, losses: 80,
+  maxDDpts: 454, maxDDinr: 454 * 100, maxDDpct: (454 / 65000 * 100),
+  avgWin: 33.4, avgLoss: -32.75, windowsPos: "6 / 11", months: 29.7, pv: 100
+};
+const bnf = {
+  points: 1403, pf: 1.33, winRate: 41.9, trades: 74, wins: 31, losses: 43,
+  maxDDpts: 1620, maxDDinr: 1620 * 30, maxDDpct: (1620 * 30 / 170000 * 100),
+  avgWin: 185, avgLoss: -100, windowsPos: "3 / 5", months: 30.2, pv: 30
+};
+
+function fmt(n, d=0){ return n.toLocaleString('en-IN', {maximumFractionDigits:d, minimumFractionDigits:d}); }
+function inr(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+function renderMetrics(tbodyId, d, isDerived){
+  const rows = [
+    ['Total Points Captured', `+${fmt(d.points)} pts <span class="text-slate-500">(${inr(d.points*d.pv)})</span>`],
+    ['Profit Factor', fmt(d.pf,2)],
+    ['Win Rate', `${fmt(d.winRate,1)}% <span class="text-slate-500">(${d.wins}W / ${d.losses}L of ${d.trades})</span>`],
+    ['Max Drawdown', `${fmt(d.maxDDpts)} pts &middot; ${inr(d.maxDDinr)} <span class="text-slate-500">(&asymp;${fmt(d.maxDDpct,1)}% of illustrative margin)</span>`],
+    ['Total Trades', `${d.trades} <span class="text-slate-500">(over ${d.months} months)</span>`],
+    ['Avg Winning Trade', `+${fmt(d.avgWin,1)} pts${isDerived ? ' <span class="text-amber-500/80">(derived)</span>' : ''}`],
+    ['Avg Losing Trade', `${fmt(d.avgLoss,1)} pts${isDerived ? ' <span class="text-amber-500/80">(derived)</span>' : ''}`],
+    ['Windows Positive', d.windowsPos],
+    ['Profitability by Time of Day', '<span class="text-slate-500">Not available — no existing audit captured this breakdown</span>'],
+  ];
+  document.getElementById(tbodyId).innerHTML = rows.map(([label, val], i) => `
+    <tr class="metric-row">
+      <td class="px-5 py-2.5 text-slate-400">${label}</td>
+      <td class="px-5 py-2.5 text-right text-slate-100 font-medium">${val}</td>
+    </tr>`).join('');
+}
+renderMetrics('crude-metrics', crude, true);
+renderMetrics('bnf-metrics', bnf, false);
+
+new Chart(document.getElementById('compareChart'), {
+  type: 'bar',
+  data: {
+    labels: ['CrudeOil — SMC v1.2', 'BankNifty — v0.4'],
+    datasets: [
+      {
+        label: 'Win Rate %',
+        data: [crude.winRate, bnf.winRate],
+        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+        yAxisID: 'y',
+        borderRadius: 4,
+      },
+      {
+        label: 'Profit Factor',
+        data: [crude.pf, bnf.pf],
+        backgroundColor: 'rgba(251, 191, 36, 0.8)',
+        yAxisID: 'y1',
+        borderRadius: 4,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        type: 'linear', position: 'left', min: 0, max: 100,
+        title: { display: true, text: 'Win Rate (%)', color: '#94a3b8' },
+        grid: { color: 'rgba(148,163,184,0.08)' },
+        ticks: { color: '#94a3b8' }
+      },
+      y1: {
+        type: 'linear', position: 'right', min: 0, max: 2,
+        title: { display: true, text: 'Profit Factor', color: '#94a3b8' },
+        grid: { display: false },
+        ticks: { color: '#94a3b8' }
+      },
+      x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+    },
+    plugins: {
+      legend: { labels: { color: '#cbd5e1' } }
+    }
+  }
+});
+</script>
+
+</body>
+</html>

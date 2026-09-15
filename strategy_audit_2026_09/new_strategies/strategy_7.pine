@@ -1,0 +1,16 @@
+//@version=6
+strategy("Strat 7: ADX Trend Continuation", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+[diplus, diminus, adx] = ta.dmi(14, 14)
+ema = ta.ema(close, 50)
+
+long_cond = adx > 25 and diplus > diminus and close > ema and close[1] < ema[1]
+short_cond = adx > 25 and diminus > diplus and close < ema and close[1] > ema[1]
+
+atr = ta.atr(14)
+if (long_cond)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*1.5, limit=close + atr*3)
+
+if (short_cond)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=close + atr*1.5, limit=close - atr*3)

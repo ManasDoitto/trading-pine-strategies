@@ -1,0 +1,49 @@
+//@version=5
+strategy("Strat 1: 15m Trend + 3m Micro-Pullback", overlay=true, calc_on_every_tick=false, initial_capital=100000, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.02)
+
+// --- Inputs ---
+i_htf = input.timeframe("15", "Trend Timeframe")
+i_emaFast = input.int(9, "HTF Fast EMA")
+i_emaSlow = input.int(21, "HTF Slow EMA")
+i_emaPullback = input.int(21, "LTF Pullback EMA")
+i_atrLen = input.int(14, "ATR Length")
+i_rr = input.float(3.0, "Risk:Reward")
+
+// --- HTF Trend Filter ---
+htf_emaFast = request.security(syminfo.tickerid, i_htf, ta.ema(close, i_emaFast))
+htf_emaSlow = request.security(syminfo.tickerid, i_htf, ta.ema(close, i_emaSlow))
+bool htf_bullish = htf_emaFast > htf_emaSlow
+bool htf_bearish = htf_emaFast < htf_emaSlow
+
+// --- LTF Conditions ---
+emaPB = ta.ema(close, i_emaPullback)
+// Engulfing conditions
+bullEngulfing = close > open and open <= close[1] and close > open[1] and open[1] > close[1]
+bearEngulfing = close < open and open >= close[1] and close < open[1] and open[1] < close[1]
+
+// Touch EMA
+touchEMA_bull = low <= emaPB and close >= emaPB
+touchEMA_bear = high >= emaPB and close <= emaPB
+
+bool longSetup = htf_bullish and touchEMA_bull and bullEngulfing
+bool shortSetup = htf_bearish and touchEMA_bear and bearEngulfing
+
+// --- Trade Execution ---
+atr = ta.atr(i_atrLen)
+
+var float sl = na
+var float tp = na
+
+if longSetup and strategy.position_size == 0
+    sl := low - atr
+    tp := close + (close - sl) * i_rr
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit L", "Long", stop=sl, limit=tp)
+
+if shortSetup and strategy.position_size == 0
+    sl := high + atr
+    tp := close - (sl - close) * i_rr
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit S", "Short", stop=sl, limit=tp)
+
+plot(emaPB, "Pullback EMA", color=color.blue)

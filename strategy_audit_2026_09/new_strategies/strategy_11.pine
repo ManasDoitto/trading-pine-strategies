@@ -1,0 +1,12 @@
+//@version=6
+strategy("Strat 11: Order Block Retest", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+atr = ta.atr(14)
+bull_ob = close > open and close[1] < open[1] and volume > ta.sma(volume, 20)*1.5
+var float ob_low = na
+if (bull_ob)
+    ob_low := low[1]
+
+retest = low < ob_low and close > ob_low
+if (retest)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=low - atr, limit=close + atr*3)
