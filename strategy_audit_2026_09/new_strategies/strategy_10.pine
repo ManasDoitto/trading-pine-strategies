@@ -1,0 +1,26 @@
+//@version=6
+strategy("Strat 10: Failed Auction IB Fade", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+ib_time = input("0915-1015", "Initial Balance Time")
+in_ib = not na(time(timeframe.period, ib_time))
+
+var float ib_high = na
+var float ib_low = na
+
+if (in_ib and not in_ib[1])
+    ib_high := high
+    ib_low := low
+else if (in_ib)
+    ib_high := math.max(ib_high, high)
+    ib_low := math.min(ib_low, low)
+
+atr = ta.atr(14)
+failed_break_high = high > ib_high and close < ib_high
+failed_break_low = low < ib_low and close > ib_low
+
+if (failed_break_high and not in_ib)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=high + atr, limit=close - atr*3)
+
+if (failed_break_low and not in_ib)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=low - atr, limit=close + atr*3)

@@ -1,2 +1,7 @@
 screenshots/
 *.png
+.env
+.dhan_credentials
+ai_gatekeeper/venv/
+__pycache__/
+*.pyc

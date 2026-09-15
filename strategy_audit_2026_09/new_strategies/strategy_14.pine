@@ -1,0 +1,16 @@
+//@version=6
+strategy("Strat 14: Bollinger Band Squeeze", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+length = 20
+mult = 2.0
+basis = ta.sma(close, length)
+dev = mult * ta.stdev(close, length)
+upper = basis + dev
+lower = basis - dev
+bb_width = (upper - lower) / basis
+squeeze = bb_width < ta.lowest(bb_width[1], 50)
+atr = ta.atr(14)
+
+long_cond = squeeze[1] and close > upper
+if (long_cond)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*2, limit=close + atr*4)

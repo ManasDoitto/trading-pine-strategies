@@ -1,0 +1,29 @@
+//@version=5
+strategy("Strat 3: ORB with Fakeout Filter", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+start_time = input("0915-0945", "Opening Range Time")
+sl_atr_mult = input.float(1.5, "Stop Loss ATR Multiplier")
+tp_atr_mult = input.float(3.0, "Take Profit ATR Multiplier")
+
+in_session = time(timeframe.period, start_time)
+var float orb_high = na
+var float orb_low = na
+
+if (in_session and not in_session[1])
+    orb_high := high
+    orb_low := low
+else if (in_session)
+    orb_high := math.max(orb_high, high)
+    orb_low := math.min(orb_low, low)
+
+atr = ta.atr(14)
+fakeout_long = low < orb_low and close > orb_low
+fakeout_short = high > orb_high and close < orb_high
+
+if (fakeout_long and not in_session)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr * sl_atr_mult, limit=close + atr * tp_atr_mult)
+
+if (fakeout_short and not in_session)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=close + atr * sl_atr_mult, limit=close - atr * tp_atr_mult)

@@ -1,0 +1,9 @@
+//@version=6
+strategy("Strat 12: MACD Divergence", overlay=false, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+[macdLine, signalLine, histLine] = ta.macd(close, 12, 26, 9)
+atr = ta.atr(14)
+
+bull_div = low < ta.lowest(low[1], 20) and macdLine > ta.lowest(macdLine[1], 20)
+if (bull_div)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=low - atr, limit=close + atr*3)

@@ -1,0 +1,11 @@
+//@version=6
+strategy("Strat 6: VCP Breakout", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+vol_ma = ta.sma(volume, 20)
+vcp = ta.highest(high, 50) - ta.lowest(low, 50)
+vcp_narrow = (high - low) < (vcp * 0.2) and volume < vol_ma * 0.5
+breakout = close > ta.highest(high[1], 20) and volume > vol_ma * 1.5
+
+atr = ta.atr(14)
+if (vcp_narrow[1] and breakout)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*2, limit=close + atr*4)

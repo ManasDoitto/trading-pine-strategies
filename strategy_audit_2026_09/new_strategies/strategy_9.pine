@@ -1,0 +1,17 @@
+//@version=6
+strategy("Strat 9: ATR Trailing Stop Momentum", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+atr = ta.atr(14)
+mult = 3.0
+var float trailing_stop = na
+
+if (close > ta.ema(close, 50))
+    trailing_stop := math.max(nz(trailing_stop, close - atr * mult), close - atr * mult)
+    if (close > trailing_stop)
+        strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=trailing_stop)
+
+if (close < ta.ema(close, 50))
+    trailing_stop := math.min(nz(trailing_stop, close + atr * mult), close + atr * mult)
+    if (close < trailing_stop)
+        strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=trailing_stop)

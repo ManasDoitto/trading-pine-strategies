@@ -1,0 +1,240 @@
+//@version=5
+strategy("VWAP-EMA Pullback Intraday Strategy", shorttitle = "VWAP-EMA",
+     overlay = true, default_qty_type = strategy.fixed, default_qty_value = 1,
+     pyramiding = 0, calc_on_every_tick = false)
+
+// =============================================================================
+// PURPOSE
+// A mechanical, symbol-agnostic intraday strategy: Daily VWAP sets the
+// institutional bias, a fast/slow EMA pair confirms momentum, and entries are
+// only taken on a pullback into the EMA band followed by a rejection back in
+// the trend direction. Designed to be dropped onto indices, commodities or FX
+// on a 3m/5m chart without per-symbol tuning.
+//
+// Two chop filters protect entries from range-bound conditions:
+//  - Opening Range Filter: no entries until price closes outside the first
+//    N minutes' high/low, then entries unlock for the rest of the session.
+//  - ADX Filter: entries require ADX above a configurable threshold, so
+//    sideways EMA whipsaws don't generate trades.
+// =============================================================================
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+
+// --- Trend / Momentum Filter ---
+grpTrend      = "Trend & Momentum Filter"
+emaFastLen    = input.int(9, "Fast EMA Length", minval = 1, group = grpTrend)
+emaSlowLen    = input.int(21, "Slow EMA Length", minval = 1, group = grpTrend)
+slopeLookback = input.int(3, "EMA Slope Lookback (bars)", minval = 1,
+     tooltip = "An EMA counts as sloping up/down only if it is above/below its own value this many bars ago.",
+     group = grpTrend)
+minEmaSeparationATR = input.float(0.0, "Min EMA Separation (x ATR)", minval = 0.0, step = 0.05,
+     tooltip = "Fast and slow EMA must be at least this many ATRs apart to trade, filtering out choppy/weak-trend periods. 0 disables the filter.",
+     group = grpTrend)
+adxLen       = input.int(14, "ADX Length", minval = 1, group = grpTrend)
+adxThreshold = input.float(20, "ADX Sideways Threshold", minval = 0, step = 1,
+     tooltip = "ADX must be strictly above this level to allow an entry. Raise it to demand a stronger trend; lower it to allow more (weaker) setups.",
+     group = grpTrend)
+
+// --- Pullback Entry Trigger ---
+grpEntry           = "Pullback Entry"
+pullbackLookback   = input.int(6, "Pullback Touch Validity (bars)", minval = 1,
+     tooltip = "A touch of the EMA band must be followed by a trigger candle within this many bars, or the setup expires.",
+     group = grpEntry)
+useRejectionWick  = input.bool(true, "Also Allow Strong Rejection-Wick Entry", group = grpEntry)
+wickRejectionMult = input.float(1.5, "Rejection Wick Size (x candle body)", minval = 0.1, step = 0.1,
+     group = grpEntry)
+
+// --- Risk Management ---
+grpRisk         = "Risk Management"
+swingLookback   = input.int(5, "Swing High/Low Lookback (bars)", minval = 1, group = grpRisk)
+atrLen          = input.int(14, "ATR Length", minval = 1, group = grpRisk)
+atrCapMult      = input.float(1.5, "Max Stop Loss (x ATR)", minval = 0.1, step = 0.1,
+     tooltip = "Hard cap on stop distance regardless of where the swing high/low sits.", group = grpRisk)
+rewardRiskRatio = input.float(2.0, "Reward : Risk Ratio", minval = 0.1, step = 0.1, group = grpRisk)
+
+// --- Session ---
+grpSession             = "Session"
+sessionInput           = input.session("0915-1515", "Trading Session (Exchange Time)", group = grpSession)
+flattenMinsBeforeClose = input.int(15, "Flatten Positions X Minutes Before Session Close",
+     minval = 0, group = grpSession)
+orbMinutes = input.int(15, "Opening Range Duration (minutes)", minval = 1, group = grpSession,
+     tooltip = "No entries are allowed while price is inside the high/low of this opening window. Once price closes outside it, entries unlock for the rest of the session.")
+
+// --- Backtest Window (in-sample / out-of-sample split testing only) ---
+grpWindow  = "Backtest Window (testing only)"
+windowStart = input.time(timestamp("2000-01-01T00:00"), "New Entries Allowed From", group = grpWindow,
+     tooltip = "Restricts new entries to this date range, for in-sample/out-of-sample split testing. Leave at defaults to disable.")
+windowEnd   = input.time(timestamp("2099-01-01T00:00"), "New Entries Allowed Until", group = grpWindow)
+
+// ============================================================================
+// INDICATORS
+// ============================================================================
+
+dailyVWAP = ta.vwap(hlc3)          // resets every new session (day) automatically
+emaFast   = ta.ema(close, emaFastLen)
+emaSlow   = ta.ema(close, emaSlowLen)
+atrValue  = ta.atr(atrLen)
+
+[diPlus, diMinus, adxValue] = ta.dmi(adxLen, adxLen)
+
+// ============================================================================
+// TREND FILTER — Daily VWAP side + EMA stack + EMA slope
+// ============================================================================
+
+emaFastSlopeUp   = emaFast > emaFast[slopeLookback]
+emaFastSlopeDown = emaFast < emaFast[slopeLookback]
+emaSlowSlopeUp   = emaSlow > emaSlow[slopeLookback]
+emaSlowSlopeDown = emaSlow < emaSlow[slopeLookback]
+
+emaSeparationOk = math.abs(emaFast - emaSlow) >= minEmaSeparationATR * atrValue
+adxOk           = adxValue > adxThreshold          // ADX must show real trend strength, not chop
+
+longTrendOk  = close > dailyVWAP and emaFast > emaSlow and emaFastSlopeUp   and emaSlowSlopeUp   and emaSeparationOk and adxOk
+shortTrendOk = close < dailyVWAP and emaFast < emaSlow and emaFastSlopeDown and emaSlowSlopeDown and emaSeparationOk and adxOk
+
+// ============================================================================
+// SESSION WINDOW — trading hours + a flatten buffer before the close
+// ============================================================================
+
+inSession = not na(time(timeframe.period, sessionInput))
+
+// Pull the session's closing "hhmm" out of an input like "0915-1515" or
+// "0915-1515:23456" so the flatten buffer works for any session string.
+sessCloseParts = str.split(sessionInput, "-")
+sessCloseRaw   = str.split(array.get(sessCloseParts, 1), ":")
+sessCloseStr   = array.get(sessCloseRaw, 0)
+sessCloseHour  = int(str.tonumber(str.substring(sessCloseStr, 0, 2)))
+sessCloseMin   = int(str.tonumber(str.substring(sessCloseStr, 2, 4)))
+
+minutesNow     = hour * 60 + minute
+minutesToClose = (sessCloseHour * 60 + sessCloseMin) - minutesNow
+nearClose      = inSession and minutesToClose >= 0 and minutesToClose <= flattenMinsBeforeClose
+
+inTestWindow = time >= windowStart and time <= windowEnd
+
+// ============================================================================
+// OPENING RANGE FILTER — no entries until price breaks the first N minutes' range
+// ============================================================================
+
+sessionStart = inSession and not inSession[1]
+
+var float orbHigh   = na
+var float orbLow    = na
+var bool  orbActive = false   // true while still building the opening range
+var bool  orbBroken = false   // true once price has closed outside the range this session
+var int   orbStartTime = na
+
+if sessionStart
+    orbHigh       := high
+    orbLow        := low
+    orbActive     := true
+    orbBroken     := false
+    orbStartTime  := time
+
+minutesSinceOpen = inSession and not na(orbStartTime) ? (time - orbStartTime) / 60000 : na
+
+if inSession and orbActive
+    orbHigh := math.max(orbHigh, high)
+    orbLow  := math.min(orbLow, low)
+    if minutesSinceOpen >= orbMinutes
+        orbActive := false
+
+if inSession and not orbActive and not orbBroken and (close > orbHigh or close < orbLow)
+    orbBroken := true
+
+tradingWindowOk = inSession and not nearClose and inTestWindow and orbBroken
+
+// ============================================================================
+// PULLBACK ENTRY TRIGGER — arm on a touch of the EMA band, fire on rejection
+// ============================================================================
+
+var bool longArmed  = false
+var bool shortArmed = false
+
+// A broken trend cancels any pending setup immediately.
+if not longTrendOk
+    longArmed := false
+if not shortTrendOk
+    shortArmed := false
+
+// The moment price breaks the opening range, any setup armed while still
+// locked inside it is discarded — the pullback must form after the breakout.
+if orbBroken and not orbBroken[1]
+    longArmed  := false
+    shortArmed := false
+
+touchedLongBand  = low  <= emaFast or low  <= emaSlow
+touchedShortBand = high >= emaFast or high >= emaSlow
+
+if longTrendOk and touchedLongBand
+    longArmed := true
+if shortTrendOk and touchedShortBand
+    shortArmed := true
+
+barsSinceLongTouch  = ta.barssince(touchedLongBand)
+barsSinceShortTouch = ta.barssince(touchedShortBand)
+
+longTouchRecent  = not na(barsSinceLongTouch)  and barsSinceLongTouch  <= pullbackLookback
+shortTouchRecent = not na(barsSinceShortTouch) and barsSinceShortTouch <= pullbackLookback
+
+bodySize         = math.abs(close - open)
+bullishRejection = useRejectionWick and (close - low)  > wickRejectionMult * bodySize and close > open
+bearishRejection = useRejectionWick and (high - close) > wickRejectionMult * bodySize and close < open
+
+closeBackAboveFast = close > emaFast and close[1] <= emaFast[1]
+closeBackBelowFast = close < emaFast and close[1] >= emaFast[1]
+
+longTriggerCandle  = closeBackAboveFast or bullishRejection
+shortTriggerCandle = closeBackBelowFast or bearishRejection
+
+longEntrySignal  = longArmed  and longTrendOk  and longTouchRecent  and longTriggerCandle
+shortEntrySignal = shortArmed and shortTrendOk and shortTouchRecent and shortTriggerCandle
+
+// ============================================================================
+// RISK CALCULATION — swing-based stop, hard-capped at N x ATR, fixed R:R target
+// ============================================================================
+
+swingLow  = ta.lowest(low, swingLookback)
+swingHigh = ta.highest(high, swingLookback)
+
+longStopDist  = math.max(math.min(close - swingLow,  atrCapMult * atrValue), syminfo.mintick)
+shortStopDist = math.max(math.min(swingHigh - close, atrCapMult * atrValue), syminfo.mintick)
+
+longStopPrice    = close - longStopDist
+longTargetPrice  = close + longStopDist * rewardRiskRatio
+shortStopPrice   = close + shortStopDist
+shortTargetPrice = close - shortStopDist * rewardRiskRatio
+
+// ============================================================================
+// ORDER EXECUTION
+// ============================================================================
+
+if longEntrySignal and tradingWindowOk and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", from_entry = "Long", stop = longStopPrice, limit = longTargetPrice)
+    longArmed := false
+
+if shortEntrySignal and tradingWindowOk and strategy.position_size == 0
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", from_entry = "Short", stop = shortStopPrice, limit = shortTargetPrice)
+    shortArmed := false
+
+// Force-flatten inside the pre-close buffer, or outright outside the session
+// (e.g. a session string edited mid-run), so nothing is ever held overnight.
+if nearClose or not inSession
+    strategy.close_all(comment = "Session Flatten")
+
+// ============================================================================
+// PLOTS
+// ============================================================================
+
+plot(dailyVWAP, "Daily VWAP", color = color.new(color.blue, 0), linewidth = 2)
+plot(emaFast, "EMA Fast", color = color.new(color.teal, 0))
+plot(emaSlow, "EMA Slow", color = color.new(color.orange, 0))
+plot(inSession ? orbHigh : na, "ORB High", color = color.new(color.gray, 40), style = plot.style_linebr)
+plot(inSession ? orbLow  : na, "ORB Low",  color = color.new(color.gray, 40), style = plot.style_linebr)
+
+bgcolor(nearClose ? color.new(color.red, 90) : na, title = "Flatten Window")
+bgcolor(inSession and not orbBroken ? color.new(color.gray, 85) : na, title = "Opening Range Lock")

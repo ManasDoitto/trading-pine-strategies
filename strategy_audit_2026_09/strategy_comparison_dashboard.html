@@ -214,6 +214,14 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
     <div class="timeline" id="tlBnf"></div>
   </div>
 
+  <div class="card" id="auto-logs" style="margin-top:20px;">
+    <h2>Automated Testing Logs (Batch Run 2026-09-14)</h2>
+    <p class="muted">Executed 20 generated strategy archetypes across CrudeOil, Gold, Silver, BankNifty, Nifty on 3m/5m timeframes.</p>
+    <div class="note bad" style="background:rgba(239,68,68,0.08);border-left:3px solid var(--red);padding:10px 14px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--text-dim);margin:12px 0;">
+      <b>Result:</b> 0 strategies outperformed the benchmark PF 1.33. All strategies generated Net Negative profit or Net 0 (0 trades) due to unoptimized parameters and timeframe constraints. No strategies were added to the comparison leaderboard.
+    </div>
+  </div>
+
   <footer>
     Points are per lot/contract, net of costs (0.02% commission per side; BankNifty v0.4/MTF/combined additionally
     bake in 5-pt slippage per fill as noted). Tiled non-overlapping-window walk-forward throughout &mdash; each window
@@ -260,7 +268,7 @@ const INSTRUMENTS = {
        windowNet:[], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
        status:"warn", verdict:"Strong PF but thin sample.", src:"smc_liquidity_sweep_fvg_v1.2_results.md"},
       {name:"SMC v1.1 (sweep+FVG, swingLen=20)", trades:86, tpm:2.9, win:52.3, pf:1.40, net:546, dd:302, sharpe:null, posw:"5/11",
-       windowNet:[], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
+       windowNet:[-19, 20, 61, -45, 298, 42, -117, -40, -16, 416, -55], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
        status:"warn", verdict:"Highest PF of any crude strategy but only 86 trades over 30 months -- treat as promising, not proven.", src:"smc_liquidity_sweep_fvg_v1.1_results.md"},
       {name:"v4.0 + initiative filter (outside prior-day value area)", trades:420, tpm:14.1, win:29.3, pf:1.07, net:941, dd:null, sharpe:null, posw:"7/12",
        windowNet:[], params:{"Entry":"v4.0 SHA flip + close outside prior-day 70% value area","Trend filter":"EMA9>EMA22","Stop/Target":"same as v4.0"},
@@ -311,6 +319,10 @@ const INSTRUMENTS = {
   bnf: {
     label: "BankNifty", symbol: "NSE:BANKNIFTY1!", pv: 30, tf: "5m/3m", months: 30.2, windows: 5, accent: "#3b82f6",
     strategies: [
+      {name:"v0.6 5m EMA/VWAP Sweep (Spot, 60pt SL Cap)", trades:1420, tpm:47.3, win:34.2, pf:0.99, net:-174, dd:2273, sharpe:-0.50, posw:"2/5",
+       windowNet:[-2117, -718, 592, 412, 1658],
+       params:{"Trend regime":"EMA9>EMA22 (bullish) / < (bearish)","Sweep":"low < EMA22 or VWAP","Confirmation":"1-bar close above sweep high","Filters":"Max Risk Hard Cap = 60pts, Intraday Only (close 15:15)","Target":"2.0R (max 120pts)"},
+       status:"fail", verdict:"Failed 30-month walk-forward test. While highly profitable in the last 7.5 months (+1658 pts), it suffers from severe regime decay, losing heavily in early 2024. Overall 30-mo net is -174 pts (PF 0.99). Not robust enough to trade.", src:"this session, verified walk-forward"},
       {name:"v0.4 EMA pullback + 15m ADX>=25 gate", trades:74, tpm:2.5, win:41.9, pf:1.33, net:1403, dd:1620, sharpe:0.57, posw:"3/5",
        windowNet:[840,235,-518,-82,928],
        params:{"Trend regime":"EMA9>EMA21 (or 'coil': all 3 EMAs within 1xATR)","Trend-strength gate":"last completed 15m ADX(14) >= 25","Volatility filter":"ATR14 >= 50pts","Pullback":"touch EMA9 within 10 bars + rejection wick","Confirm":"reclaim bar, volume>=20-bar avg, correct side of VWAP, RSI(3) 20-80","Target":"2.5R"},
@@ -332,8 +344,8 @@ const INSTRUMENTS = {
        status:"warn", verdict:"Positive with no added slippage, but the repo's own cost-stress test found it essentially breaks even (PF 0.99, net -124) once realistic 5pts/fill slippage is charged -- 228 trades x ~10pts/trade in slippage erodes nearly the whole edge.", src:"audit_summary.md (slippage stress: BEST STRATEGY PER SCRIPT.md)"},
       {name:"v10.3 PD sweep + daily-trend regime", trades:105, tpm:3.5, win:38.1, pf:1.10, net:924, dd:2631, sharpe:0.22, posw:"2/5", windowNet:[883,-490,-372,-1154,2056], params:{}, status:"warn", verdict:"Marginal edge, not slippage-stress-tested.", src:"audit_summary.md"},
       {name:"All-modules combined (v13+v0.4+MTF)", trades:352, tpm:11.7, win:34.6, pf:1.06, net:1438, dd:3979, sharpe:0.26, posw:"3/5", windowNet:[], params:{}, status:"warn", verdict:"~4.7x v0.4's trade count but barely more points, PF falls to 1.06, drawdown grows 2.4x. Loosening for frequency doesn't pay here.", src:"BEST STRATEGY PER SCRIPT.md"},
-      {name:"v0.5: v0.4 loosened (ADX20, no volume filter, RR2.0) -- 5m", trades:693, tpm:28.3, win:35.5, pf:0.71, net:-12330, dd:4608, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"Rejected. Removing the volume filter didn't add quantity to a good signal -- it flooded in the low-conviction reclaims the filter existed to block.", src:"this session, verified walk-forward"},
-      {name:"v0.5 (same loosening) -- 3m", trades:394, tpm:18.3, win:36.0, pf:0.68, net:-7350, dd:2797, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad", verdict:"Same rejected loosening, 3m fallback. Also fails.", src:"this session, verified walk-forward"},
+      {name:"v0.5: v0.4 loosened (ADX20, no volume filter, RR2.0) -- 5m", trades:693, tpm:28.3, win:35.5, pf:0.71, net:-12330, dd:4608, sharpe:null, posw:"0/6", windowNet:[-2393, -621, -1817, -2511, -1226, -3764], params:{}, status:"bad", verdict:"Rejected. Removing the volume filter didn't add quantity to a good signal -- it flooded in the low-conviction reclaims the filter existed to block.", src:"this session, verified walk-forward"},
+      {name:"v0.5 (same loosening) -- 3m", trades:394, tpm:18.3, win:36.0, pf:0.68, net:-7350, dd:2797, sharpe:null, posw:"1/6", windowNet:[-877, -1670, 76, -552, -1859, -2469], params:{}, status:"bad", verdict:"Same rejected loosening, 3m fallback. Also fails.", src:"this session, verified walk-forward"},
       {name:"VWAP-EMA Pullback v1.0 (generic multi-asset)", trades:1586, tpm:44.5, win:31.1, pf:0.60, net:-38163, dd:9568, sharpe:null, posw:"0/6", windowNet:[-6943,-4387,-4964,-7162,-7595,-7112], params:{}, status:"bad",
        verdict:"User believed this was good for BankNifty; this project's rigorous tiled test found the opposite -- one of the worst BankNifty results in the whole repo. Win rate (31.1%) sits below the mathematical breakeven for its own 2:1 target (33.3%) even before costs. Discrepancy with user's own finding was flagged, not resolved.", src:"this session, verified walk-forward"},
       {name:"v0.1 / v0.3 / v1.0 MTF / v10 / v3 / v4.1 / v5 (4 variants) / v6 / v7 / v8 / v9", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad",

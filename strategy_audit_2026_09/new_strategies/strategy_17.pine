@@ -1,0 +1,11 @@
+//@version=6
+strategy("Strat 17: Fib Retracement Pin Bar", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+high_swing = ta.highest(high, 50)
+low_swing = ta.lowest(low, 50)
+fib_618 = high_swing - (high_swing - low_swing) * 0.618
+atr = ta.atr(14)
+
+pin_bar_bull = (close - low) > (high - low) * 0.66 and (open - low) > (high - low) * 0.66
+if (low < fib_618 and pin_bar_bull)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=low - atr, limit=close + atr*3)

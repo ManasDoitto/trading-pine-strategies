@@ -1,0 +1,15 @@
+//@version=6
+strategy("Strat 5: VWAP Mean Reversion", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+vwap = ta.vwap(hlc3)
+stdev = ta.stdev(close, 20)
+upper_band = vwap + stdev * 2.0
+lower_band = vwap - stdev * 2.0
+
+atr = ta.atr(14)
+if (low < lower_band and close > lower_band)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=low - atr, limit=vwap)
+
+if (high > upper_band and close < upper_band)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=high + atr, limit=vwap)

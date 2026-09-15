@@ -1,0 +1,20 @@
+//@version=6
+strategy("Strat 15: SMI Reversal", overlay=false, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+q = 13
+r = 25
+s = 2
+signalLength = 5
+hh = ta.highest(q)
+ll = ta.lowest(q)
+center = (hh + ll) / 2
+diff = hh - ll
+num = ta.ema(ta.ema(close - center, r), s)
+den = ta.ema(ta.ema(diff, r), s) / 2
+smi = (num / den) * 100
+signal = ta.ema(smi, signalLength)
+atr = ta.atr(14)
+
+long_cond = ta.crossover(smi, signal) and smi < -40
+if (long_cond)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*1.5, limit=close + atr*3)

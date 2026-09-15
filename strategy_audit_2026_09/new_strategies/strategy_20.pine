@@ -1,0 +1,12 @@
+//@version=6
+strategy("Strat 20: Parabolic SAR Reversal", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+start = 0.02
+inc = 0.02
+max = 0.2
+sar = ta.sar(start, inc, max)
+atr = ta.atr(14)
+
+long_cond = ta.crossover(close, sar)
+if (long_cond)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*1.5, limit=close + atr*3)

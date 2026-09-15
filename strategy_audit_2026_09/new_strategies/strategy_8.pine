@@ -1,0 +1,12 @@
+//@version=6
+strategy("Strat 8: Intraday Seasonality Reversal", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+time_to_fade = not na(time(timeframe.period, "1400-1415"))
+atr = ta.atr(14)
+
+if (time_to_fade and close > ta.ema(close, 200))
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=close + atr*1.5, limit=close - atr*3)
+
+if (time_to_fade and close < ta.ema(close, 200))
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=close - atr*1.5, limit=close + atr*3)
