@@ -41,7 +41,7 @@ def daily_bars(client, security_id, segment, instrument, start, end, expiry_code
                                      instrument_type=instrument, from_date=f"{start:%Y-%m-%d}",
                                      to_date=f"{end + timedelta(days=1):%Y-%m-%d}", expiry_code=expiry_code)
     df = _to_df(r.get("data") if isinstance(r, dict) else None)
-    df["date"] = df["time"].dt.date
+    df["date"] = df["time"].dt.date if len(df) else pd.Series(dtype=object)
     return df.reset_index(drop=True)
 
 

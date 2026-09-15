@@ -8,7 +8,7 @@ arithmetic of their own.
 | Agent | Skill | Status |
 |---|---|---|
 | Trade journal keeper | `/journal` | **Stage 1: built** |
-| Pre-market analyst | `/premarket` | Stage 2 |
+| Pre-market analyst | `/premarket` | **Stage 2: built** |
 | Session-close analyst | `/session-close` | Stage 3 |
 | Supervisor / validator | wraps all of the above | Stage 4 |
 
@@ -51,6 +51,27 @@ Rules flagged (thresholds in `config.toml [rules]`):
 | R6 | Overtrading, or a revenge entry right after a big loss |
 | R7 | Deep-OTM lottery buy (per-instrument strike threshold) |
 | R8 | Sell-to-open, which isn't option buying |
+
+## Pre-market
+```bash
+python -m trading_agents.facts.premarket               # facts for today
+python -m trading_agents.validate.claims_check journal_data/reports/<date>_premarket.md journal_data/facts/<date>_premarket.json --stamp
+```
+`/premarket` runs facts → `premarket-analyst` → `claims_check` (with one fix pass).
+
+The facts contain, per instrument:
+- prior-session levels and pivots, built from 5m bars because Dhan's daily bars lag
+- ATR regime and 20-day realised vol
+- v4.0 SHA-flip state: a Python port of the Pine logic (`core/signals.py`), approximate
+- ATM premium, IV (checked against Black-76), theta cost, straddle, OI walls and PCR
+
+Chains that fail the quality gates are marked `usable=false`. The silver chains were stale in testing.
+
+`claims_check` fails a report if:
+- any cited number doesn't match its facts path
+- a number traces to nothing
+- a section or bias is missing
+- the report uses trade-instruction language
 
 ## Tests
 ```bash

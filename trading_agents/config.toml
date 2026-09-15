@@ -88,3 +88,75 @@ r7_max_strikes_otm = 3
 # ---------------------------------------------------------------- journal
 [journal]
 rolling_sessions = 20
+
+# ---------------------------------------------------------------- pre-market
+[premarket]
+history_days = 60                  # 5m bars fetched per underlying (levels, ATR, RV, v4.0 state)
+risk_free_rate = 0.065             # Black-76 cross-check
+iv_rich_ratio = 1.2                # ATM IV / 20d realised vol above this = options expensive vs realised
+iv_cheap_ratio = 0.9
+oi_strikes_each_side = 10          # strikes around ATM used for OI walls / PCR
+include_next_expiry_if_dte_le = 3  # also show the next expiry when the nearest is this close
+# option-chain quality gates (silver chains were stale/illiquid in the 2026-09-16 probe)
+min_atm_oi = 1
+min_atm_volume = 1
+max_spread_pct = 15.0              # hard gate: silver ATM spreads were >100% on 2026-09-16
+iv_sane_range = [3.0, 150.0]
+max_iv_model_gap = 10.0            # |Dhan IV - Black-76 IV from LTP| in vol points; beyond it Black-76 is used
+max_underlying_gap_pct = 2.0       # chain last_price vs futures close; beyond it ATM is re-centred on the close
+
+# v4.0 SHA-flip strategy parameters (working_strategies/*/1_*.pine.txt). BANKNIFTY v0.4 is not modelled.
+[strategy.CRUDEOIL]
+name = "CRUDE v4.0 SHA flip RR4.0 (working_strategies/CrudeOil/1)"
+sha_len1 = 10
+sha_len2 = 10
+sw_len = 10
+sw_buf = 0.1
+min_sl = 1.5
+max_sl = 3.0
+rr = 4.0
+session = ["09:15", "23:30"]
+
+[strategy.SILVER]
+name = "Silver v4.0 wide-ATR + fixed 350-pt daily limit (working_strategies/Silver/1)"
+sha_len1 = 10
+sha_len2 = 10
+sw_len = 10
+sw_buf = 0.1
+min_sl = 2.5
+max_sl = 5.0
+rr = 3.0
+day_loss_limit_pts = 350
+session = ["09:15", "23:30"]
+
+[strategy.SILVERM]
+name = "Silver v4.0 wide-ATR logic applied to SILVERM (tested on SILVER1!, proxy only)"
+sha_len1 = 10
+sha_len2 = 10
+sw_len = 10
+sw_buf = 0.1
+min_sl = 2.5
+max_sl = 5.0
+rr = 3.0
+session = ["09:15", "23:30"]
+
+# Pre-registered forward test (memory: crude-v4-forward-test). Never move these goalposts.
+[forward_test.CRUDEOIL]
+strategy = "v4.0 SHA flip RR3 (variant lab V21), TradingView shared slot, MCX:CRUDEOIL1! 5m"
+start = "2026-09-14"
+min_trades_to_judge = 60
+keep_if_pf_at_least = 1.0
+drop_if_drawdown_pts_above = 2100
+drop_if_pf_below_after_min_trades = 0.8
+normal_losing_streak = "8-9 at ~28% win rate"
+
+# Scheduled market events shown in the pre-market brief. Add dated ones as needed, e.g.
+# [[events]]
+# date = "2026-10-01"
+# underlyings = ["BANKNIFTY"]
+# name = "RBI policy"
+[[events]]
+weekday = "Wednesday"
+time_ist = "20:00"                 # 21:00 after US DST ends (2 Nov 2026)
+underlyings = ["CRUDEOIL"]
+name = "US EIA weekly petroleum status report"
