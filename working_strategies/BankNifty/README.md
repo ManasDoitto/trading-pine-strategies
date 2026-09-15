@@ -29,3 +29,9 @@ frequency, modest cost to quality" option, not because it beats #1 outright.
   collapsed PF to 0.68–0.71. Pair with an uncorrelated strategy instead.
 - v0.4 needs volume; NIFTY spot borrows NSE:NIFTY1! futures volume and has
   no robust standalone Nifty-spot version.
+- **Tested 15 Sep 2026: skip-Monday + skip-Friday, motivated by the user's
+  own real (manual options) trading showing Monday/Friday as weak days.**
+  Result: hurts v0.4 — Sharpe 1.52→0.98, net profit roughly halved on the
+  same test window, PF unchanged (~1.8). The manual-trading day-of-week
+  pattern does not transfer to this systematic futures signal; don't
+  re-apply it here without new evidence.

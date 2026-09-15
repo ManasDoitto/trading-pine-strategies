@@ -32,3 +32,11 @@ Source: `strategy_audit_2026_09/v4.0_mcx_naturalgas_gold_silver_results.md`.
   memory for the full writeup.
 - Wide stops mean genuinely larger tail risk per trade even with #1's
   breaker capping the daily total — size accordingly.
+- **Tested 15 Sep 2026: requiring 15m EMA9/22 alignment on top of the
+  entry-timeframe signal (multi-timeframe confirmation).** Result: hurts
+  #1 — PF 1.43→1.24, net profit roughly halved on the same test window,
+  drawdown got worse (396k→471k) despite fewer trades. The extra HTF
+  filter mostly screens out trades late in a move (after the HTF EMAs
+  have already caught up), cutting into the same big trend-following
+  winners this strategy depends on — same underlying lesson as crude's
+  partial-TP result above.

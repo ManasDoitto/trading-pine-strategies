@@ -27,3 +27,10 @@ structurally distinct alternative, not a tuned variant of #1/#2.
   dataset — this was tested and explicitly declined. See
   `[[crude-v4-forward-test]]` / `protected-crude-script.md` memory.
 - None of these are options-tested — TradingView backtests are futures/points-based.
+- **Tested 15 Sep 2026: scaling out 50% at 2R, letting the rest ride to
+  4R.** Result: hurts #1 — PF 1.12→1.08, net profit roughly halved on the
+  same test window, max drawdown got *worse* (71k→108k), not better. This
+  strategy's edge lives in rare large trend-following winners (25% win
+  rate) — capping them early removes exactly what funds the many small
+  losses. Don't scale out of this entry mechanic; if partial profit-taking
+  is wanted, it needs a structurally different (higher win-rate) entry.
