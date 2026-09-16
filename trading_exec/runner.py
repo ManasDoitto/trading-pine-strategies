@@ -41,11 +41,25 @@ def handle_signal(client, sig, now):
             f"stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}"]
 
     if blocks:
+        observed = None
+        # The floor rarely blocks outright; near expiry it quietly selects a further, often illiquid
+        # chain. Whenever the nearest expiry is below the floor, record it observationally so the
+        # month can price the rule itself.
+        if a.get("nearest_below_floor"):
+            near = atm_mod.resolve(client, sig.instrument, sig.option_right, now,
+                                   underlying_price=sig.entry_hint, force_nearest=True)
+            if near.get("usable"):
+                observed = shadow.open_trade(sig, near, atm_mod.premium_targets(near, sig), now,
+                                             observational=True)
+                shadow.record(observed)
         sig.status = "BLOCKED"
-        sig.note = "; ".join(blocks)
+        sig.note = "; ".join(blocks) + (" | recorded observationally" if observed else "")
         signals.append(sig)
-        notify(f"[blocked] {head}", base + ["", "Blocked by:"] + [f"- {b}" for b in blocks], "warning")
-        return dict(signal=sig.to_dict(), blocked=blocks, trade=None)
+        extra = ([f"", f"Recorded observationally: {observed['symbol']} at {_fmt(observed['entry_premium'])}"
+                  f" (DTE {observed['dte_at_entry']}) - tracked to measure what the floor costs, never traded."]
+                 if observed else [])
+        notify(f"[blocked] {head}", base + ["", "Blocked by:"] + [f"- {b}" for b in blocks] + extra, "warning")
+        return dict(signal=sig.to_dict(), blocked=blocks, trade=None, observational=observed)
 
     trade = shadow.open_trade(sig, a, prem, now)
     shadow.record(trade)

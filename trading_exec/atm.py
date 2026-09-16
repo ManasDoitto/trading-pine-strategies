@@ -10,8 +10,13 @@ from trading_agents.core.config import load_config as agents_config
 from .config import instrument_cfg
 
 
-def resolve(client, instrument, right, as_of_dt, underlying_price=None):
+def resolve(client, instrument, right, as_of_dt, underlying_price=None, force_nearest=False):
     """right: 'CE' for a long signal, 'PE' for a short.
+
+    force_nearest=True takes the nearest listed expiry even when it sits below the DTE floor, for
+    OBSERVATIONAL shadow records: it answers "what would that trade have done" without ever being
+    tradeable. Note the floor usually does not BLOCK - it silently selects a further expiry, which
+    near expiry can be the illiquid one. `nearest_below_floor` says when that is happening.
 
     Returns a dict; `usable` says whether a buyer could sensibly take it, `reasons` says why not.
     """
@@ -23,11 +28,13 @@ def resolve(client, instrument, right, as_of_dt, underlying_price=None):
     if not expiries:
         out["reasons"].append("no listed option expiries")
         return out
-    expiry = next((e for e in expiries if (e - day).days >= icfg["min_dte"]), None)
+    nearest = expiries[0]
+    nearest_dte = (nearest - day).days
+    out.update(nearest_expiry=nearest, nearest_dte=nearest_dte,
+               nearest_below_floor=nearest_dte < icfg["min_dte"])
+    expiry = nearest if force_nearest else next((e for e in expiries if (e - day).days >= icfg["min_dte"]), None)
     if expiry is None:
-        nearest = expiries[0]
-        out.update(nearest_expiry=nearest, nearest_dte=(nearest - day).days)
-        out["reasons"].append(f"nearest expiry is {(nearest - day).days}d out, floor is {icfg['min_dte']}d")
+        out["reasons"].append(f"nearest expiry is {nearest_dte}d out, floor is {icfg['min_dte']}d")
         return out
 
     chain = options.chain_snapshot(client, instrument, expiry, as_of_dt,

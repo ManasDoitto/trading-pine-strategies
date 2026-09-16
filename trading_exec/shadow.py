@@ -40,20 +40,26 @@ def open_trades(trades=None):
 
 
 def realised_today_inr(day=None, trades=None):
+    """Only real shadow trades count against the daily loss limit; observational ones never do."""
     day = (day or date.today()).isoformat()
     return sum(t.get("net_inr") or 0 for t in (trades if trades is not None else load())
-               if t["status"] == "CLOSED" and str(t.get("exit_at", ""))[:10] == day)
+               if t["status"] == "CLOSED" and not t.get("observational")
+               and str(t.get("exit_at", ""))[:10] == day)
 
 
-def open_trade(signal, atm, premium_targets, now=None):
-    """Record the entry a live system would have made."""
+def open_trade(signal, atm, premium_targets, now=None, observational=False):
+    """Record the entry a live system would have made.
+
+    observational=True means the guards refused it (today: below the DTE floor) and it is tracked
+    only to measure what the refusal cost or saved. It never counts towards the verdict."""
     now = now or datetime.now()
     cfg = load_config()["shadow"]
     qty = atm["qty_units"]
     entry = atm["entry_premium"]
     costs = cfg["cost_per_lot_inr"] * atm["lots"] * 2          # both legs, charged up front
     return dict(
-        id=f"{signal.instrument}-{signal.bar_time}-{signal.side}",
+        id=f"{signal.instrument}-{signal.bar_time}-{signal.side}" + ("-obs" if observational else ""),
+        observational=observational,
         signal_key=signal.key, strategy=signal.strategy, instrument=signal.instrument,
         side=signal.side, right=signal.right if hasattr(signal, "right") else signal.option_right,
         symbol=atm["symbol"], security_id=atm["security_id"], segment=atm["segment"],

@@ -71,15 +71,23 @@ def compare_exits(trades):
 
 
 def build(month=None):
-    trades = [t for t in shadow.load() if t["status"] == "CLOSED"]
+    closed = [t for t in shadow.load() if t["status"] == "CLOSED"]
     if month:
-        trades = [t for t in trades if str(t.get("exit_at", ""))[:7] == month]
+        closed = [t for t in closed if str(t.get("exit_at", ""))[:7] == month]
+    trades = [t for t in closed if not t.get("observational")]
+    observational = [t for t in closed if t.get("observational")]
     by_inst = defaultdict(list)
     for t in trades:
         by_inst[t["instrument"]].append(t)
 
+    obs_by_inst = defaultdict(list)
+    for t in observational:
+        obs_by_inst[t["instrument"]].append(t)
     out = dict(generated_at=datetime.now().replace(microsecond=0).isoformat(), month=month or "all",
-               closed_trades=len(trades), instruments={})
+               closed_trades=len(trades), instruments={},
+               observational={inst: dict(_stats(ts), note="below the DTE floor; never tradeable, "
+                                         "recorded only to show what the floor cost or saved")
+                              for inst, ts in sorted(obs_by_inst.items())})
     for inst, ts in sorted(by_inst.items()):
         v = verdict(ts)
         floor = (load_config()["instruments"].get(inst) or {}).get("min_dte")
@@ -119,6 +127,12 @@ def to_markdown(rep):
         if v["below_dte_floor"]:
             L.append(f"{v['below_dte_floor']} trade(s) were entered below the DTE floor.")
         L += [f"Exits: {v['by_exit_reason']}", ""]
+    if rep.get("observational"):
+        L += ["## Signals the DTE floor refused", "",
+              "Never tradeable, tracked only to price the rule itself.", ""]
+        for inst, s in rep["observational"].items():
+            L += [f"- {inst}: {s['n']} trades, net {s['net']:,} INR, win rate {s['win_rate']}%, PF {s['profit_factor']}"]
+        L += [""]
     L += ["", "Not covered by these numbers: the manual spot-check of 5 signals per instrument "
               "against the TradingView chart. More than one mismatch in five is a NO-GO regardless."]
     return "\n".join(L)

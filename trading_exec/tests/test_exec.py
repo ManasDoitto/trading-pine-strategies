@@ -123,6 +123,45 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(shadow.realised_today_inr(date(2026, 9, 16)), a["net_inr"])
 
 
+class ObservationalTest(unittest.TestCase):
+    """Signals the DTE floor refuses are tracked, but never count as trades."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.patch = mock.patch.object(shadow, "data_dir", lambda *a: Path(self.tmp.name))
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+
+    def test_flagged_and_id_suffixed(self):
+        t = shadow.open_trade(sig(), atm(dte=1), {}, datetime(2026, 9, 16, 11, 45), observational=True)
+        self.assertTrue(t["observational"])
+        self.assertTrue(t["id"].endswith("-obs"))
+
+    def test_excluded_from_the_daily_loss_limit(self):
+        obs = shadow.open_trade(sig(), atm(dte=1), {}, datetime(2026, 9, 16, 11, 45), observational=True)
+        shadow._close(obs, datetime(2026, 9, 16, 13, 0), 10158.9, "SL", 10.0)
+        real = shadow.open_trade(sig(bar_time="2026-09-16T12:00:00"), atm(), {}, datetime(2026, 9, 16, 12, 5))
+        shadow._close(real, datetime(2026, 9, 16, 14, 0), 10364.5, "TARGET", 300.0)
+        shadow.save([obs, real])
+        self.assertLess(obs["net_inr"], 0)
+        self.assertEqual(shadow.realised_today_inr(date(2026, 9, 16)), real["net_inr"])
+
+    def test_report_keeps_them_out_of_the_verdict(self):
+        closed = [dict(instrument="CRUDEOIL", status="CLOSED", net_inr=9000, exit_reason="TARGET",
+                       dte_at_entry=1, exit_at="2026-10-05T12:00:00", observational=True)]
+        closed += [dict(instrument="CRUDEOIL", status="CLOSED", net_inr=-500, exit_reason="SL",
+                        dte_at_entry=29, exit_at="2026-10-05T12:00:00") for _ in range(3)]
+        with mock.patch.object(report.shadow, "load", lambda: closed):
+            rep = report.build()
+        self.assertEqual(rep["closed_trades"], 3)                      # the observational one is excluded
+        self.assertEqual(rep["instruments"]["CRUDEOIL"]["stats"]["net"], -1500)
+        self.assertEqual(rep["observational"]["CRUDEOIL"]["n"], 1)
+        self.assertIn("DTE floor refused", report.to_markdown(rep))
+
+
 class ReportTest(unittest.TestCase):
     def trades(self, nets, instrument="CRUDEOIL"):
         return [dict(instrument=instrument, status="CLOSED", net_inr=n, exit_reason="TARGET" if n > 0 else "SL",
