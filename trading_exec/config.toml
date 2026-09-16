@@ -1,0 +1,51 @@
+# trading_exec configuration.
+#
+# Stage A (current): signals -> alerts -> shadow records. No order-capable code exists yet.
+# Stage C would add live orders, and is gated by BOTH live_enabled here AND ENABLE_LIVE=true in .env.
+
+[mode]
+stage = "A"
+live_enabled = false
+
+[paths]
+data_dir = "exec_data"              # relative to repo root, gitignored
+
+[source]
+poll_seconds = 60                   # how often to check for a newly closed 5m bar
+history_days = 30                   # bars fetched per poll (v4.0 needs ~250 bars of warm-up)
+stale_signal_minutes = 12           # ignore a signal whose bar closed longer ago than this
+interval_minutes = 5
+
+[shadow]
+cost_per_lot_inr = 45.0             # per leg, per lot: brokerage + taxes estimate
+premium_stop_pct = 30.0             # the R4 comparison exit, tracked alongside the real exit
+poll_seconds = 120                  # how often open shadow positions are marked
+
+[guards]
+max_signals_per_day = 6             # across all instruments
+max_open_positions = 2
+daily_loss_limit_inr = 10000        # mirrors the journal's R5
+session_buffer_minutes = 15         # no new entries within N minutes of the session close
+
+[notify]
+telegram = true
+email = true
+
+# Per instrument. `enabled` is the master switch for the signal source.
+[instruments.CRUDEOIL]
+enabled = true
+lots = 2
+min_dte = 2                         # crude ATM theta was ~27% of premium/day at DTE 1
+max_spread_pct = 15.0
+
+[instruments.SILVERM]
+enabled = true
+lots = 2
+min_dte = 2
+max_spread_pct = 15.0
+
+[instruments.BANKNIFTY]
+enabled = false                     # until v0.4 is ported to Python
+lots = 2
+min_dte = 2
+max_spread_pct = 15.0

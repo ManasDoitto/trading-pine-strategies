@@ -39,6 +39,41 @@ class ReadOnlyClientTest(unittest.TestCase):
         self.assertFalse([m for m in READ_METHODS if not hasattr(dhanhq, m)])
 
 
+class MarketDataFailureTest(unittest.TestCase):
+    """An API failure must raise, not look like an empty market (DH-901 token expiry, 2026-09-16)."""
+
+    class Failing:
+        def intraday_minute_data(self, **k):
+            return {"status": "failure", "data": "",
+                    "remarks": {"error_code": "DH-901", "error_type": "Invalid_Authentication",
+                                "error_message": "Client ID or user generated access token is invalid or expired."}}
+
+        def historical_daily_data(self, **k):
+            return self.intraday_minute_data()
+
+    class Empty:
+        def intraday_minute_data(self, **k):
+            return {"status": "success", "data": {"open": [], "high": [], "low": [], "close": [],
+                                                  "volume": [], "timestamp": []}}
+
+    def test_failure_raises_with_token_hint(self):
+        from trading_agents.core.market_data import DhanApiError, daily_bars, intraday_bars
+        for call in (lambda: intraday_bars(self.Failing(), "1", "MCX_COMM", "FUTCOM",
+                                           date(2026, 9, 15), date(2026, 9, 16)),
+                     lambda: daily_bars(self.Failing(), "1", "MCX_COMM", "FUTCOM",
+                                        date(2026, 9, 15), date(2026, 9, 16))):
+            with self.assertRaises(DhanApiError) as cm:
+                call()
+            self.assertIn("DH-901", str(cm.exception))
+            self.assertIn("DHAN_ACCESS_TOKEN", str(cm.exception))
+
+    def test_genuinely_empty_success_is_not_an_error(self):
+        from trading_agents.core.market_data import intraday_bars
+        df = intraday_bars(self.Empty(), "1", "MCX_COMM", "FUTCOM", date(2026, 9, 15), date(2026, 9, 16))
+        self.assertTrue(df.empty)
+        self.assertEqual(list(df.columns), ["time", "open", "high", "low", "close", "volume"])
+
+
 class OptionSymbolTest(unittest.TestCase):
     def test_structured_fields(self):
         c = from_fill(fill("2026-08-05T10:00:00", "BUY", 100, 231))

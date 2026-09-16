@@ -9,6 +9,20 @@ IST_OFFSET = pd.Timedelta(hours=5, minutes=30)
 COLS = ["open", "high", "low", "close", "volume"]
 
 
+class DhanApiError(RuntimeError):
+    """A Dhan endpoint returned status=failure. Raised rather than returning an empty frame:
+    a dead feed must never look like a quiet market."""
+
+
+def _check(r, what):
+    if isinstance(r, dict) and r.get("status") == "failure":
+        rem = r.get("remarks") or {}
+        code = rem.get("error_code") if isinstance(rem, dict) else None
+        msg = (rem.get("error_message") if isinstance(rem, dict) else rem) or r.get("data") or ""
+        hint = " (token expired? regenerate DHAN_ACCESS_TOKEN in .env)" if code == "DH-901" else ""
+        raise DhanApiError(f"Dhan {what} failed [{code}]: {msg}{hint}")
+
+
 def _to_df(data):
     if not isinstance(data, dict) or not data.get("timestamp"):
         # keep dtypes so callers can still use .dt on an empty result (e.g. before the open)
@@ -29,6 +43,7 @@ def intraday_bars(client, security_id, segment, instrument, start, end, interval
         r = client.intraday_minute_data(security_id=str(security_id), exchange_segment=segment,
                                         instrument_type=instrument, from_date=f"{cur_start:%Y-%m-%d}",
                                         to_date=f"{cur_end + timedelta(days=1):%Y-%m-%d}", interval=interval)
+        _check(r, f"intraday bars for {security_id}")
         if isinstance(r, dict) and r.get("status") == "success":
             frames.append(_to_df(r.get("data")))
         cur_end = cur_start - timedelta(days=1)
@@ -42,6 +57,7 @@ def daily_bars(client, security_id, segment, instrument, start, end, expiry_code
     r = client.historical_daily_data(security_id=str(security_id), exchange_segment=segment,
                                      instrument_type=instrument, from_date=f"{start:%Y-%m-%d}",
                                      to_date=f"{end + timedelta(days=1):%Y-%m-%d}", expiry_code=expiry_code)
+    _check(r, f"daily bars for {security_id}")
     df = _to_df(r.get("data") if isinstance(r, dict) else None)
     df["date"] = df["time"].dt.date if len(df) else pd.Series(dtype=object)
     return df.reset_index(drop=True)

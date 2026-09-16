@@ -7,3 +7,5 @@ __pycache__/
 *.pyc
 # trading_agents output: real account data, never commit
 journal_data/
+# trading_exec output: signals, shadow trades, real account data
+exec_data/
