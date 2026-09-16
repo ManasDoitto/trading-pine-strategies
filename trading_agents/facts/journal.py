@@ -26,7 +26,7 @@ from datetime import date, datetime, time, timedelta
 from ..core import charts, instruments, rules, trades
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
-from ..core.market_data import PriceLookup, intraday_bars
+from ..core.market_data import DhanApiError, PriceLookup, intraday_bars
 
 STORE_NAME = "fills.json"
 VIOLATION_RULES = ("R1", "R2", "R3", "R4", "R7", "R8")
@@ -201,6 +201,11 @@ def violation_cost(violations, eps_by_id, window_ids=None):
     return out
 
 
+def _leg_label(leg):
+    what = f"{leg['strike']:g}{leg['right']}" if leg.get("strike") is not None else leg.get("symbol", "?")
+    return f"{leg['side'][0]} {what} @{leg['price']:g}"
+
+
 def chart_underlyings(session, traded):
     inst = load_config()["instruments"]
     wanted = [u for u in inst if session == "ALL" or (session == "NSE") == inst[u]["option_segment"].startswith("NSE")]
@@ -215,10 +220,16 @@ def build_charts(client, as_of, legs, open_eps, session, traded):
     out_dir = data_dir(f"snapshots/{as_of}")
     day_legs = [l for l in legs if l["time"].date() == as_of]
     last_leg = {l["symbol"]: l for l in legs}
-    out = []
+    out, errors = [], []
 
     def day_bars(sid, seg, inst):
-        b = intraday_bars(client, sid, seg, inst, as_of, as_of, interval=5)
+        """Bars for the day, or None with the failure recorded. A chart is cosmetic: its failure is
+        shown in the journal rather than aborting it, but it is never silently an empty chart."""
+        try:
+            b = intraday_bars(client, sid, seg, inst, as_of, as_of, interval=5)
+        except DhanApiError as e:
+            errors.append(str(e))
+            return None
         return b[b["time"].dt.date == as_of]
 
     def save(name, svg, **info):
@@ -233,18 +244,19 @@ def build_charts(client, as_of, legs, open_eps, session, traded):
         ref = instruments.reference_series(u, last_leg[symbols[0]]["expiry"] if symbols else None)
         bars = day_bars(ref["security_id"], ref["segment"], ref["instrument"]) if ref else None
         if bars is None or bars.empty:
-            out.append(dict(underlying=u, kind="underlying", path=None, note=f"no {u} bars for {as_of}"))
+            why = errors[-1] if bars is None and errors else f"no {u} bars for {as_of}"
+            out.append(dict(underlying=u, kind="underlying", path=None, note=why))
         else:
-            vl = [dict(time=l["time"], side=l["side"],
-                       label=f"{l['side'][0]} {l['strike']:g}{l['right']} @{l['price']:g}") for l in u_legs]
+            vl = [dict(time=l["time"], side=l["side"], label=_leg_label(l)) for l in u_legs]
             save(f"{u}_underlying", charts.candles_svg(bars, f"{ref['label']}  5m  {as_of}", vlines=vl),
                  underlying=u, kind="underlying", fills_marked=len(vl))
         for sym in symbols:
             leg = last_leg[sym]
             ob = day_bars(leg["security_id"], leg["segment"], leg["instrument"])
-            if ob.empty:
-                out.append(dict(underlying=u, kind="option", symbol=sym, path=None,
-                                note=f"no premium bars for {as_of} (illiquid or no trades)"))
+            if ob is None or ob.empty:
+                why = (f"premium bars unavailable: {errors[-1]}" if ob is None and errors
+                       else f"no premium bars for {as_of} (illiquid or no trades)")
+                out.append(dict(underlying=u, kind="option", symbol=sym, path=None, note=why))
                 continue
             mk = [dict(time=l["time"], price=l["price"], side=l["side"], label=f"{l['side'][0]} {l['qty']}@{l['price']:g}")
                   for l in u_legs if l["symbol"] == sym]

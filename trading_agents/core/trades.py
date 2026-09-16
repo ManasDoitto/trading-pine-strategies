@@ -6,7 +6,7 @@ FIFO matching is a function-ised port of the repo-root dhan_trade_analysis.py
 from collections import defaultdict, deque
 from datetime import datetime
 
-from .option_symbols import from_fill, underlying_of  # noqa: F401  (underlying_of re-exported)
+from .option_symbols import display, from_fill, underlying_of  # noqa: F401  (underlying_of re-exported)
 
 COST_FIELDS = ("sebiTax", "stt", "brokerageCharges", "serviceTax", "exchangeTransactionCharges", "stampDuty")
 
@@ -64,23 +64,50 @@ def merge_raw(*sources):
 
 
 # ------------------------------------------------------------------ legs
+_NSE_INDEX_OPTIONS = {"BANKNIFTY", "NIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50", "SENSEX", "BANKEX"}
+
+
+def _infer_instrument(segment, underlying, contract):
+    """The trade book sends instrument=None, but the bars API requires it (DH-905)."""
+    if contract is None:
+        return None
+    if segment == "MCX_COMM":
+        return "OPTFUT"
+    if segment in ("NSE_FNO", "BSE_FNO"):
+        return "OPTIDX" if underlying in _NSE_INDEX_OPTIONS else "OPTSTK"
+    return None
+
+
 def normalize_leg(raw):
     t = parse_time(raw.get("exchangeTime"))
     if t is None:
         return None
-    symbol = raw.get("customSymbol") or raw.get("tradingSymbol") or ""
+    raw_symbol = raw.get("customSymbol") or raw.get("tradingSymbol") or ""
     c = from_fill(raw, t)
+    symbol = display(c) if c else raw_symbol
+    underlying = c.underlying if c else underlying_of(raw_symbol)
+    qty = int(raw["tradedQuantity"])
+    # The trade book (today's fills) reports MCX quantity in LOTS; trade history reports UNITS.
+    # Verified 2026-09-16: a 6-lot / 600-unit crude position was closed by trade-book sells summing
+    # to 17 after 11 lots were added. Convert to units so both sources match in FIFO.
+    instrument = raw.get("instrument") or _infer_instrument(raw.get("exchangeSegment"), underlying, c)
+    if raw.get("_src") == "tradebook" and raw.get("exchangeSegment") == "MCX_COMM":
+        from .instruments import lot_size
+        lots = lot_size(underlying)
+        if lots:
+            qty = int(round(qty * lots))
     return dict(
         leg_id=leg_key(raw),
         order_id=str(raw.get("orderId")),
         time=t,
         symbol=symbol,
-        underlying=c.underlying if c else underlying_of(symbol),
+        raw_symbol=raw_symbol,
+        underlying=underlying,
         segment=raw.get("exchangeSegment"),
-        instrument=raw.get("instrument"),
+        instrument=instrument,
         product=raw.get("productType"),
         side=raw["transactionType"],
-        qty=int(raw["tradedQuantity"]),
+        qty=qty,
         price=float(raw["tradedPrice"]),
         costs=sum(float(raw.get(f) or 0) for f in COST_FIELDS),
         expiry=c.expiry if c else None,

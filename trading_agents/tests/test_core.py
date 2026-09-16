@@ -88,6 +88,60 @@ class OptionSymbolTest(unittest.TestCase):
         self.assertEqual(underlying_of("SILVER-24Sep2026-283000-CE"), "SILVER")
 
 
+class TradeBookFormatTest(unittest.TestCase):
+    """Today's fills come from the trade book: different symbol format, drvOptionType "NA", and
+    MCX quantity in LOTS. Verified against a real session on 2026-09-16."""
+
+    def tb(self, side, lots, px, time="2026-09-16T19:52:37", sym="CRUDEOIL-17Sep2026-8000-PE",
+           expiry="2026-09-17", strike=8000.0):
+        return {"_src": "tradebook", "orderId": f"TB{side}{lots}{px}", "exchangeTradeId": f"{side}{lots}{px}",
+                "transactionType": side, "exchangeSegment": "MCX_COMM", "instrument": None,
+                "productType": "MARGIN", "customSymbol": None, "tradingSymbol": sym,
+                "drvExpiryDate": expiry, "drvStrikePrice": strike, "drvOptionType": "NA",
+                "tradedQuantity": lots, "tradedPrice": px, "exchangeTime": time.replace("T", " "),
+                "securityId": "576521"}
+
+    def test_trading_symbol_parse(self):
+        from trading_agents.core.option_symbols import parse_trading_symbol
+        c = parse_trading_symbol("CRUDEOIL-17Sep2026-9900-PE")
+        self.assertEqual((c.underlying, c.expiry, c.strike, c.right), ("CRUDEOIL", date(2026, 9, 17), 9900.0, "PE"))
+        b = parse_trading_symbol("BANKNIFTY-Sep2026-55800-CE")
+        self.assertEqual((b.underlying, b.expiry, b.strike, b.right), ("BANKNIFTY", None, 55800.0, "CE"))
+        self.assertIsNone(parse_trading_symbol("CRUDEOIL 17 SEP 8000 PUT"))
+
+    def test_tradebook_row_gets_contract_and_units(self):
+        leg = trades.normalize_leg(self.tb("SELL", 3, 141.2, sym="CRUDEOIL-17Sep2026-9900-PE", strike=9900.0))
+        self.assertEqual((leg["strike"], leg["right"], leg["expiry"]), (9900.0, "PE", date(2026, 9, 17)))
+        self.assertEqual(leg["qty"], 300)                                  # 3 lots x 100
+
+    def test_instrument_inferred_for_tradebook_rows(self):
+        leg = trades.normalize_leg(self.tb("BUY", 1, 114.1, sym="CRUDEOIL-17Sep2026-9900-PE", strike=9900.0))
+        self.assertEqual(leg["instrument"], "OPTFUT")                     # bars API rejects None (DH-905)
+        nse = dict(self.tb("BUY", 30, 500.0, sym="BANKNIFTY-Sep2026-55800-CE", expiry="2026-09-29",
+                           strike=55800.0), exchangeSegment="NSE_FNO")
+        self.assertEqual(trades.normalize_leg(nse)["instrument"], "OPTIDX")
+
+    def test_history_and_tradebook_close_as_one_position(self):
+        # the real 16-Sep sequence: 600 units held from history, +11 lots today, -17 lots today
+        rows = [fill("2026-09-04T19:51:36", "BUY", 500, 120.6, symbol="CRUDEOIL 17 SEP 8000 PUT",
+                     expiry="2026-09-17", strike=8000.0),
+                fill("2026-09-09T17:34:48", "BUY", 100, 38.0, symbol="CRUDEOIL 17 SEP 8000 PUT",
+                     expiry="2026-09-17", strike=8000.0),
+                self.tb("BUY", 11, 5.4, time="2026-09-16T18:40:29"),
+                self.tb("SELL", 17, 4.6, time="2026-09-16T19:52:37")]
+        legs = trades.normalize(rows)
+        self.assertEqual(len({l["symbol"] for l in legs}), 1)             # one canonical contract
+        rts, open_lots = trades.fifo_match(legs)
+        self.assertEqual(open_lots, [])
+        self.assertEqual(sum(r["qty"] for r in rts), 1700)
+        self.assertTrue(all(r["side"] == "LONG" for r in rts))            # no phantom sell-to-open
+        eps = trades.episodes(legs)
+        self.assertEqual(len(eps), 1)
+        self.assertEqual((eps[0]["direction"], eps[0]["status"], eps[0]["adds_against"]), ("LONG", "CLOSED", 2))
+        expected = (4.6 * 1700) - (500 * 120.6 + 100 * 38.0 + 1100 * 5.4)
+        self.assertAlmostEqual(eps[0]["gross_pnl"], expected, places=2)
+
+
 class FifoAndEpisodeTest(unittest.TestCase):
     def legs(self, rows):
         return trades.normalize(rows)
