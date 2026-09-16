@@ -1,0 +1,103 @@
+# trading_agents: AI assistants for option buying
+
+Read-only AI agents for a discretionary **option buyer** on BANKNIFTY, CRUDEOIL, SILVER and SILVERM.
+They run inside Claude Code: subagents in `.claude/agents/` and skills in `.claude/skills/`. The numbers
+come from deterministic Python in this package. The agents interpret those numbers and never do
+arithmetic of their own.
+
+| Agent | Skill | Status |
+|---|---|---|
+| Trade journal keeper | `/journal` | **Stage 1: built** |
+| Pre-market analyst | `/premarket` | **Stage 2: built** |
+| Session-close analyst | `/session-close` | **Stage 3: built** |
+| Supervisor / validator | `/supervise`, and wraps all of the above | **Stage 4: built** |
+
+## Safety
+- `core/dhan_client.py` exposes an allowlist of read methods only. Order placement, modification,
+  cancellation, kill-switch and position conversion are unreachable, and a test enforces it.
+- The third-party `dhan-mcp-server/` (which can place orders) is **not** used.
+- All output goes to `journal_data/`, which is gitignored because it holds real account data.
+- Credentials come from the repo-root `.env` (`DHAN_CLIENT_ID`, `DHAN_ACCESS_TOKEN`), the same as the
+  existing scripts. Dhan access tokens expire, so regenerate the token when a run reports an auth failure.
+
+## Layout
+```
+config.toml        instruments, sessions, rule thresholds (tune these)
+core/              dhan_client, instruments (scrip master), market_data, option_symbols,
+                   trades (FIFO + position episodes + stats), rules (R1-R8), black76
+facts/journal.py   fills -> journal facts JSON + trades.csv + episodes.csv
+tests/             unittest, synthetic fixtures only
+```
+
+## Journal
+```bash
+python -m trading_agents.facts.journal                 # today (live, read-only pull)
+python -m trading_agents.facts.journal --date 2026-09-09 --no-pull
+```
+Then `/journal` in Claude Code has the `trade-journal-keeper` subagent write
+`journal_data/journal/<date>.md`. The charts are SVGs drawn from Dhan 5m bars by `core/charts.py`:
+the underlying with your fill times, and each option with fills at exact prices. TradingView is
+never touched.
+
+Rules flagged (thresholds in `config.toml [rules]`):
+
+| Rule | What it catches |
+|---|---|
+| R1 | Averaging down: re-buying the same option below the running average |
+| R2 | A bought option carried overnight |
+| R3 | A bought option held into the final days before expiry |
+| R4 | Premium stop not respected (exit more than X% below entry) |
+| R5 | Daily loss limit breached |
+| R6 | Overtrading, or a revenge entry right after a big loss |
+| R7 | Deep-OTM lottery buy (per-instrument strike threshold) |
+| R8 | Sell-to-open, which isn't option buying |
+
+## Pre-market
+```bash
+python -m trading_agents.facts.premarket               # facts for today
+python -m trading_agents.validate.claims_check journal_data/reports/<date>_premarket.md journal_data/facts/<date>_premarket.json --stamp
+```
+`/premarket` runs facts → `premarket-analyst` → `claims_check` (with one fix pass).
+
+The facts contain, per instrument:
+- prior-session levels and pivots, built from 5m bars because Dhan's daily bars lag
+- ATR regime and 20-day realised vol
+- v4.0 SHA-flip state: a Python port of the Pine logic (`core/signals.py`), approximate
+- ATM premium, IV (checked against Black-76), theta cost, straddle, OI walls and PCR
+
+Chains that fail the quality gates are marked `usable=false`. The silver chains were stale in testing.
+
+`claims_check` fails a report if:
+- any cited number doesn't match its facts path
+- a number traces to nothing
+- a section or bias is missing
+- the report uses trade-instruction language
+
+## Session close and the scorecard
+```bash
+python -m trading_agents.facts.session_close --session MCX     # after the MCX close
+python -m trading_agents.validate.scorecard --date <date>      # grades the morning's bias
+```
+`/session-close` runs journal → session facts → scorecard → `session-close-analyst` → `claims_check`
+→ `supervisor-validator`. The scorecard accumulates in `journal_data/scorecard.csv` and reports
+running hit rates for both the analyst's bias and the deterministic `rule_bias`.
+
+## Supervision
+```bash
+python -m trading_agents.validate.house_rules <report.md>
+```
+`/supervise <report>` runs `claims_check` and `house_rules`, then the `supervisor-validator` subagent
+judges bias vs evidence, invented signals, unusable chains being quoted, missing approximation labels
+and buried violations. It stamps **PASS / PASS-WITH-EDITS / FAIL** onto the report.
+
+`house_rules` encodes what this repo already tested and rejected (partial TP on v4.0, ADX gates on the
+SHA-flip family, day-of-week skips, loosening v0.4, pullback-reclaim entries, ATR-scaled circuit
+breakers, tuning until a PF target, trailing stops) so no agent re-proposes them. It fires only when a
+rejected idea appears as a recommendation, so describing your own past trades is never flagged.
+
+## Tests
+```bash
+python -m unittest discover -s trading_agents/tests -t .
+```
+Dependencies are already installed globally: `dhanhq`, `pandas`, `python-dotenv`, `requests`.
+Python 3.13 stdlib covers the rest (`tomllib`, `unittest`).

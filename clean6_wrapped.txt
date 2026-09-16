@@ -1,0 +1,623 @@
+everybody tells you to backst but why should you do it and how to actually do it
+and what software to use what data to gather how to gather your data where to
+log it in we have all of those questions welcome to the trading fanatic channel
+in this video it's going to be all about back TST how to do it different ways to
+do it how to gather data and everything you need to know about and I'm also
+going to show you some softwares and I'm going to give you a tool so actually go
+ahead back test gain data about your trading strategy and of course through back
+testing you're going to become a better Trader and learn your strategy in and
+out so if you're excited about it let's get into it let's say you bought a
+course or you watch the Youtube video and usually educators are going to
+illustrate their point better by picking textbook scenarios from the markets in
+order to illustrate their point and at the moment when you see that video and
+when you see those examples you get that pink aha moment and you're like wow
+this really makes sense I really understand this concept I'm just going to go
+ahead and apply it in the markets it looks pretty easy I understand it but then
+tomorrow or on the same same day you go on the markets and you try to find
+examples or you even life trade what you learned but it doesn't seem to work you
+get losses and you get a little bit confused maybe you go back to watch that
+video again and again it makes sense but again you just go on the live markets
+or you just try to find some examples on the charts and nothing seems to work so
+then what you do is all right this video doesn't work this course doesn't work
+I'm going to find another one so what that is called is strategy hoping and why
+do Traders do this well they're too lazy to actually sit down study back test
+apply what they learn over a long period of time and usually professional
+Traders use data backed strategies so they have a strategy that is backed up by
+data over one or two years of back testing that actually proves there is a
+positive Edge within that strategy so that they know over a long term they're
+winning so that is the difference between losing and winning Traders winning
+Traders have data over their strategies while losing Traders they just study
+something they try to go apply it it doesn't work immediately and then then they
+try to find the next thing and in order to transition from a losing to a winning
+Trader you have to back test so let me tell you what actually back testing is as
+for the basics back testing means simply going back in time throughout past data
+to pretty much test whether your strategy worked in the past because it is said
+that if a strategy produces positive results in the past throughout a longer
+period of time well it is most likely going to yield the positive return also in
+the future and again pay attention I say over a longer period of time which
+could like minimum 6 months I would even go to back to the strategy for a year
+because 3 months you can be winning in the next one month you can blow all of
+your earnings right so you got to make sure to put it to the pressure test of
+all different market conditions so again never go forward without back testing a
+strategy or a concept you want to use now listen carefully because this is the
+most important benefit of back testing it serves the purpose of gathering data
+regarding your trading strategy and the beauty of it is that you can do it
+really fast I mean if you want to test one month of live data so if you want to
+sit through one month of price action in the live markets well again you got to
+wait for 30 days but in back testing you can just test one month of data for one
+hour so you get to really gather data fast so you can very quickly prove whether
+your strategy actually works but now when it comes to data I'm right now going
+to give you 10 important pieces of information that you should gather and then
+of course I'm going to give you a template for doing that so pay close attention
+all right so the first important piece of data you need is very simple and very
+basic which is your final result did you lose money or did you win money if you
+lost money just throw a strategy in the trash because why would you continue
+testing something that costed you money and if you actually did win money well
+take into account the percentage you return because maybe there is something
+better you can tweak later that is going to yield you a better result second of
+all is how many trades did you lose and how many trades did you win which is
+going to determine your win rate and you pretty much do this by taking how many
+trades you won out of all the trades you took so if you took 100 trades and you
+want 50 trades you divide either 100 by 50 or 50 by 100 and you're going to get
+that 50% win rate now don't do the maths by yourself I'm going to share an
+amazing tool with you uh within the nocean dashboard that automatically
+calculates your win rate for you also including break even trades now the third
+thing you want to know is your average R reward ratio you really want to find
+out that sweet spot for your strategy so that you know what is the average RIS
+to reward that it is returning and I want you to measure your maximum rest
+reward on every single trade and I want to measure your minimum which is not
+that important why do I make you measure the maximum roed word of every trade
+because let's say you're taking two r on every trade but on average all of your
+trades are hitting like 5 to six R so when you have that information then of
+course you can make a decision to increase your rward ratio and of course make
+more money so it is very important to F the median or the average RIS reward
+ratio of your strategy fourth and very important data point this is this is your
+average stop-loss size so what you simply have to do is when you take a trade
+just logging the stop- loss size you're taking because again at the end of your
+back testing session you're going to see what is your usual or average stop-
+loss so that when you encounter a trade life if the stop loss is way too big
+from what you're usually using maybe you skip the trade if it's small maybe it's
+it's better again you have to know your average stop- loss size and of course
+then you have to find ways in order to either decrease it or increase it
+depending on what you want to do fifth point that not a lot of you do is to take
+note of your best trading days and I know you're going to be surprised but
+you're literally going to see that for example Mondays are your best days and of
+course the sixth tip is to also Mark up your worst days because again you want
+to know on which days you're most likely to lose money for me those are
+Thursdays I don't know why but I lose money on Thursday so guess what I don't
+trade on Thursday I don't know why but again throughout my back testing I see
+that on Thursday I lost much more than I want over a longer period of time so
+again G this gives me the edge to skip Thursdays to actually recharge myself and
+to come back stronger on Friday which is one of my best trading days number
+seven is the max trades per day I want you to back test like you're doing in a
+textbook scenario I want you to take every single trade that you see in the live
+market so then of course you know for example the maximum trades that I ever
+took was six trades because when you have that number you know later how to
+tweak your risk parameters because for example you might say oh I'm only going
+to take two trades per day but what if those first two trades are losses and
+then the third trade is a win right and this is why you really have to first
+back test see what is the maximum amount of Trades you can take per day so that
+you know also how to tweak your risk parameters if you risk like 2% per trade
+and you lose two trades in a row well you're down quite a lot but if you know
+that on average you take six trades per day then of course you're going to
+decrease your risk a little bit so that you allow more bullets to strike
+throughout the day which brings me to point number eight which is the max losses
+you have per day so what is the maximum amount of losses you're going to be
+taking per day which of course is going to show you like what kind of losing
+streak you can get into or when should you stop trading because if you find out
+that some days you can take four to five losses in a row then maybe you decide
+okay well if I took three losses in a row or four then I'm just going to stop
+and not go even forward so again take note of that the other point you want to
+also Mark out is your max losing streak and that is extremely important because
+if you know that for example in your back testing you had a period in which you
+lost 12 trades in a row which happens with strategies of like 30 to 40 to 50%
+win rate it is very possible you lose like more than 10 trades in a row but if
+you actually have this in your data when you're life trading and if you lose a
+trade and then second and third and Fifth and fourth and sixth and like oh
+you're not going to be panicking because you know in back testing your maximum
+losing streak is 12 trades and you also know that longterm you're going to get
+on top so take note of your maximum losing streak and also opposite take note of
+your maximum winning streak how many trades did you win in a row on a maximum
+basis because then you know for example if on average you take five winners in a
+row then you might know like if if you take four if you take five winners in a
+row in the live markets well you might start expecting that next loss and I know
+it sounds strange you just got to keep showing up but having that data to
+support you well you know okay I'm on a five trade winning streak well most
+likely I'm going to take a loss and you're actually prepared and finally I want
+you to actually get granular with your trading strategy and by granular I mean
+dive even deeper what you can also look for is timing which session is your best
+performing session for the strategy exactly at what time because what I found
+for my strategy is that it performs the best on London open and if I do not take
+my trade in those two hours into London open then on the next hours I'm going to
+lose all right and this is actually getting granular into the strategy and not
+only also looking at the technicals so for example you can get granular on
+liquidity how many of the trades you win if the Asian session high or low is not
+taken how many of the trades you win if the session higher low is taken right
+how many trades do you win or lose if you're trading on the 50 minute how many
+trades do you win or lose if you're trading on the 30 minute you got to really
+get granular in order to find those little things that are eventually going to
+help you make more profits all right I really hope you took note of all of those
+data points and now before we jump into the technicals and actually show you how
+to back test with the technicalities I want to first talk about forward testing
+or also known as paper trade and I really love this the difference between back
+testing and forward testing is that within forward testing you're actually
+testing the strategy live so listen first you have to back test you have to
+really prove to yourself that this strategy has worked in the past but again
+just like in sports you can be really good at practice right you can be great at
+practice you can be doing great results but when competition comes in you might
+freeze and you might not be able to execute on what you actually did on the
+practice right same with trading if you performed amazing in back testing again
+in back testing you're calm there is no emotions running there is no like live
+candles sticking because in live markets you might miss the trades you might not
+see the trades every single scenario is going to be different so again you have
+to spend a lot of time forward testing the strategy in the live markets in order
+to really gain that confidence and actually the skill to execute the strategy
+because back testing showed you that it works but then of course after receipt
+works you have to get better at executing it live so if you ask me your next
+step after back testing should be to open a small Live account right so 100 $300
+$500 whatever you can afford and just trade very low risk like 0.01% or maybe
+even just take 0.01 lots and what is this going to help you is to actually get
+involved in the market but with real money and real execution because a lot of
+you trade demo like screw demo you you don't need demo because again there is no
+emotions it's fake money and the transition from demo to life is usually very
+painful so much better make a little investment of a very small amount into a
+live trading account and start taking those trades live based on your back
+tested strategy but with real funds and pretty much this is going to help you
+perform better later when you start trading life with bigger risk like 0.50% or
+1% risk because you have seen that during live markets with low risk you
+actually sold a strategy and you executed on the strategy and you're going to be
+well prepared later and often times like you can be really profitable in back
+testing but funny as it is you go on the live markets and you get crushed and
+this is pretty much because the market changes its cycle we get some new things
+developing in the world economy that changes the market sentiment and again your
+strategy all of a sudden stops working so do not give up keep testing for a long
+period of time 3 months 6 months to really see whether it works master that
+strategy and again do not spend months just back testing going back all the way
+to like 2018 to back this where it worked in two years the only data you need is
+the most recent year so get that and then get into the live markets because it's
+much better to learn from the live markets and adapt that strategy rather than
+just spending time on back test all right it's time to get technical because I
+know you're here just for that now in order to back this properly you're going
+to be needing a data Gathering tool now this is usually training view for a lot
+of us but there are also some incredible softwares like FX Replay that allows it
+to actually go back through for a lot of data and actually to execute the
+strategy as you are in real time so I'm going to talk about two of them but for
+both of those well for FX replay it gives you a lot of data we're going to talk
+about in a bit but for trading view you are going to need some sort of a data
+Gathering too like an Excel spreadsheet or also because I really love you oh
+Fanatics I'm going to give away to you an incredible notion spreadsheet in which
+you can actually include all the data points I mentioned a little bit earlier
+and not only that but again within that notion spreadsheet you're going to get
+kind of separate data points for all of the trades you took and for every single
+trade there is going to be another little template that you can actually enter
+your hard time frame middle time frame lower time frame analysis and also
+reflect on that trade and also some incredible stuff which we're going to be
+covering in a bit so as I said we can either back test on trading view or on a
+FX replay software so let's jump into the charts and have a look at both options
+all right so if you decide to use use trading view for your back testing there
+are a few things you must know about first of all you have limited data to go
+back to when you use trading view for example if you go down to the one minute
+time frame you can just get around four to five weeks of data with the basic
+plan however if you try to back this hard time frames like let's say 15 minute
+to 5 minute you can go further back in time so for example myself I believe I am
+with the most kind of basic plan which is yeah this Essentials plan and again
+like with this thing you get absolutely everything you need and you can see you
+get 10K historical bars so I think this is pretty much 10,000 um one minute
+candles which is pretty much going to give you how many weeks and how many days
+you can go back to so again like if I just go back to the weekly time frame you
+can see that if you try to go way back in time like this and then you go to the
+one minute oops you're going to have a data point unavailable right here so
+again if you go to the weekly time frame I do think you can get around 1 2 3 4
+for five weeks of data so if you go five weeks back and then if you go to the 1
+minute time frame there we go we have the data so make sure to keep that in mind
+second point is that you're not held accountable when you use trading view so
+for example you can take trades after they happened or you can skip trades if
+they lose I used to do that again don't lie to yourself because if you use
+trading view you're going to need honesty if you didn't see the trade and if you
+miss the trade you don't include it in your back testing just because the trade
+happened but you didn't take it it doesn't mean you have to include it because
+then you're getting into unrealistic back testing dates okay and third of all
+you have to put in the work to enter all of your data manually into a sheet
+which a lot of Traders are lazy to do so you cannot just go on trading View and
+like go on the 50-minute time frame and say okay I'm going to take for example
+this short and I'm going to take for example this short my strategy Works no you
+have to gain a lot of data and this is why I personally make my private Menders
+go back in time and give me 50 trades back tested or live traded which then we
+go together and review on a one-on-one basis okay so with that being said as one
+of the gifts in this video I have included a notion back testing template in the
+description in this video so make sure to grab it and right now I'm going to
+give you an example of how we can use trading view uh to take trades and then of
+course I'm going to show you how to use the notion template in order to enter
+your data all right so as I explained you can go if you if you want to test the
+one minute time frame you can go back just five weeks so we have to go for
+example at the beginning of October and then of course you go on the weekly time
+frame by hitting the replay tool right there and again you need that paid option
+on trading View and then what you simply do is you perform your top down
+analysis again so let's say in this case the market broke structure to the
+upside so we're bullish but then of course the market came back it broke
+structure to the downside so we're bearish that is our supply Zone So currently
+we're at a lower low we can expect the potential pullback or of course we can
+expect the continuation okay so get real with the actual stuff you're going to
+be doing when you life trade okay then of course you drop to the 50-minute time
+frame and once again feel free to add all of your IND indicators now the beauty
+of trading view is that you can add for example the Asian session you can add
+different tools that you want to use so let's say for example I'm just going to
+play 50-minute candles until the Asian session ends and pretty much this is how
+I'm going to tackle the market live there it is Asian session has closed
+Frankford is about to open so again I'm going to see what I'm going to be
+looking for well potentially to take out the asan high and to take a short with
+the trend or if we start by taking the low knowing that we're at a lower low I'm
+going to be looking for long okay so again you pretend you're life trading and
+of course you wait I can see that the Asian range was very nicely taken so let's
+say that if I get a trend change above this guy I'm going to take a trade and
+let's say you want to enter like with a stop order right do it before it
+actually happens because I suspect this one can actually break up right now and
+then of course you're going to miss the trade okay so if you want to take a
+trade don't let's just see what happens right so there we go so don't just say
+oh this Market went up well I would have entered this trade from here no you
+cannot do that okay so before you decide to take a trade you first set your
+order here or here whatever you like to set it you set your TP let's say we're
+going to go for 2 hour right and then of course you've taken the trade then you
+see how it plays out there we go take profit for example okay so this is not a
+strategy back testing VI I just want to show you how it's done okay so now that
+you have the trade maybe you just allowed for it to play out to see what is
+going to happen then what you do is you go to your notion template so let me
+flick to the other screen so that I can actually show you so once you open it
+it's going to look something like this so let me give you a brief tutorial now
+first of all you're going to click here to add a row and of course you can say
+the pair so right now we're back testing gbpusd you click enter then of course
+you can describe your strategy so let's say we're going to be back testing a 50
+minute uh swing trading right or something like this the date so of course we
+started for as you said we started from the 1st of October so that we know from
+when we're back testing in any details right so I am going to back test the 50
+minute sell stops buy stops buy stops above structure something like this okay
+so just briefly describe what the back testing station is about then you you
+click here so again if you're familiar with notion that is very good to click
+here and you get this uh new page then you have to click on this template that I
+have prepared for you back test template you click on that you can make it full
+screen and we just wait for this to get populated so there is your pretty much
+your template here are all of your back tests okay and there are some details
+below that so let's say for example we took our first trade so we type trade one
+today uh it was Monday okay so time of the day again go back to the Chart what
+what time did we take this trade on again based on your time zone it's at 8:15
+of course we go back and we say me do that and we say 8 8:15 so the entry model
+again this was a 5050 minute counter Trend because we were trading against the
+the 4 hourly Trend so again feel free to include things how do you include
+things you just click here and for example let's say you say 30 minute counter
+Trend right you just create a new one it's very easy entry method so again did
+you wait for 1 minute TC did you enter with a 5 minute TC did you wait for a 1
+minute stop sorry for a 15-minute stop order again feel free to add anything you
+want right there stop loss Pips well again if I look at the charts the stop loss
+of this trade was 14 Pips so we type 14 we type 14 we made two R and the
+potential R the market made was pretty much 2.1 and then of course you can see
+I've added the formula that is automatically going to calculate whether it's a
+win a loss or a break even so again if you if you make a break even trade okay
+now that's the potential R so if you make a break even trade right there zero
+it's going to turn as a break even if you like take minus one it's going to turn
+as a loss okay then what you want to do is you go to here and you click trade so
+when you click trade uh another thing is going to populate once again just wait
+for it so there it is watch your have right here is higher time frame Market
+structure lower time frame structure and then entry and result so here you go
+back to your chart and right now you take a screenshot of your thought process
+right so again here you're going to screenshot this or maybe you add an
+annotation so say here 4 was at a lower low I expect pullback towards 50% okay
+so maybe we forgot to add our Fibonacci there's a Fibonacci I expect the
+pullback and then po it so then you click here and then you click copy image and
+then you go back to your template and you just click contrl + V boom there's a
+chart now for your lower time frame minor structure you again go to your chart
+again depending on what your middle time frame is in this case the 50 minute we
+take a screenshot on the 50 minute and again add annotations put some intention
+into your charts I entered here with a stop order targeting right 2 R 2 R after
+taking Asian low right so explain what you did then again copy image going back
+to the to the template hitting control + V boom there it is and again keep in
+mind you can also you have empty space right there you can you can type I took
+this trade because of X because of Y okay and then of course if you have even a
+lower time frame if you go to the one minute time frame I usually put a one
+minute chart down there so what this makes you is a collection of Trades then
+when you go back okay my first trade it was a it was a true R profits okay let
+me see what I actually did okay well the 4y time frame was counter Trend but the
+50 minute made this I took profit here and then I can see the market reverse so
+then here you can see how everything actually work and then again you continue
+so right now after this trade played out again based on your strategy you just
+continue you go back to the F time frame maybe you just wait for the new day
+right so let's wait for a new day right there there is the new day well what the
+market did is just massively continued to break structure lower we're at a very
+big lower low right now we're get to drop to the 50-minute time frame what is
+the Asian session doing it is trending to the downside so again I would
+potentially expect a little popup and a continuation lower or maybe a
+manipulation lower and and a buy move again we can see the market is
+manipulating higher right now but in this case like for example if you want to
+enter short maybe want to go to the 5 minute and wait for a 5 minute Trend
+change like this right again this is not a strategy video so there is our Trend
+change again take the trade as you would take it live so don't just come in
+right there and say oh this Market moved down I took the trade from here no you
+took it from there and again you're let's say you're going to Target Two R and
+again you allow the trade to play out now if you're going to go break even or
+anything like this or maybe if you see it like this and you decide to close the
+trade be honest okay so let's see what happens boom boom boom boom okay so at
+that's that case I would definitely go break even because we took out like the
+Asian low so the market is very likely to pull back so in this case again I just
+go break even maybe I just put a little line to tell me and break even and there
+we go we got break even now once again qu time frame go back to the to to your
+two then you do trade two that trade was taken on Tuesday you checked the time
+it was taken during 9:30 in the morning it was a uh 50-minute continuation
+because we traded with the trend uh I took it with a 5 minute Trend change the
+stop- loss was uh x amount of Pips in this case 15 Pips and the result was a
+zero so that is a break even trade now again you go click here and click on
+trade and then you simply add everything that you did again okay so hopefully
+that's clear right now let me actually jump a little bit deeper into all the
+data here that we have so as you go through this process of back testing you're
+going to spot patterns I promise you there are going to be things that make an
+impression on you or things that you want to uh to remove from the trading or
+something that you spot is happening that you want to add to your trading keep
+those notes right there so those are your granular in sites from your testing so
+for example you spot that a 5minute TC works better than 50-minute TC because
+the stop loss the stop loss of the 50-minute TC is is is bigger right so then
+you you keep note of these things because that is essentially what is going to
+shape your trading strategy okay so here you take note of stuff like this now
+when you're ready with the back test right there you're pretty much going to see
+all the data so you're going to see here under values how many trades you have
+you're going to see your stop loss if you want to calculate your stop loss just
+click calculate and then you do average so you're going to see what's your
+average stop- loss here under the result you're going to see what kind of result
+you have here at potential r as I told you track your track the maximum Roost to
+reward that you get for the trade right so example let's say here is three there
+is this and then for example here you can do again median or average this is
+going to show you like around an average and you're going to get a lot of date
+so again total amount of Trades you have it right there two win rate now if you
+scroll a little bit down you're going to have this win rate calculator if I try
+to open it there it is so again here you just enter your data it's a very nice
+calculator so let's say you took uh 20 wins and let's say you take five break
+evens and let's say you took like 18 losses that IM middle is going to tell you
+how many trades you took and what is your winning percent in this case with a 20
+winners 18 losses and five break evens you get a 46. 51% you go back to your uh
+dashboard right there and of course you are going to type your overall win rate
+again let's say 46% average trades per day now this one you know by having a
+look at the days right there so again you see you count every single Monday
+Monday Monday how many trades did you take on Monday how many trades did you
+take on Tuesday right so how many trades did do you usually take per day maximum
+losses you're pretty much going to see it here if you have like a loss loss loss
+loss loss loss then you're going to see how many you have in cons in consecutive
+ones maximum wins largest amount of Trades per day best trading day worst
+trading day take note of everything and then for your qualitative analysis this
+is where I want you to type more words right so when was the best timing for
+your trades and again this is not very uh quantitative because again like it's
+very hard to say well 12:00 is the best time although it's possible to do that
+again just type in my impression right here type in my impression London session
+was best I was taking the best the best trades during the first two hours of
+London New York didn't work for me right so then on the next your best days
+right so on the best days I found out I traded the mo the best on Tuesday I
+think because on Tuesday the market was forming the weekly high and low and I
+was able to catch the market at a very good positioning okay any patterns that
+you spotted anything that is making an impression on you type it down and based
+on all the data you gathered what is something that you can change or you can
+tweak to make this system better okay so for me that was timing that was
+liquidity that was again trading at the right time and also increasing my risk
+of reward from two to two and a half because I found that my trades are running
+a little bit more than two are so I ended up increasing migrain rate so again
+I'm going to try to right now go and show you some of my back testing data so
+that you can actually see how a fi chart is going to look like so for example
+here are some of my back testing uh journals right there until I switched to FX
+replay I was definitely using a trading view so again like for example if I
+click on one of these you're going to see a lot of data so there it is exactly
+the same thing that I'm sharing with you the day the time the session the entry
+model Pips stop entry size I was even measuring right there if I enter on the
+stop uh if I enter on the on the trend change itself like how many Pips is going
+to be did it top 10r R rewards uh the the biggest percentage that I got right so
+how do I actually move this to the left right and then I was actually looking
+for um like I was just placing some screenshots right there because in this case
+I didn't really put uh images because I was looking for a slightly quicker back
+test right and then of course you can see if I just go back at it right you can
+see at the bottom you're going to get like how many trades that is and then of
+course you see out of 158 trades the median stop loss is 4 Pips so I know that
+based on all the trades I took four pip stop loss is my ideal stop loss again
+the result 200% uh the biggest uh redward that the trade was running for was 9R
+so again I know that if a trade actually goes it has a very big potential to go
+up 61 wins 73 losses 21 break evens again if I just go to this to right there
+and if I just use the stats I'm going to immediately tell you my win rate there
+it is so I took uh 61 wins I took 73 losses 73 losses and 21 break even so there
+you go my win rate is 40% which is pretty much what I'm able to also do in the
+live markets again that is pretty much reality and again like I have a lot of
+these so for example there is a recent strategy that I was back testing so the
+session strategy that is for EU and and then I collected the Mo right again and
+you can see exactly the same thing here I was actually uh it's uh it's a
+strategy based on the asan Range so I was measuring their Asian range in terms
+of Pips how many it was trending stop- loss size daily open the targets that I
+was uh looking for again feel free to add things here if you get used to notion
+you can add things that you want to measure and again after all the testing 85
+trades uh medium stop loss of 7even Pips 68% return and again you're going to
+get and you can see like the potential was 288 per. so again it makes me think
+okay what can I do better in order to like catch a little bit more R right and
+then here you can see like 34 wins 29 losses 21 break evens you can calculate
+the win rate and stuff like this so as you populate your charts they're going to
+look like this and this is what I call statistical Edge and actually having the
+backest so for any strategy that I uh that I share that I actually work on I
+have the back test and then I and then I for example roll it out to the
+community right so again there is one of our recent strategy on the S&amp;P 500
+again I have the entry I have the 50-minute time frame I have 51 trades and
+again 50% win rate 33% return not bad this is something worth exploring and
+again always go through that Backus so this is pretty much notion and again once
+again you are going to take note of like of all the pictures like for example if
+you click on on these things you can just put a link right and then of course
+that is going to that is going to offer you uh the link right of the picture
+that you took make sure to take pictures because if you don't well you're not
+going to have the date so with that being said this is how you do it on notion
+again you just got to go back on U again again you just got to go back on
+trading view go through very carefully exactly what you're doing on a daily
+basis figure out the entry again if you want to enter on the one minute time
+frame you draw your supply Zone you go to the one minute time frame and you wait
+for it okay you don't just come in right there and just play canos like oh the
+market moved or for example if the market massively moves lower right or let's
+say you took a trade from here stop loss above and the market hit your stop loss
+ah well I wouldn't take this trade no you took it log it in okay so with that
+being said this is training view let's explore the other option which I think
+it's actually much better now if you wish to invest in yourself and you're in
+your trading I would definitely suggest you consider getting the FX replay
+software I really love this the platform is super nice it's easy to use and it
+also uses our favorite trading your charts but this time you get not unlimited
+data you can get like to 2020 2020 I believe but also this I what I really love
+about this software is that it actually keeps you accountable if you don't take
+a trade and if you don't set your order and if you not if you don't don't
+executing it you cannot go back in time right you simply miss the trade or you
+take the loss everything is logged in and you really have to get into the zone
+you really have to get intentional with your testing because this is as Clos you
+can get to live performance you execute if the trade misses you you don't take
+it if the trade hits your stop loss it's a stop- loss if the trade misses your
+take profit you cannot cheat and say oh well I would have taken it here no so I
+really love the software uh it was actually a Community member that suggest that
+I get it so we can do some uh Community back testing station and I got it and I
+also affiliate it with the FX Replay for a 15% discount so if you want to get
+this software make sure to use the code trading fanatic 15 it's going to give
+you 50% off from the from the subscription definitely a great software I'm also
+affiliated with them because again I love them now um the only thing that I
+would suggest you do here is to also use the notion template uh because what FX
+replay doesn't have is they don't have like place to take a screenshot so again
+you you definitely test out but still you have to take screenshots exactly at
+the same way I showed you on how to do on trading okay so let me actually show
+you how it works now first this is the dashboard uh you can create a strategy
+right so let's just say we're going to do a test strategy save so what this
+helps you do is again if you have like u a strategy want to back this for
+example you can say I have two strategies right there it's going to give you all
+the details about that strategy but then you have to create a back testing
+session again account balance it's just just 10,000 pairs you have all the
+instruments you want right so let's just say Euro EUR USD there is Euro USD and
+now here you have to pick your start date again you can go back as far as 2020 I
+wouldn't suggest you go back 3 years ago so let's just start like from 2023
+January let's say we start with like um the 1st of January so that is just you
+get a whole year of data and the end date is pretty much going to be today the
+strategy you link this session to the strategy you want to test name maybe you
+put in some name description smooth candles I do enable and when you click save
+it creates your session you click here and now you are into the live markets
+exactly like the live markets now um you have to I have some drawings right
+right there you have to first of all play a little bit with your trading view
+charts because first you're going to have like the usual trading view charts so
+again check my tutorial on trading view um on the trading view colors and
+everything so again do your colors do your status lines scales background make
+your tools okay so do you actually feel at home like you're back testing and
+again qu the time frame you start doing everything again feel free to like do
+some uh session indicators like some any time zone indicators I use the Silver
+Bullet because it shows the London session it has like indicators here it has a
+lot of and I love it now again you just do exactly the same thing you would do
+in the live Mark qu structure break up daily demand zone right there you go with
+the templates everything then you go to the 50 minute time frame right and then
+what I really like about this is that it has this goto section and then I just
+click uh go to next London session and it just Sprints the Asian range and goes
+back to the London station so again we're bullish on the 4y we took out the
+Asian low so right now we can look for a potential long trade again you can go
+to the 5 minute time frame again depending on what you're going to be trading
+and the beauty of this is that you cannot cheat right now you have have to be
+looking for that for example Trend change but you cannot cheat so there is the
+trend change now it occurred here now you have to decide what you're going to do
+at this moment so are you going to enter from here with a stop loss below there
+are you going to be looking for a pullback because that determines how you're
+going to enter so let's say we're going to be entering with a pullback right and
+then you have to also pick your TP let's say we're going to Target 2 R right
+there at the previous daily high now you have to click on the two and you place
+order right there and that is the beauty of the software because you're actually
+taking trades risk per trade from the current balance position size entry take
+profit stop loss everything now here you just got to be careful if you're
+entering with a limit order you have to change this to limit right but if you're
+entering exactly from the current price you have to click Mark again be careful
+and now if you click save this sets an order so if the market goes without us
+right now we're not in the trade and if the market hits stop loss we take the
+stop loss there is no way to cheat and to lie the system so there we go we
+actually got triggered now we are in the trade and you have to manage it you can
+move your stop- loss to break even you can move your take profit if you want to
+enlarge it you can also if you want want close partials you click close position
+and you can close partials it is incredible right and then you just click play
+right and the market goes let's see what it does okay we're trading on the
+second of J which is not a good which is not a good uh place to trade but again
+like let's just play forward and again you manage your trade boom boom very chop
+okay we hit stop and right now there is no way back you're are down 1% that's it
+you cannot say well I would have taken a break even on that trade no you did not
+because if you would have you would have moved your stop loss to break even okay
+and now what you simply do is okay I took the stop you again click here copy
+image and you mark this up you take note of this trade in your notion template
+and then again what I simply like to do is if I'm just trading London session
+I'd like to go back to the next London session okay so again still here we're
+still bullish so let's try to take another long you wait start pressing - minute
+candles and uh yeah the market just massively dumped and again no trade the
+market just dumps right now if if you don't want to take any trades then you
+just don't take a trade and again you go to the next Lon session but now again
+follow with your hard time frames again you delete the old stuff make sure to
+take note of it in notion we have a 4ly trend change down there we have a brand
+new 4ly Supply the market is right now at a lower low so we can expect
+potentially some Longs but we can also expect continuations lower okay the
+market is still traveling towards the 50% a lot of imbalance and you can see
+it's like you're actually really trading you have to wait for it you cannot just
+press forward because here you cannot go back let's say I want to actually go
+back and take a short here you cannot go back there is no way to go back and
+actually pretend you took the trade if you missed the trade you missed it
+forever right and then again you have to be really careful right so for example
+in this case the Market opens manipulates okay the market very nicely pushed up
+a field imbalance I want to take a short but then maybe you go to the 5 minute
+time from here I want to wait for let's say for a trend change there is the
+trend change so am I going to enter from here exactly or am I going to be
+looking for some sort of a pullback well let's say I enter from here and I'm
+going to Target the Asian low so click on your two place order then I'm just
+going to do Market you click save and now you are in the trade there is no
+coming back if it hits stop loss it hits stop loss if maybe it gives gives you a
+little pullback to take a better entry you can scale in but you cannot change
+your entry because you're already in right and then you just allow for the
+market to play out and see what happens again I'm trading again this is not a
+back testing session right there because we're trading at the worst time there
+is we're Ste in the trade right you can see we're Ste in the trade so right now
+you can choose to manage it you can choose to go break even you can choose to
+close your trade because you think the market might reverse you can you can you
+are just here making decisions right and again you just play Let's see what
+happens today okay um wait a little bit we take out the asan high I'm looking
+for I'm still bearish and again you look for that Trend change there is the
+trend change now if you decide to take a short from here you decide how to take
+it are you going to take it with a limit here and a stop loss above and then of
+course you let's say we target that same same thing let's see you click here
+place order then you click on a limit because we're setting a limit right there
+and then you just click play there you go we're into the trade stop loss above
+and you just allow it to play out W nice and again like in this case you can
+decide to close partials so you simply click here on the X based on the trade so
+I'm not sure how we actually because we took the TR the two trades from the same
+direction so I'm not sure how it separates them but if you click here you can
+choose how many partials to close like let's say I want to close 80% partials
+you click save right and now 80% is closed and then of course you just play
+there is our take profit and everything is closed right then again you click on
+the trade copy image you go back to the voyage actually explain okay the market
+was at a lower high uh it I expected lower downside so again this is why I took
+this trade with a 50-minute trend change with a limit from The 50-minute Zone
+take notes okay and now as you go through a lot of this trade again this is not
+a back testing session I'm not here to teach you a strategy or anything else let
+me know if you would like me to do that now here under the strategy you're going
+to get all of your insights so if you click here you're going to see uh your
+total p&amp;l you're going to see your win rate you're going to see the total
+trades your average R to reward your max Roost to reward on your trades ideal
+average Max ideal again I'm still kind of exploring it but you get all of these
+stats again you can see loss streak Max loss streak duration of your trade your
+average loss your average win how many win streak you have exact the things that
+I told you to take note of it already offers it what did I tell you about the
+days right as you get 100 trades I promise you you're going to see which days
+work the best you actually see here the profits you make per day right and if I
+actually show you let's say um uh some stuff that I'm back testing let's say
+this for example when you click you get more data you see your Equity curve you
+see how much percentage you've had you see your win rate you see again in this
+case you can see the rest reward I take the average is 2.5 well I'm getting like
+the max I'm getting is six so I can definitely look to increase my risk to
+reward right Max losing streak six trades so I know that I'm when I'm trading
+this uh setup live I know that I can get six traes loses in a row and I know
+that after five uh winners in a row I can potentially get some losses here you
+can see by day so what I see is that Monday is one of my most profitable days
+right Wednesday 50/50 right Friday Also 50/50 so what I consider trading
+Wednesday and Friday probably not here again you can see the total performance
+per month here you can see every day that you took and the result during that
+day you you can see like for example in in May I only took three trades and
+again this makes me think long term because if I have like two to three weeks
+without a trade I am calm and I'm not going to rush into doing anything stupid
+so that is FX replay definitely uh recommend getting this because this is the
+closest you can get to real trading with real execution and with real stats so
+make sure you do that all right Fanatics I really hope you enjoyed this video
+make sure to let me know down in the comments if you did let me know what you
+actually learned from it and what is your plan of action going forward with back
+testing forward testing and also Gathering your data hit the thumbs up in order
+to help uh spread this video out and make sure to grab your nocean template down
+in the description and make sure to join FX replay with the code trading fanatic
+15 so you can get some discount and of course take your back testing to the next
+level of course if you need anything else let me know down in the comments for
+another topic that you want me to talk about and again I love you guys and talk
+to you in the next one bye-bye

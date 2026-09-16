@@ -99,6 +99,14 @@ plot(strategy.position_size != 0 ? slPx    : na, "Stop",   color=color.new(color
 plot(strategy.position_size != 0 ? tpPx    : na, "Target", color=color.new(color.green, 0),  style=plot.style_linebr, linewidth=2)
 bgcolor(dayLocked ? color.new(color.red, 85) : na, title="Daily loss limit hit")
 
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+plotshape(longEntryBar,  "Long entry",  shape.triangleup,   location.belowbar, color.new(color.lime, 0),   size=size.small, text="BUY",  textcolor=color.white)
+plotshape(shortEntryBar, "Short entry", shape.triangledown, location.abovebar, color.new(color.red, 0),    size=size.small, text="SELL", textcolor=color.white)
+plot(strategy.position_size != 0 ? slPx : na, "Stop",   color=color.new(color.red, 0),    style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tpPx : na, "Target", color=color.new(color.green, 0),  style=plot.style_linebr, linewidth=2)
+bgcolor(dayLocked ? color.new(color.red, 85) : na, title="Daily loss limit hit")
+
 plot(e9, "EMA9", color=color.aqua)
 plot(e22, "EMA22", color=color.orange)
 

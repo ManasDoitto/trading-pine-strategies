@@ -1,0 +1,5 @@
+type,trade_number,date_IST,time_IST,direction,price_approx,reason
+# type = BAD_ENTRY or MISSED_ENTRY
+# BAD_ENTRY: fill trade_number from the "List of trades" panel (leave date/time/direction/price blank, I'll look it up)
+# MISSED_ENTRY: leave trade_number blank, fill date_IST/time_IST/direction/price_approx yourself from the chart
+# reason: plain English - what looked wrong, or what made you think a trade should have triggered

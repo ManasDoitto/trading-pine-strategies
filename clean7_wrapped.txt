@@ -1,0 +1,636 @@
+so you open your charts and you're about to Mark some structure but then you get
+hit with all the doubts do I take from this low to this high or is it this low
+to this High well what about that low what about this what about this but wait a
+second is the market actually bearish here so is the direction bullish or
+bearish how do I actually draw my FIP is it from here to here or is it from here
+to here or are we actually bearish right now like what exactly do I draw if you
+have this type of confusion in this video we're going to destroy all your doubts
+about Market structure all right in today's lesson I'm going to teach you about
+systematic Market structure mapping and we're going to do this by introducing
+you to the concept of the valid ranges now this is a concept that I came up with
+after four to six months of testing and really asking the very simple question
+what makes structure valid and how I can systemize it and then the valid ranges
+were born so what are valid ranges those are specific rules for determining your
+valid structural formations and those formations are simply our higher highs
+higher lows lower lows and lower highs now disclaimer if you are a complete
+beginner if you don't know what even Market structure is I'm going to leave a
+link in the description or leave a card that you can click go and watch a very
+strong foundational video so you know what Market structure is and then if you
+have the question all right how do I Mark Val higher lows or lower highs you
+come back at this video now why do we need valid ranges well firstly to ensure
+that we draw structure correctly and also flow with the most recent structure
+shifts because a lot of times you take those very massive large legs and then
+the market has already shifted 10 times before you actually know it to also
+ensure that we always have the same Market structure markups and remain
+systematic with our analysis because you're always if you're always drawing
+structure in a different way well you don't have an edge in order for you to
+achieve consistency your analysis also has to be consistent and the valid ranges
+are going to help you with that and finally as a result this is going to remove
+any doubt and confusion when it comes to picking your major higher lows and
+lower highs because just the rules are rules you cannot go around them so you
+might ask what are the main aspects of a valid range we're going to cover all of
+these but they simply consists of two things having an opposite candle so that
+is a candle that closes in the opposite direction of the current Trend so if
+we're having bullish push we need a bearish candle if we're having a bearish
+push we're going to need a bullish candle quite simple and also having a
+pullback candle so that is a candle that does not break the previous candle high
+or the previous candle low and of course this variable for the pullback candles
+it can be tweaked based on the time frames or based on your requirements so once
+you actually learn those rules feel free to change them feel free to tweak them
+to your liking now before we get into the details I just want to very quickly
+cover the candle Anatomy so what does a Candlestick actually consist of we are
+having open high low and close ohlc values okay so in the in the case of a
+bullish candle the market is going to open where the body starts okay the lower
+Wick is going to be the candle's low then the market pushes up it reaches a high
+and then it retraces and where it closes this is where the body is going to end
+okay so that is very basic stuff but I just want to cover it for a bearish body
+the market actually opens here this is where it opens it first pushes up to make
+a high then it very nicely pushes down all the way down to make a candle low
+retraces and closes so the body is your open and close and the Wicks are your
+candle high and candle low okay okay so very simple hopefully that's clear now
+with that being said let's talk about the first aspect of the valid ranges and
+that is the opposite candles so what is an opposite candle pretty simple this is
+a candle in the opposite direction of the current Trend or the current range so
+simply that is a bearish candle in the bullish Trend or a bullish candle in the
+bearish trend now why do we need an opposite candle because an opposite candle
+signifies that there is a real pullback and at the opposite side of the market
+is entering also how I actually discover this is by going to the line chart you
+know on trading view you have your candlesticks but you also have a line chart
+and if you ask the question when does a line chart actually makes a pullback
+when there is an opposite candle okay so when there is when the market is
+pushing up so if I just very quickly give you an example when you have a line
+chart let's say that the market is pushing up okay so when it's actually going
+to push down when we have an opposite candle so if those candles are bullish
+bullish bullish bullish when you have a bearish candle close that is when the
+line chart actually makes a pullback okay so that is pretty much how that came
+up to be now the important part here is once again the candle closure it must be
+an opposite battery and by now you pretty much know the candle Anatomy a candle
+closure you we have the open and the close and that should be pretty much
+opposite to the trends that we currently have so when comes to Wix when it comes
+to looking at the opposite candle for the valid range Theory the Wix or the type
+of Candlestick like what exactly how does it look like it does not matter what
+truly matters is to be of an opposite color which also means that dois don't
+count it must be either a bearish candle in a bullish Market or a bullish candle
+in a bearish market let me give you some examples here it is quite simple we are
+having an overall bullish Trend here so bullish candle bullish candle again the
+Wicks don't really matter what matters here is that again we have a push and
+right now we're having an opposite candle what classifies this as an opposite
+candle well very simply a bearish body all right in a bearish trend bearish
+candle bearish candle whoop There is a very nice bullish candle that is our
+opposite candle okay super simple that's it and that's the first thing you need
+for a valid range and it's extremely simple hopefully it makes sense now let's
+give some chart examples let's plot a chart here and I want you to pause the
+video and try to spot all the opposite candles this is an overall downtrend so
+pause the video and spot the opposite candles did you pause you nasty all right
+I hope you did so let's pull them out there we go so I actually took only the
+most important opposite candles that we need so here we see we have a very nice
+push lower bearish bearish bearish candles and all of a sudden we're having a
+bullish candle okay so precisely in this situation here this is when the line
+chart is actually starting to make a pullback so that's an opposite candle this
+and this and this are all opposite candles this and this and this are also
+opposite candles but what we truly need is just one opposite candle we haven't
+really gotten to the rules but only in this case this matters then again you can
+see the market actually breaks this valid range and what it does here
+immediately after forming a new low opposite candle continues to break opposite
+candle in fact to break structure again bearish bearish bearish bearish the
+first opposite candle there it is so that is the first rule that is the first
+thing we need for a valid range and then again you can see the market creates a
+thousand more opposite candles it makes a very big pullback and then as soon as
+we pretty much break this low so again we haven't really gotten to the rules
+bearish bearish bearish candle Boop all of a sudden up opposite candle perfect
+right then we break structure again bearish bearish bearish all right there is
+the first opposite candle Bingo right that's it very simple let me give you one
+more example are you going to pause the video this time you already saw how I
+did the example so right now pause it and do it yourself damn if you didn't
+pause this time I'm going to find you and you know what I'm going to do all
+right let's put them on so there are pretty much the most most important
+opposite candles here we're having a very nice push higher the market creates
+the first opposite candle Bingo that's what we need the market then pulls back
+again with couple more opposite candles pullback candles then we break structure
+again so one two bullish candles opposite candle we break structure again
+opposite candle so in this case here those two things are valid ranges those two
+things here you can actually trade and that's amazing we push up once again
+breaking structure bullish candle bullish candle all right bearish candle
+opposite the market breaks again bullish bullish all right opposite bullish once
+again opposite okay then we continue to push lower but we don't actually
+continue higher this time we actually end up breaking the valid range that
+caused the last structure break okay and then we break it and you can see
+immediately on the break we immediately print an opposite candle the market
+continues lower opposite candle continues lower and here we pretty much got the
+opposite candle but in the same time we also made the trend change because this
+here is a valid range bullish bullish bullish bullish all right bearish all
+right then we push up again two bullish one bearish opposite candle then we make
+a very nice series of bearish candles and then the first bullish one is our
+opposite candle okay so hopefully with those two little examples it makes sense
+if not leave a comment we're going to tackle it now on to the next part the
+pullback candles Theory now I want you to really pay attention because this one
+is going to be a little bit more complicated than the opposite candles so what
+are pullback candles well it is a candle that does not break the previous
+candle's high or the previous candle's low depending on the Direction all right
+so if you are in a bullish Market a pullback candle should not break the
+previous candle High because we're going up right and if you're in a bearish
+market the current candle should not break the previous candle's low because
+we're going down okay now what does the pullback candle actually signify because
+we always want to be looking at the why so why are those things actually
+important well it signifies that there is no continuous buying or selling
+pressure and that the market is actually pulling back okay so here you need
+remember that in the opposite candles all we cared about is the body so is it
+bullish or bearish body here the important part are the wicks so we're going to
+be looking at the Wicks of the candles which is why once again you really have
+to learn candle anatomy and you have to start looking at the open high low and
+close values of the candles on trading view because the high and low stats are
+going to be important in order to truly determine pullback Candles now again I
+said it but I'm going to say it again the color of the candle when it comes to
+being a pullback candle does not matter only the wick matters when it comes to
+looking for a pullback candle okay and so pretty much much the pullback candle's
+higher low is compared with the highest or lowest candle in the current range
+now that might sound a little bit confusing we're going to look into the details
+but pretty much when the market pushes up and up and up and then pretty much a
+pullback will be a candle that does not break the last high in this case but of
+course examples are incoming now let's have a look at some examples oh yeah so I
+just wanted to mention here uh when if you trade trigger this on trading view
+you are going to have a look at these uh things so this is your open high low
+and close those are the precise price points of a any specific candle and I'm
+going to show you later how to actually look at those now onto some examples so
+here is the first example of pullback candles so again you can see we're pushing
+up we're pushing up and then we right now look at the Wicks so this here was the
+previous candle's high and you can see then the next candle the high of the next
+candle does not break the previous candle's High okay so in this case this is a
+pullback candle because it does not break the previous candle's high at the same
+time this is also an opposite candle because it also has a bearish body so this
+here by itself by the way is already a valid range this is already a valid
+pullback okay here is uh bearish bearish all right there is the lowest low right
+now in terms of this bearish push okay the market makes a pullback but again we
+don't look at the body in this case we look at the wick does the wick cross the
+previous candle's low no all right so this candle here is a valid pullback
+candle that's it it's also quite simple you just have to see it a couple of
+times in order to really make sense of it let me give you some more okay bullish
+situation bullish candle okay and then we have a pullback candle here now why is
+this candle a pullback candle well because it didn't cross the previous candle's
+High okay and this pullback candle's high is actually lower than the previous
+candle's high that makes it a pullback candle okay now here I give you an
+example where the body is actually bullish okay so this is not an opposite
+candle when it comes to the bullish push but it's actually a pullback candle
+because it does not break that highest high here if for example just very
+quickly to give you a little example to illustrate my point if let's say this
+candle here went to break this high would this be a pullback candle right now no
+because that high was crossed so this is not a pullback candle then this candle
+is going to have a new high and we have to wait for the new candle to open and
+see is it going to cross it or is it not going to cross it okay but of course
+more details on that a little bit later and of course we have the exact same
+bearish example bearish candle bearish candle there is the last candle's low so
+this is in this case the lowest low that we have the next candle opens it does
+not cross that previous candle's low so in this case we mark this one as a
+pullback candle but you can see in this case it is not an opposite candle why
+because it does not have a bullish body okay so kind of you can see that there
+are two situations here this candle in this case is both a pullback candle and
+an opposite candle but in this situation this candle is a pullback candle but
+it's not an opposite one let's have a look at some more examples this is exactly
+the one that I gave you so here is for example um not valid pullback candles so
+here is for example the push the push same example as last time I actually even
+gave an example of this one there is that previous candles high but you can see
+the market then prints on opposite candle however remember when it comes to
+pullback candles we look mainly at the wicks so the wicks in this case the wick
+went above that previous candle's high and wicked it so this here this candle is
+not a pullback candle it is an opposite candle because when it comes to opposite
+candles we only look at the body but it's not a pullback candle so then the next
+candle what the next candle should not do it it should not cross that current
+candle's high right there is the bearish example bearish push bearish push there
+was the last candle's low but then the Market opens again and it crosses that
+candle's low okay so this here in this case is an opposite candle so we have
+made the bullish body the line chart is already starting a pullback however the
+market is not yet in pullback mode because it hasn't made a pullback candle that
+does not break that latest candle's low so in this case once again we're going
+to refer in when the next candle opens we're going to refer to the low of this
+candle and we should not see that next candle that opens break below this low
+okay hopefully that's clear because right now we're getting to the rules and I'm
+sure we're going to get to some more examples then you're going to watch the
+rules again and then all you need to do is just go on the charts okay the main
+variable are the pullback candles so when it comes to the rules you can decide
+to use one pullback candle so PBC by the way is short for a pullback candle so
+you can decide to use one pullback candle on the 50-minute time frame or maybe
+then even two pullback candles on the fly in the daily time frame or you can
+decide to use two pullback candles on the 50 minute and one pullback candle on
+the 4 and on the daily for Simplicity right now for for this lesson let's stick
+to one pullback candle and also one opposite candle for the opposite candles I
+would say all you need is one because as I said all we need is that line chart
+to actually make a pullback and it does the pullback when there is just one
+opposite candle so again keep it simple you do not need two opposite candles you
+don't need three opposite candles for a valid range all you need is one opposite
+candle then what matters later is that you actually focus on finding the
+pullback candle okay now the next very important rule is that a valid range
+always always causes a structure break SB or a trend change TC now if you don't
+know how that stuff work again I'm linking you back back to that YouTube video
+that I mentioned earlier and I'm also going to invite you to our The Fanatic
+Foundation module which is in school where I teach all of that stuff also in
+great detail you can find links in the description okay so always needs to break
+structure and always needs to make either a structure break or a trend change
+now for Simplicity in this lesson we're also going to be utilizing Wicks as
+breaks because Wicks are a lot easier to track especially while you learn right
+now the valid ranges later on when you master the valid ranges with Wix you can
+very easily shift to body braks uh however body braks sometimes because become a
+little bit complicated because you might get for example a valid range that is
+being Wicked out five times but not really body broken and then uh the market
+starts actually changing in the opposite direction but you're still actually
+looking for that body break okay I have back tested this thoroughly wix's brakes
+Works amazing what truly matters in this case is that you have a good price
+positioning on the higher time frames but I'm already speaking for entries okay
+and now when it comes to Weck and body breaks we're going to cover in another
+video about fake outs and breakouts and I'm also going to link another potential
+video where I actually talk about this as well okay now the process all you need
+is to get your rules ticked so all you need once again is one pullback candle
+and one opposite candle that's it now the order at which the order at which they
+actually arrive can vary so sometimes the opposite candle can appear first then
+other times the pullback candle can appear first then you have to wait for an
+opposite candle once again all you need to do is just master that candle anatomy
+and just wait for that valid one pullback candle or that valid one opposite
+candle okay and other times for example one candle can fulfill both variables
+one candle can be both an opposite candle and a pullback candle simultaneously
+which is amazing you immediately have a valid range okay so the aim here is to
+become a master of candle anatomy and really looking at the candles and reading
+them on a candle by candle basis tracking the candles until you pretty much
+fulfill the rules okay now before we jump into some examples some details always
+use the Open high and low close values when in doubt for the pullback candles
+because equal highs and equal lows so perfectly equal highs and lows are not
+pullback candles and one pip difference actually is a pullback candle so if we
+ever get like two Wicks that are very close to each other check the the highs of
+those Wicks if they're equals it's not a pullback candle okay a very important
+thing to do also is to use the highlighter tool on trading view I'm going to
+show you how to mark your valid ranges because I've taught this valid ranges to
+to a lot of people and there is one one big mistake that is being done
+especially in the beginning is that Traders tends to draw internal structure
+okay and what I mean by this is I'm immediately going to give you an example
+just to stick it in your head you're having um let's say you're having this
+valid range break and then you're trading from this high to this low because at
+this low you get an opposite candle and you get a pullback candle but then what
+happens is the market starts doing like that and so what Traders tend to do is
+they say okay stru stru break structure break Trend change Trend change
+structure break this is wrong we're trading between this High to this low that
+is our valid range anything inside does not matter okay so just giving you that
+a little bit of a kind of a tip here we're of course going to look at it on the
+charts but just to kind of you know just give it to it right now so you start
+thinking about it any price move ment as I said inside of a valid range is
+internal only the major High and the major low matter so I'm going to show you
+how to mark your major highs and lows with the highlighter to when you learn and
+master both the opposite candles and the pullback candles then you can very
+easily change your valid range preferences so what for example I used to do is
+sometimes on the 50 minute instead of a one pullback candle I start using two
+pullback candles because the markets are choppy and I want to increase the
+probability of my valid range or you can use for example One pullback Candle on
+the 50 minute and two pullback candles on the 4 hourly time frame and then one
+pullback candle on The Daily once you master how to use that strategy you can
+pretty much tweak it to your own liking and you can start testing what works on
+every single time frame mastering also the valid ranges will immediately make
+your supply and demand zones easier because there is a supply and demand Zone
+within every valid range but of course more on that we're going to cover in
+another lesson so let let me right now give you some textbook examples of a
+valid range again textbook in the form of um just textbook examples here is for
+example a 50 minute valid range scenario where I using one opposite candle and
+one pullback candle as my valid range criteria okay candle up candle up okay
+then we have an opposite candle which is also a pullback candle why is that well
+because we're having a bearish body perfect rule one is thick this was the high
+and then the next candle's high does not cross that candle's high so this is
+also a pullback candle check this here is a valid range the market pulls back
+then this High becomes our valid Range High and when the market breaks it
+perfect okay then of course we ask what is the valid range that caused the break
+of this high it's immediately this one because this was already a valid range
+okay here is another example bullish bullish all right opposite candle check but
+is it a pullback candle no why well because it crossed the previous candle's
+High okay so then what we wait for well we have an opposite candle we need a
+pullback candle and so then we take this as our reference point and you can see
+the next candle is a bullish candle but we don't care right now about the body
+we care that the market actually does not break Above This candle's high does
+this candle break no so that is our pullback candle with the opposite candle
+this pullback is a valid range and this is our valid range low the Market breaks
+perfect okay here the market pushes up it pushes up and what are we having here
+we're having an opposite candle but is it a pullback candle it's not because
+those two Wicks are perfectly equal and as I told you in this case you have to
+really look at the High stats because if they're perfectly equal then this
+candle here is not a pullback candle however we already have an opposite candle
+which is good okay so opposite candle there is one pullback candle that does not
+break that previous candle's High perfect that is a valid range pullback the
+market breaks there is the low that caused the break here's another example here
+pushing up pushing up what is this that is a pullback candle okay rule one is
+checked we have a pullback candle but is it an opposite candle no it's not and
+then the next candle is actually the opposite candle which is also a pullback
+candle okay and then the market continues to break perfect that is a valid range
+okay so those are the textbook examples when it comes to the one opposite candle
+and one pullback candle so right now let me give you an example when it comes to
+two just to show you how it actually looks like so in that case we're drawing
+four hourly valid ranges in which we're using a one opposite candle and two
+pullback candles pushing up pushing up making a high okay so there is an
+opposite candle that is also a pullback candle so then in this case we need two
+pullback candles so we always are going to reference so this is a very important
+point we're always going to reference to this high that is our highest high that
+is the high of the range so the market should not break Above This High okay if
+we want to have a pullback candle and then we can see here this is an opposite
+candle which is also a pullback candle because it does not break this High the
+next candle is also a pullback candle not an opposite but we don't care about
+the opposite anymore because we already got it it's a pullback candle because it
+does not break that high if it breaks this High here it's cool but it should not
+break that high so then this pullback is a valid range with two pullback candles
+pushing up pushing up we're getting an opposite candle but it's not a pullback
+candle so then we anchor to this high and then we get one pullback candle that
+does not break this High two pullback candles that do not break this High
+perfect right that here is a valid range pushing up pushing up equal highs so
+this is an opposite candle but it's not a pullback candles then we need one two
+pullback candles to then break the high this pullback here is a valid range okay
+push push pullback candle but not an opposite and then we get the opposite which
+is also pullback candle break perfect okay those are your textbook scenarios
+when it comes to both one and two pullback candles right now just for your
+reference let me show you some invalid range so you know what you're looking for
+bullish bullish all right we're having an opposite candle here cool but then we
+always refer to that previous candles high in this case this High got taken okay
+then this High got taken okay so we got an opposite candle but then this one
+broke okay so right now actually the sequence resets and then again we see okay
+the market continues to push then again we get that opposite candle but it's
+still not a pullback candle so here we first got the OC but the market didn't
+make a PBC and it actually broke the OC okay so then we reset the sequence and
+we're like okay so we have a new high and that is not an opposite candle it's
+not also a pullback candles then we actually get the pullback candle okay so
+rule one is checked what do we need next is we need a pullback candle to uh to
+not break this High all right so then here in the next example we're having
+bullish bullish then we have an opposite candle here but it's not a pullback
+candle because it broke that previous candle's high and then we get these equals
+so this here is not a pullback candle because we have equals then you can see
+the market just keeps breaking higher and higher and higher so when you have a
+break of the previous candle High you have to reset that sequence of opposite
+candle and pullback candle once again all right so here for example we have an
+opposite candle but then the next candle breaks okay so right now we need a new
+opposite candle so now we have this candle okay so right now we have an opposite
+candle but we still need a new pullback candle and then if the next candle two
+breaks well again we keep waiting for new opposite candle and for new pullback
+candle we need to have that pullback we need to have these candles that are
+actually not breaking above or below the previous candles high and low now
+you're also going to encounter situations that I call Wicks and those are very
+candles that take out both the high and the low so in that case we can see we
+have a push a push there we have an opposite candle but it's not a pullback
+candle because it breaks the previous candle's high and then we have a beautiful
+pullback candle here good this is a valid range already that is a valid High
+okay and then here you can see the candle opens it takes the high and it also
+takes the low of the valid range so that is that Wick usually happens during
+news usually happens during volatile times so then you simply have to wait and
+keep following the rules again now when this candle closed that was an opposite
+candle so what do we need we need a pullback candle there's the pullback candle
+and there is the market breaking the high okay so this right now actually turns
+into a valid range we just keep following the rules okay so when you get that
+Wick always wait a little bit so if I show you a little bit another example how
+it can play it out push push opposite candle but not pullback candle then there
+is the pullback candle and then the market breaks the low but at the same time
+breaks the high okay so this is actually a structure break here but you just
+have to wait a little bit to see if there is actually going to be a new valid
+range formed and then you simply apply the rules okay so here is that high of
+that Wick the market makes both an opposite candle and a pullback candle so
+right now this turns into a valid Range High that when is broken we're going to
+find the valid range low and right now we have our structure okay so hopefully
+that makes sense you probably have to rewatch this again and again right now I'm
+going to go on the charts and give you a lot of examples so that you can
+actually start training your eyes and then of course you are going to start
+practicing on your own so let's go on the charts all right here we are on the
+charts and right now it's time for some chart Works two things you have to do
+the first thing is to go right here on that little button and find the
+highlighter too and make it to favorite so that you can actually have a very
+easy access to it okay and then of course uh you can just pick your colors uh
+from here right I just picked this blue with low opacity but again just feel
+free to play with this one I'm going to not going to give a tutorial on trading
+view I have a tutorial on that and then of course you're going to need the
+arrows that I have also made a tutorial on so depending on the time frames that
+you're using I have like flly up and down daily up and down 50 minute up and
+down down 30 minutes 5 minutes 1 minute and 1 minute TC if you want a full
+tutorial on all of this link down in the description for my free trading
+Fanatics Community where I give you a full tutorial on how to do all of this uh
+because it looks pretty good and it also links to all the time frames now we
+open this chart and we want to start marking up our valid ranges so the keys for
+valid ranges is to not be so zoomed in but also not be so zoomed out like you
+don't need your charts to look like that but you also don't want your charts to
+look like this because often times you can also miss some valid ranges now in
+that case let's I usually start from a little bit to the left just to once again
+ensure that I'm not trading in some sort of internal structure okay the latest
+valid range I see is exactly so if I take the right two is exactly right here
+okay so why is that a valid range you might T well we have the market pushing
+pushing pushing pushing we have that high and then the market makes what is this
+an opposite candle which is also a pullback candle all right so this right here
+is a valid range already and it makes a valid Range High then the market
+proceeds to break it okay and then immediately upon the break I ask the very
+important question what is the valid range that caused the break and a valid
+range is simply again looking at the rules there is the valid range we wouldn't
+have had a valid Range High and right uh if we didn't have right now a valid
+range low so then what I do is I mark this as my higher low and then I what I
+simply have to do is wait for a new valid Range High to form in this case you
+can see the market pushes up it prints an opposite candle but is this opposite
+candle a pullback candle no why because you can see the market actually crosses
+that previous candle's high so this is not a pullback candle but it's an
+opposite candle so also how I actually teach this in in the school Community is
+if you you just Mark right so this is an OC okay but if you want to practice but
+not a PVC okay so then what you take is you take that highest candle and you
+refer it to the next one so what is this candle that is not an opposite candle
+because we're stillo bullish but it's a pullback candle okay so guess what right
+now you have your valid Range High and why is this a valid Range High because
+it's an opposite candle and then next to it we have a pullback candle and again
+right now we're using the rule of one pullback candle and one opposite candle so
+we have a valid Range High right now and we have a valid range low there we go
+your first valid range then what the market does it actually breaks this valid
+range low and what does that give us that give us the trend change because we
+were bullish and right now we're bearish right now what are we waiting for we're
+waiting for a valid range low to form what do we need one opposite candle and
+one pullback candle bearish bearish bullish all right beautiful bullish candle
+so there is our OC so opposite candle is this opposite candle also a pullback
+candle not really why because it broke the previous candle's low so candle
+Anatomy says that this is not a pullback candle then what the next candle does
+it continues on actually and keeps breaking further so right now we have a brand
+new low and the market has printed one more bearish candle so in this case we
+have to reset the sequence because we have again a new low here the market still
+pushed bearish that's the new low and then what do we have we're having a
+pullback candle which is also an opposite candle so here in this case we have OC
+plus PBC and guess what in this case if we're using one pullback candle Ru in
+this case we this defines this as our valid range low and we mark it like that
+with this Dash to okay with this highlighter tool sorry you mark it like that
+and right now what is the valid Range High you already have it right here right
+you already have it right here this is what caused the market to break lower
+right now you have a valid low from a valid high and if you want to draw your PD
+range there it is Market pulls back to the 50% and then goes on to break this
+structure low what do we need right now bearish bearish bearish all right so
+firstly what after this break we ask the question what is the valid high that
+caused the break of the valid low or in this case it's quite easy it's this one
+is this pullback a valid range or yes it is right so from this low we have a
+pullback candle and an opposite pullback candle pullback candle this is also
+pullback candle based on that and then we break and usually it's going to be
+pretty much the highest point in that case Okay so right now this is live
+conditions what are we going to need we're going to need an opposite candle and
+a pullback candle but we're going to get that in 11 hours what are we currently
+getting so so far is both things the market hasn't broken this low so that is
+currently a pullback candle okay and it's also bullish in a bearish market so
+that is also an opposite candle okay and if you then just do to the go to the
+left you just keep start doing this there is another break of structure now is
+this a valid Range High well yes it is why because again it made this high this
+is the highest high and then the next candle is both an opposite candle and a
+pullback candle that does not break this High the market pulls back makes this
+low pushes up then what is the low that caused the break of the high there it is
+okay same thing here we're having that high that is broken okay so why is this
+High a valid range because I probably should do it like that okay so let's uh
+this is how you can also practice so let let's take a look at this price action
+here real quick now the first thing we have to do is really get clear on where
+actually the real valid range is because what a lot of people do is they just
+jump on the chart like that and say okay we have a structure break here and then
+we have a structure break here but is that really valid let's zoom in a little
+bit is this here a valid range no it's not why because we're having this candle
+High okay good then we're having a pullback candle good but do we have an
+opposite candle no so this is not a valid range we track it a little bit further
+okay look at here is this a valid range well uh yes it is we're having this High
+then we're having an opposite candle which is also a pullback candle and then we
+also have another pullback candle and then the market breaks okay so then of
+course okay there is a break here so what actually caused that break in this
+case we have to mark uh this low here because that is actually it's a little bit
+tricky here but that is the low that caused the break of the high okay and then
+you can see from this low all the way to this High which is where we actually
+had a valid Range High form now why is this a valid Range High because it has
+again bullish candle then on the next candle we're having an opposite candle
+which is also a pullback candle that does not break that previous candle's high
+so what you can see in this case is that actually our range was this it's not
+all the way down from here okay although you can probably take it like this it's
+this that is very recent Market structure and then what you can see happening is
+this is exactly where we made the trend change so up until this point we were
+bullish but we started seeing signs that the market doesn't really want to hold
+this is where potentially orderflow comes in all right and then the market makes
+a trend change then you simply ask the question okay what is the last valid
+range that caused this trend change you track it back okay is this a valid range
+yes it is okay and then simply then the valid Range High that caused the break
+is this guy here and then you can see here we form this low and then what do we
+do here we form a up opposite candle which is also a pullback candle so guess
+what taking it into the one pullback candle rule this is also a structure break
+because this here was a valid lower low why well because it has again next to it
+an opposite candle and a pullback candle the next candle breaks it so then as we
+break you ask the question okay well what is the high that caused the break of
+the low it's this one and then in that case in the next candle we're having
+immediately the next Trend change and you can see how nicely your flowing right
+now so right now we're having this very nice push what are we waiting for we're
+waiting for a pullback candle and an opposite candle that's it we keep pressing
+is that something no this one just keeps pushing okay good there we go we had
+the high and then right now on the next candle we have both an opposite candle
+which is also a pullback candle so we mark this high right now and anything
+inside between this low which is the low that actually caused the trend change
+here between this low and this high is in etal that is our premium discount
+range and then what you simply wait is either for the market to break above that
+major high or to break below that major low for a trend change Market Dives
+below the 50% and expands okay and this is exactly where you once again mark up
+your structure break and you ask the very simple question okay what is the the
+valid range LW that caused the break well in that case again quite simple it's
+that low all right pushes up right now what are we looking for where we have a
+high we need a pullback candle and an opposite candle there we go both a
+pullback candle and an opposite candle so in this case this here is a valid high
+and this here is a valid range the market pulls back okay breaks above okay we
+have another structure break and then we're getting to where we were actually
+okay this is a high high high right now so we wait for it to actually make a
+valid Range High keeps pushing keeps pushing there it is push push push opposite
+candle which is also a pullback candle as it does not break that previous
+candle's high this is a valid Range High and also we forgot to mark the high
+lows here that broke this we drop our PD range okay and then potentially wait
+for a 50% pullback if it comes in and uh then you just continue the process but
+in this case the market just continues to break and then we got the trend change
+okay now this applies to every single time frame now the lower you go the
+trickier it will potentially get but for example right now I can just quickly go
+to the 50 minute time frame and immediately start marking valid ranges and this
+is where it could potentially get a little bit tricky because you really have to
+look at the details okay so again I'm just going to zoom out a little bit just
+to ensure that there is nothing internal okay well I see that there is nothing
+internal and I'm going to potentially Start From Here There is this structure
+break on the 50 minute what caused that break it is this High okay okay this
+High to this low why is this a valid low because it had an opposite candle and
+then it had a pullback candle so here we have a new structure break okay what
+caused that structure break it was that high and then you can see on the next
+candles the market actually makes a trend change okay and then we have a new low
+what are we looking for right now we're looking for a new high and if you zoom
+in here what you can see is that if I actually just do it like that to make it
+easier okay we're having new trend change what do we need right now is we need
+the new valid Range High what is this that's a pullback candle check do we have
+a uh sorry this is an opposite candle check do we have a pullback candle not yet
+so we have to wait so the next candle should not break Above This candle's high
+does this break yes okay so right now we have to wait once again for an opposite
+candle and a pullback candle what is this this is an opposite candle but is it a
+pullback candle well here we check that High stats I just go on the on the uh
+candle itself and I look at here at the H so the H here is 272 and I go to the
+next candle 272 this is not a pullback candle that is just an opposite candle so
+right now I want to see the next candle to not break Above This high and it does
+not break Above This high so in that case this here turns into a valid range
+that could potentially get broken there is the break and then you simply ask
+okay so what is then the low that caused the break well it's usually going to be
+the lowest point if there is not some sort of a valid range here which we don't
+really get all right so that is the low we break up right now we wait for a new
+high which we immediately get there is that high okay that's that high we're
+having immediately a pullback candle and an opposite candle so right now our
+overall range is this so now we wait again Market pulls back okay consolid so
+you can see here you can start making the mistake right remember this is why you
+always Mark so I would even remove all of these and I want you to keep only the
+most recent ones there it is this is what we're having right now from this low
+to this High anything inside is internal because right now we can start making
+oh break of structure lower oh Trend change higher no this is internal right now
+the trend is still bullish and there is exactly where we actually make the trend
+change is then asked the question okay what is the valid range that caused that
+Trend change you track it back there it is the last pullback and is this
+pullback a valid range yes it is there is the market pushing lower opposite
+candle and a pullback candle and then continues to break so then you mark this
+as your high okay and then you pretty much all you need right now is just this
+you have the Trend change from this high and right now what are we looking for
+we're looking for a lower low to form there is the lower low we're having a low
+and we're having an opposite candle which is also a pullback candle okay we also
+have to mark it up don't forget and here we're entering during Asia which is
+when usually the market gets a little bit choppy here is another break of
+structure with a wick what is the valid range that cause that break we track it
+back it is this guy right now again we're trading from this high to to this low
+and that low is already established because it has here in a bearish market
+opposite candle good and then the next candle is a pullback candle so pretty
+much this low is valid and then yeah we actually get the okay so this is some
+Asian news we're having this I was going to make a mistake we're having this
+trend change because from this high to this low this is what the range we're
+having this trend change and here is the detail okay in that case what is the
+valid range that caused that break well it's not this low it's actually this low
+and why is this low because here we having again if you imagine that here we
+want to see a bearish range that pushes higher we have that high which is an
+opposite candle and then we have this is a pullback candle so this by itself
+here if you just take isolate this little thing that is a valid range that
+causes the break okay but this is the actual one that actually got broken okay
+so here you can see we had a pullback candle but it's not an opposite candle so
+we still keep looking for the rules there it is this right now is a established
+as a valid high high why because it has a high and then next to the next candle
+the next candle has an opposite candle and the pullback candle Market pulls back
+and then it breaks the major high once again and then here is again that other
+detail is you have to ask okay what is the valid range that caused the break in
+this case you have two options it's the lowest low or it's that low now why is
+it this low is because this here by itself is also a valid range this is where
+you have to learn how to isolate things from this high opposite candle and a
+pullback candle this here is a valid range so this is the last valid range that
+caused the break so you take it from here okay and pretty much you keep
+repeating if if you do that enough times you are going to master it so there is
+our new high from this low to that high you just wait there is the market
+breaking the high so what caused the break of the high in this case it's this
+low because there is nothing else okay so then we have this higher high and then
+the market looks like it's going to make a trend change there is the trend
+change here now looks like it's going to get a little bit choppy but just still
+all systematic there is the trend change the market is right now pulling back it
+formed a valid range low why is this a valid range low because we have bearish
+candles opposite candle it's it's not a pullback candle though and then the next
+candle is a pullback candle that does not break below this candle's low and then
+you just wait for something to break so right now the very recent range is this
+one and you could potentially right now be looking for shorts you see how it
+works and this is so systematic that we actually built an indicator to do it
+exactly for you but this is only offered inside my private program but again you
+can see those are exactly the same things that we did is just marked up it
+probably had some that I missed here okay I think I actually missed this guy
+here all right but it's actually going to do it all for you but this is my
+personal way to be a systemizing market structure and it pretty much works on
+every single time frame okay again like you can see here makes the low opposite
+candle pullback candle check that's a valid range Until It Breaks you ask the
+question what is the the valid range that broke the high the the low there it is
+breaks up in this case it should be that one but on the Fly time frame we're
+actually using two pullback candles so that case here we have an opposite candle
+pullback candle but we need one more for the 4AGE but if I just very quickly go
+here and I go to inputs and I say hard time from calculation and if I do one all
+right right now it should move to this low there it is so now this is the low
+that actually caused the break okay so I am going to wrap it up here it might
+seem a little bit confusing but right now I invite you into our school Community
+where we're going to learn a lot more about this and I also invite you to start
+putting in some practice just learn about the opposite candles just learn about
+the pullback candles and you are actually going to find your own way around it
+and if you have any questions let me know in the comments we can make an
+additional video hope it was insightful let me know and I can't wait to see you
+improve your Market structure and really trade without any doubts at all

@@ -1,0 +1,924 @@
+supply and demand order blocks liquidity inducement institutional candles
+imbalances and overall smart money Concepts in the recent few years it's all we
+see everywhere every Trader now is an SMC Trader and that's absolutely great
+great job to all creators and Traders actually going out there testing that
+stuff showing us how it's done giving us tutorials I've personally learned a lot
+and I've watched them all however in the end of the day every single strategy
+works and the strategies that work best are the simple ones because remember
+Simplicity is key in trading if you do not understand what you do what your
+strategy is and you make it too hard and you go out there and you absorb all of
+that information and you think that if you combine all of that information
+you're actually going to get the Holy Grail what you're gonna keep failing right
+you as a Trader have to sit down and put together a strategy that you understand
+and it works for you because remember every Trader is unique you have to find
+and craft your own niche in the markets take some bits from me take some bits
+from someone else take some bits from somebody else go on your charts test it
+out and then see what happens in this video I'm gonna break down how I
+personally use the plan demand in my training and I'm Gonna Keep it extremely
+simple while still walking you through the theory the foundations and also
+trying to give you as many examples as possible combining this with Market
+structure has been incredible for me as it offers a high Precision areas of
+value where you have increased odds of price moving away from those zones right
+so I hope you are actually excited about this so get your notebooks ready cut
+out all distractions put down your phone put down your charts and please watch
+the video Until the End and even watch it a few times watch it once first for
+just to walk through it then twice to take notes and then three times to
+actually take notes on your notes right until you digest everything and make
+sure you also keep revisiting the market structure video because a gap in
+understanding of your Market structure will result in your supply and demand
+zones not working properly alright so make sure you do that well without further
+Ado we have a lot to cover so let's get into it foreign with an introduction to
+supply and demand to gain a fundamental understanding of what it actually is so
+what is supply and demand well pretty much supply and demand is what drives all
+markets not only the Forex Market not only the stock market every market like
+eggs bread oil whatever when demand is greater than Supply which means that
+people buy that stuff people want that stuff prices are automatically going to
+rise and when Supply is greater than demand which means that people are either
+selling or they refrain from buying because price is too expensive then price
+will automatically fall right and this happens in every Market take for example
+an ice cream of Ben and Jerry's here it usually costs like six euros nobody buys
+this in six euros so what usually the supermarket does is they run sales right
+because they have a lot of supply of Ben and Jerry's but there is no demand at
+this price so what they do is they decrease the price in order to increase
+demand so then people go in a lot of Demands they buy all the ice cream but then
+they don't just want to keep throwing away that ice cream at this high demand so
+again prices rise and then this cycle keeps repeating right that was a little
+bit of a funny example but hopefully you get the point on a price chart supply
+and demand is usually interpreted as oversold so you either have supplied
+running out and demand coming in or over but demand running out and Supply
+coming in and our task as Traders is to identify at what zones price will be
+oversold so we can buy it or overbought in order to sell it again going back to
+the previous lesson this is simply buying low and selling high and how we do
+this when we utilize supply and demand zones once again combined with Market
+structure and there are a lot of theories so we have the Wyckoff price cycle
+right the market accumulating while it's being oversold so right now demand this
+is starting to get in it pushes up then we have distribution the market is
+overbought and then Supply is greater than demand so Market starts going down
+and what you're usually going to see is as I told you the market moves in Cycles
+they're going to have up you're gonna have down you're gonna have up you're
+gonna have down right and this is again Market structure but also within the
+foundation of Market structure supply and demand is also right there right and
+then of course you have uh this here this is more like again I think it's also
+whack-off schematic this more uh takes into account also Market structure so
+what we have right here is again the market accumulating it's starting pushing
+up pushing up pushing up getting into that overbought state it starts to
+distribute then it starts pushing down pushing down pushing down and pretty much
+this is Market structure so there are numerous ways to study supply and demand
+but I really want you to understand like really the foundation of it so how and
+why do supply and demand zones form so we're gonna get a little bit more
+technical right there and I wanna always walk you through the psychology behind
+because if you don't ask the very important question why why do supply and
+demand zones form and how do they actually form then you're missing out so what
+is the psychology behind I call those guys the bfis uh those are big financial
+institutions Banks hedge funds Pension funds those are the guys with the money
+and they do not trade with one lot like us even a hundred Lots right because
+this is all retail they trade in thousands of millions of lots and they probably
+don't even utilize lot sizes right they're probably trading just cash I don't
+know nobody knows so whoever pretends to know how the bfis or how the
+institutions are trading you probably don't right very important to understand
+also is that trading is a zero-sum game so you have a positive sum game and you
+have a zero-sum game a zero-sum game is that when somebody wins someone else has
+to lose in order for someone then to sales one lot of your USD someone else has
+to buy one lot of your USD and some of those people right one of those people
+are is gonna lose while a positive sum game is for example a service so if I
+give you my mentorship you pay me money which is my reward and then I give you
+the mentorship which is your reward so it's a win-win situation right there is
+growth it's a positive sum game but a zero-sum game one is gonna one person is
+gonna win the other person is gonna lose so in order for someone to sell one lot
+someone who has to buy one lot in order to meet the other side and usually we do
+not need to worry about the execution of our trades and about liquidity because
+yeah we can always go to our broker and put as many Lots as we want but those
+bfis they do worry about it so let me give you an example imagine that bank X I
+don't know Barclays JPMorgan they want to place one million lot long on your USD
+respectively what are they gonna need is one million Lots shorts at the same
+time so their order can get executed because if they want to buy one that they
+need to buy it from somebody right so if they want to buy one million Lots
+somebody else has to sell them one million lots and usually uh that seller at
+one million Lots it's not just gonna be one person it is us it is the whole
+market so they need to actually find and generate those 1 million lots of shorts
+how do they do this well they trick Traders into selling and buying the market
+and they generate the patterns we all know double tops triple tops Flex trend
+lines Head and Shoulders triangles pendants all of this stuff and they make it
+look really good so that a lot of people start buying and selling and they build
+liquidity in the market however what's the bad thing is that after those
+formations are ready and people are in then banks will usually launch a big fake
+position and what this fake position does it it stops out all the Traders it is
+very important to understand that when you get a stop loss your order
+automatically turns into the opposite order so a stop loss on a buy position so
+if you take a long trade right now and you get a stop loss then immediately
+after hitting stop loss you turn into a cell you pretty much sell sold what you
+bought right so if enough people who are long for example and all of those are
+people are stopped out they pretty much offer those sales to the to the bank who
+wants to buy right and this is how Banks get their liquidity however what is
+also important to note is that when they launched this fake move to stop out the
+Traders they also run into some drawdown because in order for them to like
+launch this fake move they still have to enter the market and this is usually
+why they will come back to that same place they launch their fake orders uh
+mitigate those losses at break even and then launch again with their own
+liquidity so this is really theoretical I want to jump into an example right now
+and actually walk you through how that happens but hopefully so far you're
+getting the point say at this precise moment a bank wants to buy one million
+loss exactly what was said before what do they need in order to buy those one
+minute Lots they need 1 million cells right then you they need one million lots
+to be on the sales side in order for them to put their one minute Lots on the
+buy side so what they start doing is they start generating the patterns right
+they make a double tap what is right there a lot of sellers are entering right
+so what do they need they need sellers here we have a double bottom what does
+this make Traders do it makes them go long right so very good they go long right
+now what is below the double bottom is their stop losses and if a buy gets a
+stop loss what does it turn into a sell order so what they're going to be doing
+is they're going to be accumulating price doing some math stuff and then all of
+a sudden you get this very huge momentous move below or above respectively in an
+opposite example that pattern right and this is what I call the fake move and I
+in in this lesson we're going to be seeing the fake move drawn with this red
+kind of rectangle right and if all the stop losses right now of the buyers are
+taking in they turn into sell orders and also what happens is that there are
+people that are looking to take the breakout so for a lot of people this is a
+structure break they have their sales stop below right so people are entering
+shorts as the market breaks what do the bank need they need shorts right then
+the market gives you a little bit of a pullback a lot of people start entering
+shorts from here why because it's a lower high what do the banks need they still
+need shorts they're still putting in their one minute Lots right and then what
+suddenly happens is the market expands massively so after the bank actually got
+their 1 billion sales they launched their buys and they might not launch all of
+the buys at the same time so maybe they just launched like uh uh 500k Lots right
+there right but what I want you to pay attention to right now is what I told you
+about this um if I just delete all of this this fake position right here so in
+order for them to make this fake position they need to sell right so when they
+sold right there and then when they bought right here they're running into
+drawdown because they're running in sales right there so what happens right now
+is price reaches to a satisfactory level right and then they take some take
+profits they take some partials then they start the process again right they
+start generating the pairs double tap right there all right the market starts
+pulling back what do we have right there double top who do we have right there
+sellers oh double bottom the market is making a higher low who do we have right
+there buyers right the market comes in stop loss of the sellers takes in new
+buyers the market goes down stop loss of the buyers takes in new Sellers and
+stops out uh everybody right then the market comes in just before this move
+which is usually going to be called an order block or supply and demand Zone
+which we're going to be covering a little bit later and then they start
+accumulating again boom boom boom boom boom boom and then again they launched a
+new fake move into the previous fake move but with the new fake move they're
+gonna close the previous one at break even and again if they launched sales
+right there what do they get right now buys and this is exactly what they're
+going to be doing they're just shifting their orders to buys and then usually
+see the market massively plug it into the highs so in this case they also use
+their own liquidity from here and of course they still generated some right
+there so hopefully this little Theory makes uh sense again it's a little bit
+complex and again I don't want to get way too detailed about it but I just want
+you to understand how it works right so this is the basic supply and demand Zone
+Theory this is when you have usually an accumulation manipulation below that um
+initiations outside then you come back re-test the zone and then the market
+usually goes in the in the overall direction this is one type of supply and
+demand zone I'm using and there is the second type this is pretty much the the
+rally base rally drop base drop right so what happens is the market this is
+usually happens after this so after this develops this is how we see usually
+supply and demand form as the market is in a nice uptrend or a downtrend so I
+have this very nice push the market pulls back and start generating like a
+little bit of a pennant a little bit of a triangle right so people start selling
+right there people are looking at this triple bottom they start buying what does
+the market do they launch a fake move right so what happens is stop loss of
+buyers new sellers enter the market as well on the move up they take out the
+stop loss of the sellers they take out all the buyers then they return back to
+their fake move right and then they launch again exactly the same situation
+right there on the on the sales side all right so study those two examples this
+is the theory here isn't a real example okay so what do we have right there is
+something similar right so say at this precise moment right there Banks wanted
+to buy that one million Lots right so what they do again the market looks like
+it's bearish but there is probably something on the left right we don't know
+we're just focusing on pure price right there so what the market does is again
+it does this right boom boom boom boom boom likes a little bit of a choppiness
+then it sharply moves to the downside break structure down if there are people
+that are buying right there they're all stop loss and there are people also
+selling right there with a stop loss above here then the market goes and creates
+a trend change so what is this guys this is Market structure train change and
+then again so this is their fake orders right there then the market pushes up
+and then starts to consol it right and usually the Asian range which we're going
+to be covering a little bit later is a really good example of building liquidity
+so the market pulls back pulls back pulls back and solids for a little bit
+tricks buyers buyers to enter right there are trick seller center right there
+and what they do is they launch to get another fake move to the downside where
+exactly to the previous one so they close their positions that are on the cell
+right they're turning into buys and look at the expansion there is expansion and
+then again so this is the first example that I showed you so this is the first
+supply and demand Zone and there are the second one so then you have a base
+Harlow har High pulls back into the base goes on and makes a new heart High
+there is a new base push pull back right pulls back into the base makes a new
+high then here for a brief moment the market needed lots of liquidity so then
+they gave this big stock hunt to the downside and again this happens right so
+how do you know that this is a stop hunt because according to me here we have a
+shift of Market structure but then the market immediately came in and shifted to
+the upside so then I can say okay well yeah this was the liquidity grab right
+now we're bullish again and I will be looking to to flow with the market bullish
+as long as it goes so that is the that's the first example hopefully it's clear
+there is another one right this one is also a very nice textbook one so again
+guys pause on those charts study them carefully I'm gonna be giving you away the
+PDF as well so you can watch this at your own at your own time again bank right
+there decides to buy something what they start doing is they start making a
+range and usually once again as I told you the Asian range is a really good
+confidence for that they consolidate consolidate consolidate then what they do
+is they launch this fake move so what is happening right here a lot of people
+that are buying this support they get stop loss A lot of people on this breakout
+are entering also into sales okay so there are a lot of Voters being transacted
+just after we broke this level right there the market pushes down we get a
+little bit of an accumulation then you can see Boom the market expands what
+happens is we have a trend change so the market aligns bullish okay then we pull
+back into the zone we pull back into the zone and you can definitely be looking
+to take a trade right there absolutely right then the market massively initiates
+outside once again and then again as I keep saying the market is not perfect so
+we still have this fake move and again we don't know so a big question you might
+have right now is okay how do we know when you have a range like this where
+exactly is it going to retest is it going to retest the top is it going to
+retest the middle is it going to retest the bottom we don't know we don't know
+and this is why you should be taking the average but what I show you in this
+example is that on this overall sell to buy I'm going to be showing you more
+examples later um we we take like just a simple fit and we drop the 50 and look
+at where the market came in later how did it come in I want you to pay attention
+how did it come in it tricked all the buyers it tricks all the buyers all the
+buyers from here as well massive movement to the downside what is this it's a
+fake move right and then what happens immediately afterwards is they potentially
+close their positions right there get all of their liquidity massively pushes up
+well does it create a trend change so what is the market doing right now eat the
+lines bullish what caused this trend change you immediately track it back this
+is our major higher low and within that higher low you have that fake sale to
+buy right you drove it in and this is where the market comes in closes the
+orders and continues to push up okay so there is there is a great example of
+that supply and demand let me give you another one right so there you can see
+the patterns right there you can see that it usually happens around the Asian
+range we have a massive range right there again what I told you in the previous
+lesson what do we have above the range and below the range stop losses there are
+people in shorts right there there are people in Longs and on the breakout you
+usually get also a lot of sellers entering and this is what the banks want they
+want the opposite order to what they actually want to do massive push again to
+see how the accumulation happens right there it looks like a lower high right at
+the time it tries to push down launches even new more orders and then boom what
+do we have is we have a trend change very good what happens right there stop
+losses of sellers are kicking in so this is what they want and then again what
+caused this trend change right there what is this well it looks like a base
+demand Harlow right you can see the market actually launched the fake pushed up
+came into 50 then it pushed up and then again it comes into the demand Zone
+creates a new base pushes up pulls back here we didn't really quite reach the
+base then a massive push-up once again it pulls back creates a high low high
+then on the way down it creates a trend change but you still know that you have
+this base Demand right there and you can see the market came in reacted came in
+again and it's reacting okay so you can see the two types of supply and demand
+right there in a couple of examples we first usually have the first example when
+the market is accumulating grabbing the liquidity of everyone creating a trend
+change and then you usually find what caused the trend change right and you
+enter from there and then as the market starts making an uptrend then this is
+your main task is to actually jump on that train okay so so far this is all
+Theory I haven't really jumped into how do you draw them and how do you do them
+right let's have a look at some details so as I keep saying those Banks or
+whatever they are they will generate liquidity patterns around those supply and
+demand zones or when they plan to form a new supply and demand Zone and again
+this is done in order to gather as much liquidity as possible and usually the
+bfis will trade in the opposite direction of the pattern they generate by
+creating this cell to buy or a buy to sell okay so do we have a double tap what
+are the banks going to do is they're going to create a buy and then they're
+gonna sell why well because people are entering at the Double top they have
+their stop losses right there and as this breaks up there are a lot of long
+people that are trading the breakout and this is exactly when they actually
+launch their fake move they move to the downside they come in they mitigate
+their Freight move and launch a new one do you see like a bullish flag I don't
+even know how a bullish flag looks like um is this a bullish flag I don't know
+right so what are you gonna do well people are gonna be long long long long long
+long long maybe they give a little fake then they're gonna launch the fake move
+stop out all the people stop loss all the buyers get new sellers in the market
+and then they're gonna initiate and what does this create once again is this
+range the fake move the market is going to come back and then continue in the
+overall direction okay so you gotta need that little mindset shift going forward
+so what are the patterns you have to ask yourself what are the panels that I'm
+seeing and what does that mean for the majority of retail Traders what are they
+gonna do what position are they likely to enter and then respectively what will
+the banks do because the banks they will usually do the opposite okay so there
+is a little bit of a Minds chip you have to make remember guys once again
+getting back to Market structure and time frames hard time frames will always
+Prevail so if you understand the foundation of Market structure then you are
+good and if you combine Market structure with the plan demand this is a very
+simple but a very powerful system and you don't need all of the other stuff all
+the the traps the inducements the blah blah blah blah I promise you so listen to
+me right now we're gonna go and touch on what a lot of you have been asking
+order blocks right so water order blocks what's the difference between a supply
+and demand and an OB how to use them how do you draw them we're going to get
+into details so let's get into them so what's the difference first of all again
+don't listen to me I'm just a regular guy having my knowledge having my testing
+having uh read through all the the content that is available and actually having
+done the testing myself so I have experience and I have results to prove what I
+do according to me they're almost the same right but they have slight
+differences so many people so many Traders as I mentioned in the intro trading
+is unique and you have to find your own Niche because many people will draw
+supply and demand zones they will draw order blocks in different ways right and
+then there is no wrong and there is no right way to do if somebody comes on and
+tells you this is the right way to to draw an order block sure that's the right
+way for you I draw it in a different way right so again you have to find out
+what works best for you usually an OB according to me is the last cell candle
+before the big buy or the last buy candle before a big sell so in this case the
+time frame you look at it will matter because you can have a series of cell
+candles on the 50 minute but on the flowery chart it can just be one candle so
+be aware and I'm gonna show you examples on how exactly to draw them what we
+usually try to find is the last candle before an engulfing occurs so this
+actually makes us refine a Zone which shows us exactly where that fake move
+happened where did that sell to buy and buy to sell occurred and it looks pretty
+much like this we have a bearish candle and then you have a very nice engulfing
+candle with this engulfing candle needs to engulf the full candle the wick and
+the body and then how to usually draw them you take the candle like this right
+you have a buy and then the very big sale that engulfs the previous candle and
+again there are a lot of rules to it so let's get into the ruse so what are the
+details and the rules we always need to see an SB after the creation of an OB so
+this pretty much forms once again our major lower higher higher low supply and
+demand Zone okay so as I told you previously why do those major harlows work
+well because they have a lot of demand inside them right so if you remember when
+we have an uptrend the market creates a trend change and then confirms the trend
+change okay this is our major High and this is our major low right so then
+usually again right here you're gonna have Supply and I couldn't lower high
+Supply right or you can call the mobile you can call them whatever you want this
+is a strong high that caused the breakup structure and again this is potentially
+where they also launched a little bit of fake moves so the market should not
+usually go above this High Why well because if the banks really launch the
+orders right there they wouldn't like to get a stop loss or they wouldn't like
+to get further into into like a loss so usually then you're gonna see those
+highs respect perfectly because pretty much that's where they close their uh
+positions on drawdown and they enter new ones so always always you need the
+structure break or a trend change period always look for momentums when when an
+OB is printed so if you have like a choppy and a slow break that is weak so
+don't take it once again the candle must be fully engulfed by the next one okay
+a lot of details so the harder the time frame the bigger the zone and the more
+important it is so I want you to actually avoid refining too much so don't do
+like a quality zone or one hourly Zone a 50 minute Zone a one minute Zone don't
+like pick one big Zone and then refine it on all time frames pick one time frame
+and use that time frame only also an OB is considered to be fully mitigated or
+retested once it's at the 50 Mark so as I told you in the previous example we do
+not know where the price is going to stop in Reverse is it going to be in the
+upper 25 this is going to be in the middle or is it going to be a little bit
+below right so if you have a Zone like this you have 25 you have 50 and you have
+75 and then what a lot of people do is again you either enter for the 50 or you
+enter from the 75 or from the 25 or from the open right we don't know the price
+can come in and kiss it and run away the market can come into the 25 and run
+away it can come into the 15 runaway it can come all the way to create an equal
+and then run away we don't know and as I keep telling you as everything in the
+market always are also not perfect oftentimes the price will even not tap them
+or just kiss them and go you have a Zone the market just comes in pink and just
+forgets about you you don't even get your finger on the on the sell button right
+sometimes what what could also happen what I've seen happen is the market can
+throw a little Wick and then still reverse and that's fine right but this is why
+we always wait for a lower time frame confirmation within such a supply and
+demand Zone right so those are your rules so print those out take note because
+if you lack one of these rules your supply and demand zone is not going to be
+perfect and once again in order to keep it really simple major structure is
+always going to have supply and demand Zone Within so more details uh the zones
+as I told you form in many different ways and they might confuse you so I want
+you to make your drawings systematic and draw those zones in the same way always
+so I've picked here a couple of examples all right so you can draw this in
+numerous ways there is one way to draw it right so usually what is what you take
+is the engulfed candle in this case the engulfed candle is the bearish one but I
+also like to take the highest point because if I just take it from here as well
+then I miss out on actually what is the major high right there what you could
+also do is if I just delete my join what you could also do is you can just take
+the bullish candle so you take the whole bullish candle and all the next candle
+did not engulf right there is an engulfing here right and if we go to a hard
+time frame it is going to be engulfed okay so you can draw it like this so in
+this case this is those are the two ways that I'm gonna draw it okay this one
+pause the video enjoy it how would you draw it right this one is rather simple
+there it is so this one it's very little so this one is very little so use a
+hard time frame to find an engulfed candle and make it bigger what I usually do
+is I go to like a hard time from like if this is the 50 minute time frame and
+the candle is so small I'm gonna drop to like 20 minutes or 25 minutes to find a
+bigger candle that is engulfed because as I previously mentioned you don't want
+to refine too much and I'm going to show you why later third example here we
+have a candle that is engulfing two candles so you pretty much have two ways
+there is the first one you take that small candle once again or you can also
+take the big one and I promise you if you go to a let's say this is the 15
+minute time frame if you go on the 25 minute time frame in this case there is
+going to be a perfect one candle up massive candle down that is perfectly
+engulfed okay so you also have to work between the time frames because if you
+let's say if you have a demand Zone like this and you only keep the first one
+the market can come in and the reverse and you're like oh well we didn't tap my
+zone well it didn't tap your Zone because you're way too refined so again have a
+look where the engulfing is and see always strive to make your zone bigger
+that's according to me because else you missed on a lot of Trades the last
+example how would you draw it so again numerous ways to do so this is how I
+would do it so I would always account for the highest tweak or the lowest Wick
+okay so I'm not gonna draw it like this just with the bullish candle because
+then again you miss out on the major High which is right there okay a lot of you
+can also just draw the wick that is perfectly fine by me right but again it's a
+little bit refined so we can only draw this week personally I like to take the
+whole cell to buy and I'm gonna be dropping to another to to a hard time frame
+right there to find the best candle and I'm gonna show you examples in a bit
+okay so study this once again have a look at all the different ways to draw them
+and again guys very important make your drawing of the zones systematic so you
+draw them exactly in exactly the same way every single time here is a an example
+of why time frames matter and why hard time frame is always better so once again
+do not refine too much so it's much better to keep a bigger Zone and work your
+way on the lower time frame than to refine too much and then just not get a tap
+of your zone right so essentially those supply and demand zones or areas of
+value from which you are going to be looking for entries on the lower time frame
+again a little detail so if you enter aggressively then you would maybe want to
+refine so if you're going to be entering without a confirmation which we're
+going to be covering in the next video then of course you can refine refine in
+this case what we have is a 50 minute time frame right there and again look at
+this candle this candle engulfed all of this so in this case you can take this
+little candle you can take it from here as well or you can take the whole Zone
+like this okay but what I would do is I drop to the hourly time frame and on the
+hourly time frame we have a textbook bullish candle we have a textbook order
+block right there it made a buy took liquid on the left massively rushed lower
+and caused the break of structure and in this case I would take the hourly Zone
+because it offers me a lot of wiggle room and when the market comes in that's
+when I'm going to be dropping to the lower time frames and looking for my energy
+patterns but again if you just want to enter like in a swing trade or you want
+to be refined then take your 50 minutes on set your limit right there and stop
+loss above again different strategies we're gonna touch on those a little bit
+later in in the next video pretty much let's have a look at some examples right
+I always want to give you examples we're also later going to jump on the charts
+so for me to actually show you how I do it so this one is uh complex so you
+might have to pause the video and study right so we start from here and again
+Market structure is key so here we have like a bearish candle then the market
+pushes up and causes a 15 minute break so we have we have engulfing candle we
+have momentum and we have a breakup structure right and you can see the next
+candle immediately comes in and retests this area okay so you can see like in
+this case as I have said right there this bearish candle is not engulfed by the
+next one again you can make an exception you can also take this candle which is
+the engulfed one or you can go to find another time frame where you actually
+find that bearish candle being engulfed the market pushes it creates a higher
+low this according to me here is a structure break according to my rules there
+we have a train change to the downside what caused this trend change the last
+bullish candle there is the break once again this is the supply but I would also
+always account for this guy which is our major High okay but this is where the
+OB this is where the supply happened the last Buy sell massive sell the market
+comes back retests it massively launches lower okay here before the break what
+happens before the break the market creates this bike candle and massively
+launches lower okay so then we're essentially going to be looking for the
+pullback but what the market did continue to push lower created a lower high and
+launched another massive move lower right so again in this case this one is too
+valid but I in my strategy my very systematic system focuses only on the most
+recent ones so I'm giving a very big hint right there I do not focus on Old
+supply and demand zones right so here in this case this is the last bullish
+candle before the break the market massively comes in right and just breaks it
+so maybe we got an entry right there I'm looking at the Wicks maybe you got a
+one minute entry I'm not sure well maybe you take a loss because again you can
+see right there the market got oversold demand kicked in and the market is
+starting to reverse and there is probably a demand Zone on the left which is why
+hard time frame always matters this is maybe a full hourly Harlow because this
+is the 50 minute we're looking at so maybe this is a higher low the market
+aligns bullish right and then have a look here remember the old one the market
+comes into the old one and actually makes a trend change down okay uh but yeah
+so it gives us like a little short-term bearishness but again as I keep saying
+keep in mind the hard time frame this is the bearish candle it's not fully
+engulfed so we have to look at a different time frame but again look at the
+engulfing candle right there that cost uh break of structure in fact the trend
+change with a lot of momentum so this one is still relevant because it signifies
+that a higher low is forming and this is a very powerful demand Zone because
+it's the one that actually caused the trend change at a four hourly higher low
+formation so very very powerful Zone I've back tested this we actually have it
+as an entry model in my community so what happens later is that again in terms
+of the 15 minutes so again there are a lot of details on this example in terms
+of the 15 minute this is the major high and this is the major low so we are
+bearish but again according to my entry rules I will be looking for logs from
+here based on this cycle with a TC demand Zone the market then pulls back into
+the supply that actually caused the train change to the downside reacts reacts
+reacts reacts react what is it building right there guys let's focus what does
+it build a very big consolidation what happens fake move below the consolidation
+into the last sale to buy that was internal so this is internal why because this
+is our major high and this is our major low anything inside is internal but you
+can of course also read the internal so here we have the sell-off and then the
+market massively expanded so then again what caused this expansion this this is
+the last cell candle before the break and yeah I sit massively pushing up so
+probably it's not going to return so we gotta right now keep following with the
+with the base supply and demand that just pushes and continues okay so very
+comprehensive example study this one there is a lot going on um so let's explore
+all of these so right now I'm gonna be so keep all of these in mind right so I'm
+gonna be dropping right now on the one minute and actually showing you how you
+can execute from those supply and demand zones on the one minute by using the
+same OB and the same supply and demand rows so let's jump into it there is the
+one that so this is the OB that calls the TC and a potential flowery Heart High
+so this should be uh this one right so this is where we are out of 40 Heart High
+right we make the first 50 minute alignment down which means that the pullback
+is starting so this is where we're going to be looking to enter a trade so
+dropping on the one minute what do we have there is this massive range a massive
+buy a massive sell-off the market slowly pulls back pulls blackpools back
+pullback tap into the Zone give us a one minute alignment right so then again
+what caused the alignment you can see there is a little bearish candle right
+there what I would do in this case is once again I'm really not going to look to
+refine too much I'm just going to take this hole by to sell and enter somewhere
+right there but I've done this very precisely towards this bullish candle right
+there you can see the market came in very aggressively how did it came in what a
+massive fake move a massive buy stopped right there exactly and started
+reversing so what is this buy to sell right there this is the fake move they're
+launching so what are they gonna do they're gonna come back uh take some off and
+then continue and again what I usually do is I take the buy to sell and again as
+I told you we don't know if they're gonna tap the open the 25 the 50 were the 75
+in this case they perfectly reacted from the 25 percent of this buy to sell
+right so this might be a little bit Advanced for some of you if you're drinking
+this for the first time but I know a lot of your experience with that stuff so
+hopefully it makes sense so that is the first example let's have a look at the
+second Zone we have so this is the one that uh so this is let me show you so
+this is this Zone right there the market made a new lower low right so we had
+this massive job so there is the short trade we took this is a massive trade if
+you actually of course hold it right now we're looking to enter from here
+because this is the last high this is the last low right and we're looking for a
+short however the market comes in again what it does here is massive sell-off
+pushes consolidates pushes up so do you see any entries here not really if you
+don't enter aggressively are high Harlow are high Harlow yeah it pretty much
+broke on this quick right there so this Zone was immediately invalidated and as
+I told you we had like two weeks right there there are no entries so we do not
+take a loss from The Zone which is perfect okay next example so this is the one
+this is the old one right which is a reaction point but again even if you trade
+from it the market what does the market do makes a range it creates a massive
+buy it creates a sell then comes back to retest that buy gives us the entry okay
+if you zoom in what caused the cell right well you see here I've taken this
+little bearish candle again in this time frame you can use a different time
+frame to find the proper candle you can draw it like this you can join it like
+this you can draw it in many ways what's important is that you understand the
+psychology behind it the market came in rejected for a little bit pushed down
+pulls back pushes down where does it go into that TC the man Zone on the left
+that is a strong one Taps inside lower low lower high lower low lower high lower
+low aligns bullish there is the last cell there is the last buy that aligned
+bullish again where is the market going to come in so if you do the mistake of
+doing this in this case you miss out on the trade so again as I always say keep
+a zone bigger and if you get a good stop loss just enter the trade because in
+this case we didn't even go to the 25 percent right so then we have a push up
+but then again if you remember guys in this case this was our major 50 minute
+high this was our major 50 minute low so we took the long but we also have to
+take the short why well because we are also bearish the market Taps into the
+zone har High Harlow har High then it aligns verse right there you take the
+trade and we're running into profit so you can see there are trades everywhere
+when you pick the right supply and demand zones and there is that internal uh
+bullish one I just want to show you a couple of examples we have a Nobu right
+there we have a range the market pushes into it lower low lower high lower low
+how does the lower low form with a massive cell followed by a massive buy okay
+so you know ah I've seen this pattern I know this pattern Ilya taught me this
+pattern right the market comes back where does it hold fifty percent right even
+here it went to the 75 percent as well okay but spot that I didn't do I didn't
+do this what I did is the whole lick the whole cell to buy so again I do not
+refine because I've refined way too much to enter like with a one pip stop loss
+it just doesn't work I'm telling you for now in this case it worked great so you
+could have entered the trade from here what I want to stop was and you nail a
+massive Banger and that's fine if you want to do this but the majority of the
+times you're gonna be missing trades Okay so there are a couple of examples
+right and we're going to jump on the chart so I can actually show you how it
+works another concept I actually want you to understand is the fractal nature of
+the market so what I just showed you is the fractal nature of the market we drew
+50 minute zones in the same way we do the zones on the one minute as well okay
+so the same things we repeat on every time frame price doesn't know time and
+time doesn't know price so very important kind of a mind-shifting sentence right
+there I still kind of find it hard to really really accept this one but it's
+true right so price which is the way price moves it doesn't know the time it
+doesn't know the time frame and the time frame doesn't know the price right
+because price is price it's all the same different time frames are just a
+different representation of price right and again as I said there are patterns
+within patterns so we can have that same thing on the flowery the fake move the
+push the retest within this flowery demand you can have the same thing happening
+on the 15 minutes right there the 15 minute gives you a range uh manipulation
+pushes outside comes back to retest within right here on the 50 minute retest
+you can have the same thing on the one minute and this is pretty much top down
+analysis this is oh this is why all you need is three time frames to be
+profitable a hard time frame a middle time frame and an ancient time frame and
+all you do is apply the same pattern of course with some more kind of additional
+stuff so hopefully it makes sense there are a couple of additional uh things
+that I teaching my program one of them I call the rim this is kind of a real
+sauce it's a very deep understanding that one can have on supply and demand but
+I'm gonna keep it away from now it's pretty much like how actually does the the
+order block form what are the different phases within the order block and how
+you can actually trade it right but again we're not going to be covering this in
+today's video another one that that is also Worth to have a look at is order
+flow so right order flow how the market goes up how the market goes down and how
+you can actually follow the order flow and really know who is in control but
+once again order flow is spotted within Market structure combining it with
+supply and demand so right now I want to just jump on the charts and actually
+find as many examples as possible because I want you to see me how I draw those
+zones how I look into them uh what are like the different little details that I
+said like if if it's not clean on one time frame how do you drop it on another
+time frame and draw it right and we're going to be focusing on multiple time
+frames and also combining right now supply and demand with Market structure so
+we're gonna be spend some time right now on the charts and in the next lesson I
+decided in the next lesson we are gonna touch on liquidity because for me to lay
+out all the liquidity Concepts I know it's going to take me another 40 minutes
+and I don't want this video to be again two hours so we're gonna do it in a
+separate video which is going to be easier for your Learning Journey in the
+meantime if you have any questions about the theory about what I mentioned so
+far let me know in the comments okay what is unclear is something that I
+explained not making any sense am I speaking BS right do you find hard to
+understand something let me know because again apart from those lessons later we
+can be doing additional lessons with more examples and all that stuff because my
+mission is to help you prepare with all the foundations to give you that
+knowledge so you can start making progress and then you can come to me as a
+mentor so I can actually coach you uh towards consistency towards the right
+mindset the right system right because what I give you right now is a lot of
+things it's Theory right but it's a separate thing to actually put it into a
+system that is replicable right and you can do this every single day every
+single day every single day and see consistency in your trading so let's jump on
+the charts all right so here we are on an empty EU chart on the quality time
+frame I'm completely freestyling this I don't have anything prepared we're just
+gonna go on find some supply and demand zones and on different time frames walk
+you through it how I draw them how I've set up my chart so let's go first of all
+uh on my rectangle I have uh yeah around four to yeah six different things I
+have hard times in demand hard time frame Supply that is probably in 15 minutes
+okay so if you actually have a look at my settings um though those appear on
+every single time frame because I want to see them okay and then I have a lower
+time frame demand which is yeah which is only on the one minute right and I
+think five or less what I also have is the manipulation right so this is what I
+told you about like that fake move which we can try to spot right now and what I
+also have is a range because again usually the manipulation happens below or
+above a range or of course it could be a single high or a single low which we're
+going to be speaking in the next video okay so I actually want to start with a
+trade that I just took this morning just right now um because it's very fresh in
+my mind so what are we having right now here the market broke structure to the
+upside you immediately track it back what caused the break of the structure it
+is this one right there so I'm gonna tell you it's this one is this a clear zone
+no so the last cell candle is this guy so in this case I can either take it like
+this or what I'm gonna do in that case is I'm gonna do five hour time frame uh
+the candle is clean still not engulfed six hourly not grade seven no eight nope
+so we can see in this case uh which yeah so there it is on the ninth on the nine
+hourly time frame we have the spin bar that is engulfed by the next one
+immediately came back to retest and then it pushed so again if you want to be
+precise and if you would just don't want to be dropping zones then you can do
+this always go upwards of the time frame you are at don't go downwards so I'm
+not gonna go to the three hourly to the two hourly and the one hour let's
+refined because then you get two refined because then what you're gonna do is
+you're gonna do this right and yeah you can see this one worked in terms of
+intraday but I'm just looking at this major zone right now usually I'm gonna
+draw it like this okay here for example the market broke structure to the upside
+okay we track it back what is our major Harlow it's this guy okay so what is our
+demand Zone well you want to take the last cell candle usually or you want to
+take the candle that is engulfed another great example of how the market is not
+perfect like in this case I only took this one is this engulfed yes it has a
+little bit of imbalance right there if you're looking at imbalance it caused the
+break of structure what you can also do five hours do we have something it's
+pretty much the same it's a slightly bigger candle six hours let's check it out
+six hours it's even bigger so I'm gonna take this right seven hours do we have
+actually a bearish candle that is engulfed not really okay so maybe nine hourly
+no so in this case we just don't have it so your task is is to make this as
+bigger as possible so that you have wiggle room and the market comes in here to
+actually take a trade okay so then we can jump in to look at what happened on
+the 50 minute right there what happened on the 50 minute right there right now
+let me actually show you my trade for today so where is the market right now
+it's making a massive lower low what is it it's uh oversold okay what did it
+also do it created the new forward break structure right there it made a lower
+low and it came in and took out the slow okay so what I'm gonna teach you um in
+the next lesson is that again old lows and highs like this they have a lot of
+liquidity so when a low like this is taken usually a pullback initiates and this
+is why harlows and her highest form when you have a high high low high above
+this High there is liquidity so when it's taken usually the opposite side of
+orders are triggered so then the market pulls back right higher high then the
+market pulls back again so when I saw this High being taken and pretty much I
+didn't even see this hat first oh the market is at a lower low cool what are my
+options to either continue flowing with the market down or look for a counter
+Trend then I drop to the 50 minute time frame all right let's read the 50 minute
+what do we have right there is our Asian range so if you haven't watched my
+Asian range video it's a good time to do so but I think it's actually going to
+be even a better time after the the liquidity lesson right so what do we have
+right there is again I'm just tracking structure we have breaker structure right
+there we have breaker structure right there and then what happens all of a
+sudden is the market creates a trend change how did that happen let me ask you
+right with this so what I do this right there is manipulation that is our cell
+to buy that cause later a train change so if you were early in this market 7 15
+you can be looking to take a trade from here because this is the last silk
+candle that was engulfed calls the train change pulled back and gave you a long
+trade while the market does later is it makes a breaker structure what caused
+the breakup structure so again as I keep saying the market is not perfect right
+it's not perfect this is the bearish candle right but you can also take this one
+so what I will do in this case is go to the 16 minute not really 70 minute not
+really I'm here just to tell you that uh there is no there is no clean candle to
+take exactly in this example but I know that we have a breaker structure what is
+my major Harlow it's this guy so there is demand within this major Harlow okay
+so what I did is I dropped to the one minute so there is that uh where's the
+first trade yeah there is the first trait so again how do you take the first
+trade the market pushes up it creates this sell-off and then it buys right and
+what you can see precisely before the big buy what do we have is this cell where
+does the market go precisely 50 of the last sale to buy okay I do this with with
+the Gan tool all right so this is the Gantt box and I have it like this 0 50 75
+and one and almost no background right so there we go fifty percent boom this is
+actually an entry model we have it's called the the one minute continuation
+fanatic entry model um number three the market continues to push up right and
+causes a 50 minute break of structure what do I know is that there is demand
+with me right there so also the liquidity has been taken I'm not going to speak
+about liquidity in this lesson we had a trend change precisely right there so
+then look at this right same thing on the one minute that we do same thing on
+the 50 minute there is our breaker structure that I was actually a train change
+what caused this breakup structure it's this guy okay what do we have actually
+right there is we have a massive sale to buy as manipulation what did that do
+range range range range and massively went down took everything where did it go
+into the previous sell to buy and what did it tap 50 on the spot right so there
+were quite a few trays this morning but I don't trade at six I don't trade at
+seven I trade after eight so I could have taken this but I was looking for a
+confirmation because I don't trade aggressively push pull back I took the trade
+here stop loss below the major low and uh there is my 4r trade so lovely trade
+this morning right right now actually there is a short I just missed I just
+missed the short I'm actually looking for it on my other screen I'm looking at
+it on my other screen and I was gonna take it but again I'm doing this for you
+but let's break it down let's break it down what do we have a little bit of a
+choppy market right there but let's just follow price there is a breaker
+structure right there what caused this breaker structure according to me it's uh
+this low right there it actually could be this low but I'm gonna take this one
+what happens is we have a train change down what is our major high is this one
+where is the supply it's this one is this a valid Supply yes it's a nice bullish
+candle that is in Gold by the next one and it calls the break of structure right
+what I do is I drop on the one minute the market comes in grabs the liquidity
+what does it do takes out the high takes out the high what caused this high it's
+this one so there's our Trend change I should have taken this trade because it
+actually broke on this candle and you can already be in from here what a
+massively tight stop loss but I was actually looking to take it from here I was
+just monitoring this chart I should have maybe paused the video but let's see I
+mean we have a live trade running so let's see if we can get our our four hour
+industry again why from here well pretty much again what caused this break uh
+it's pretty much this whole again buy to sell right there so this is this is
+where I would eventually be looking to take a trade if I get a good stop loss
+and I will be looking to like go break even after yeah break even and trade
+management separate lesson so there is another trade uh I I did not pause this
+video and take this trade because of the time it's uh I'm currently not not
+trading at 12 o'clock I stopped trading and usually like 15 to yeah 20 to 50
+minutes before that I also look not to trade because then the market is getting
+into chop State and I'm happy with my win so I just decided not to take this one
+but let's see if it works out okay so again textbook setup so let's go back to
+the quality time frame practice a little bit more I wanted to break down this
+right there so we have a massive push-up we have a very nice pullback so let's
+actually do this right and go and explore what is happening within this Demand
+on the 15 minute okay so what is all of this so I'm giving you a quiz right now
+what is all of this right what is all of this right there I hope you know this
+is internal structure of the flowery range roverly Harlow Wally har High
+dropping on the 50 minute let me let me break down this internal structure it
+could be a good lesson on the 15 minute this is where we created the trend
+change what caused the trend change it is this little guy right there which
+again is not clean but this is the last buy that caused the cell and caused the
+trend change in this case what we can do is we can do uh 25 minute there it is
+25 minute buy candle massive cell causing the train change however I base this
+on my base time frame which is the 50 minute all I do is 4 hourly 15 1. the only
+time I switch time frames is when I want to take a nice Zone but I pretty much
+know how the zone is going to look like on the 25 when I'm on the 15. so I
+pretty much knew that if I go on the 25 this is going to be a clean OB right
+there what does the market do comes back chops for a little bit and then at the
+end of the day it explodes down exactly right there it caused the breaker
+structure do we care what happens right there no this is all internal this is
+our again remember the exercise this is our major height this is our major low
+anything between these two levels is internal of course this is where we're
+going to be looking for an entry so do you want to drop to the laminate have a
+look if we got an entry let's do so all right so we come in oh this is very very
+chopped so let's see um boom train change what caused the train change very
+clean will be in this case there it is so what do we do is we take our trade how
+do you take it are you gonna take it from here with a one-pip stop loss are you
+gonna take it to from here for six foot stop loss I don't know as I told you if
+you have this big buy you draw your gun box and we don't know where the market
+is gonna stop which is why I always say if you get a good stop loss just get
+into the trade personally I'm gonna do it from the 25 because it gives me a five
+pip stop loss and we got our a almost 3r almost 3r um okay so this is very
+debatable if we take TP if not then I think we're probably break even because I
+wouldn't really hold the trade as it gets to 3r and then get a stop loss so this
+is either I mean if you took it from here uh you're definitely having a take
+profit on this trade right oh sorry if you took it like this you're even having
+almost a 5r again we're here not to take trades we're here to learn the market
+returns back right and actually technically takes out this high on the one
+minute what caused this height to be taken is this Harlow what happens is the
+Harlow gets smashed the next question you ask is okay what actually caused this
+Harlow to get smashed you track it back it's this do we have a clean Obi in this
+example not really okay so how you can draw this one is you can take this candle
+because this is the candle that was engulfed or what you can do in this case is
+go two minutes right go two minutes and there is a slightly better candle which
+is still bearish then you can do two minute no three minutes gets a little bit
+bigger okay so again experiment with it find the time frame that works best for
+you personally I'm gonna take it like this the market comes in it came in right
+there take the trade save stop loss of three Pips and a massive Rundown right so
+you see we literally called the top of the trend right there 40 Heart High 15
+minute train change boom and again not to say how many trades you can be taking
+along the way but this again is our entry models which we're not going to talk
+about so jumping on the forage once again what do we have is we have a forward
+demand Zone the market is coming into the following demand Zone let's see what
+happens okay uh by the way I want you to right now go in and practice all supply
+and demand zones right there on the 15 minute because they are tricky this is
+where we broke right there okay so how do you drop a demand zone right there a
+supply sorry well I'm gonna take it personally like this why because if I go
+right now on the 25 minute this is probably going to be one candle okay you can
+do it like this to me this is too refined right you can even do it like this
+this is uh how uh the majority of my community does because I've taught them to
+take bigger zones and then Master their entries on the one minute right there so
+if I just quickly drop to the 25 um not really right so 24 23 right so there is
+a good one right so we have this bullish candle and I'm always gonna take the
+wick so that that's a proper Zone the market pushes down it pulls back it pulls
+back to 50 but it doesn't tap our Zone well that's fine no trade what does it go
+and do later it causes a breaker structure what caused the break of structure
+we'll have a look here you have a little detail so you have the bullish candle
+bearish then this candle throws a huge Wick above and closes so again what you
+can do in this case is you can take the wick like that you can take the wick
+like this or you can take the whole candle or go to 25 and there is your candle
+I mean the 25 candle is um it's technically engulfed by this one maybe you do 24
+minutes yeah there is so 24 minute candle bullish full engulfed calls the
+braking structure what you do the market comes in right there drops to the one
+minute uh oh yeah in this case you did not get an entry because that's the
+market aligned I remember this trade it just made uh the the TC right there and
+just forgot about us so no trade do we care no we keep following the ranges okay
+so this is actually practicing supply and demand but I'm already marking up
+Market structure as well there is a break of structure what caused this breaker
+structure track it back is this guy what is the supply zone right there it's
+very clean bullish candle right there but always also embrace the high okay so
+don't take it like this so that you leave out the wick right there always
+embrace the high the market pulls back doesn't get in where did it get in inside
+this hole buy to sell so this is why don't refine too much right but don't also
+make it way too big so I try to find the hap medium which in this case if you
+drop to the 25 it's going to be the 25 and it did not tap massive push lower
+there is a break of structure the market keeps moving down what is the major
+high it's this one right what is the demand Zone again tricky right there we
+don't have it perfectly okay so same example the market creates a bullish candle
+then Wicks above it and then massively drops lower okay so what you can do is
+you can do this or you can catch even the bullish candle which is what I would
+do personally catch from the buy to sell or 25 minutes um not really there you
+go 25 golden sorry 24. golden massive drop lower that's the supply Zone but the
+market did not come in okay so right now we are in a four hourly demand zone so
+what you have to be looking for is for the 15 minute to become bullish let's see
+if it actually does there it is Jim and it became bullish right there uh that
+was a tricky price action right here because it caused the high then it calls
+the train change right there so it's getting a little bit tricky so I think
+we'll play a little bit more yeah so there it is right so we have this massive
+expansion higher then the question you actually have to ask is what caused this
+expansion higher and I think I took a long from here because this is what caused
+the expansion okay so we have a structure break right there uh this is also we
+have I have additional rules that I'm not sharing with you those are for my
+private program because we also have the valid ranges rules and usually a valid
+range is also going to determine a valid supply and demand Zone in this case it
+was this guy so what I did is I dropped the one minute did I take a trade here
+or did I miss it because it tapped it pushed up uh yeah then I was looking for a
+one minute intro right there and it did not uh okay so maybe I took yes yes yes
+yes yes yes so this is I took this trade by the way this trade like this why
+because again we were bullish on the 15 minute the market came in this is where
+we aligned bullish so how again in this case how do I drop my zone right you can
+do this if you wish in this case it worked out great because this is the actual
+sale candle that was engulfed and massively pushed up so if you want to two pip
+stop looks beautiful what I do is again I spot where is the cell there it is
+right then take the gun box if you wish in this case again perfectly 50 but
+while how I entered is I think I entered a little bit it's a little bit higher I
+missed some something like this and I think that was a stop loss oh no that's a
+take profit okay I'm probably confusing the trade but this is Friday yeah yeah
+so I took the trade yeah so it looks like it's a TP I don't even remember but
+there it is simple trade bullish 15 minute one minute online we find where it
+aligned boom 3r uh but I think yeah later yeah it actually went quite nice this
+one so why don't I remember this trade I don't know doesn't matter right we just
+found it which is pretty good what the market does later is if I just actually
+remove some drawings the market breaks structure to the upside what caused the
+break it's this is our major Harlow again in this case the man zone is not
+perfect you can take this bearish candle but you can see this bearish candle is
+not engulfed right there is a wick right there so what you do is you go 25 is
+there something um not really yeah on the 24 so you can see on the 24 we have
+this very nice bearish candle engulfed by a bullish one I'm gonna take this one
+right then you wait for the Market to return drop to the one minute let's see if
+we can take a trade right there um yes so there it is there it is so again you
+can see how the market works right so again supply and demand Concepts uh
+consolidates a little bit generates the liquidity what does it do right there
+right that fake move that I told you and there's the fake move followed usually
+what I would like to see in this case is uh momentous push up this one is very
+very very choppy what caused this uh Trend change it's this guy is this perfect
+zone no right so why I took it like this because again I am not gonna take
+something like this or something like this I'm gonna take it bigger like that
+and just look to enter with a safe stop loss the safe stop loss in this case
+will be actually below the slow which gives it a little bit bigger so again
+choices you have to make choices then in this case are you not happy with the
+stop loss then wait for a little bit lower okay but this is a trade that I will
+be personally taking and yeah so this was the stop loss so maybe I took the win
+although that is Friday yeah maybe I took the win and then took the stop loss
+probably that is the case because I remember there was a stop loss right there
+yeah yeah so I took the win and then I took the stop loss exactly exactly
+exactly so again valid trade but the market did not move so what happens right
+now is as soon as this one is violated we have a train change down right where
+is our supply Zone well in this case it's actually this guy because this is the
+last buy which is a valid range that actually caused the brake structure to the
+downside okay so what you have to do is wait for the market to come in but then
+it immediately broke it all right and then you just flow with the market this is
+why I hate doing the flow of the markets Tuesday because I say I'm gonna sell
+from this level the market just massively breaks above it right and then again
+what TC right there what is the the low that calls the TC it's this one what is
+the demand Zone it's clean it's this candle if you want to make it bigger go to
+a hard time frame right so nothing very clean so I'm gonna keep the 50 minute
+you wait for the market to tap you go on to one minute you take your entry and
+um you hit TP where is your TP at the High okay same thing brake structure what
+caused the brake structure right now we move right there we move right there
+again demand Zone not entirely perfect but we have a bearish candle right there
+that was engulfed but remember the rule always account for the low so you
+account for the low push pull back do we tap in oh okay yeah so this one was
+just massively broken we absolutely don't get the one minute uh entry right
+there Okay so I think this is pretty sufficient okay so again the main rule is
+when you are on the Folly time frame and you don't have a clean zone go to the
+five hourly six hourly seven hourly wherever right when you're on the 50 minutes
+and you don't have a clean Zone then go to the 25 24 whatever right so just try
+to pick a proper Zone okay so if we just go and see how our trade is looking uh
+like it's chopping this is why I don't trade at that time because it's it's
+shopping around but yeah pretty much there is our there is our kind of uh no
+this is wrong there is our manipulation right the market comes in uh well we
+took it from here right but it came in again gave again a massive reaction so
+we're yeah just sitting in that trade but let's see how it works so right now I
+just want to wrap it up and have some final words all right Fanatics I really
+hope you enjoyed the lesson on supply and demand and Order blocks hopefully it
+has made sense and you are ready to actually go in your charts and practice I
+really urge you to re-watch this video at least two more times because there was
+a lot of theory and then I spent a lot of time I hope enough time to walk you
+through some charts to actually show you some examples and even give you a hint
+of the entry system that I'm going to be teaching you after two videos in the
+next video we're gonna touch on how to understand liquidity I'm gonna break down
+all the different types of liquidity how to then add up on your supply and
+demand and Market structure knowledge you have liquidity on top then we put it
+all together we add the entries and you are absolutely ready to crush the market
+so all I ask for you is to subscribe to the channel if you like this video make
+sure to turn on the notification Bell in order not to miss when the next video
+comes out and just hit a like right and let me know in the comments if you
+enjoyed it because uh I really hope I'm providing some good content and it
+really means a lot to me when I hear it from you so wishing you an incredible
+week ahead study if you have any questions always leave a comment or message me
+via email at support tradingfanatic.com I'm always here for you I'm always here
+to help if you needed anything or you need another idea for videos anything at
+all just let me know so right now it's study time good luck and let me know if
+you have any questions foreign

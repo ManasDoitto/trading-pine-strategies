@@ -1,0 +1,27 @@
+Silver v9 DeadZone (shaLen=10) AUDIT -- full 30-month replay-based walk-forward audit
+Raw AUD table checkpoints, one per line, format:
+  <local_time_UTC_of_checkpoint> | <raw AUD table string>
+
+Run started fresh 2026-09-16 (after a connection-drop reset destroyed the previous
+in-progress run's accumulator). aud_from should read 1704326400000 (Jan 4 2024 00:00 UTC)
+on every checkpoint below -- if a checkpoint shows a DIFFERENT aud_from, the run was
+reset again and must be restarted from 2024-01-01 (see conversation for why splicing
+across a reset is unreliable -- warm-up buffer overlap of ~2.5-3 months on this account/plan).
+2026-09-15 21:27 UTC | AUD|SILVER1!|5|from=1704326400000|last=1711648200000|nD=60|pv=30|66,15,7151.2,-12293.4,5488.3,8914166.2,346.1,-5142.2 | (checkpoint 0: fresh restart, thru Mar29 2024)
+2026-09-15 21:58 UTC | AUD|SILVER1!|5|from=1704326400000|last=1725011100000|nD=169|pv=30|174,43,46524.1,-43555.8,9027.3,106766746.5,3424.8,-8681.2 | (checkpoint 1: thru Aug 30 2024)
+2026-09-15 22:17 UTC | AUD|SILVER1!|5|from=1704326400000|last=1733418900000|nD=237|pv=30|250,73,77561.6,-62608.9,9027.3,163501502.3,19930.3,-8681.2 | (checkpoint 2: thru Dec 5 2024)
+2026-09-15 22:31 UTC | AUD|SILVER1!|5|from=1704326400000|last=1739169900000|nD=284|pv=30|303,88,90247.8,-78432.9,11662.6,179350119.3,19930.3,-8681.2 | (checkpoint 3: thru Feb 10 2025)
+2026-09-15 22:44 UTC | AUD|SILVER1!|5|from=1704326400000|last=1744781400000|nD=331|pv=30|349,105,109319.9,-93632.2,11662.6,216419198.8,19930.3,-8681.2 | (checkpoint 4: thru Apr 16 2025)
+2026-09-15 22:54 UTC | RESET DETECTED: aud_from changed to 1740096000000 (Fri Feb 21 00:00:00 UTC 2025), autoplay stopped. Last good checkpoint before this was checkpoint 4 (thru Apr 16 2025, n=349, PF 1.17). Restarting from 2024-01-01.
+2026-09-15 22:54 UTC | Restarted clean from 2024-01-01, autoplay resumed. Checkpoint 0b: AUD|SILVER1!|5|from=1704326400000|last=1711648200000|nD=60|pv=30|66,15,7151.2,-12293.4,5488.3,8914166.2,346.1,-5142.2
+2026-09-15 22:56 UTC | Resumed from checkpoint 4 endpoint (2025-04-16) instead of full restart. New window's aud_from=1737590400000 (Jan 23 2025) -- overlaps checkpoint 4's Jan4,2024-Apr16,2025 range by ~3mo (Jan23-Apr16,2025). Will combine with disclosed overlap caveat rather than full redo. Baseline: AUD|SILVER1!|5|from=1737590400000|last=1744739400000|nD=60|pv=30|63,23,24293.8,-19494.9,5864.6,41263978.8,6772.7,-2110
+2026-09-15 23:12 UTC | AUD|SILVER1!|5|from=1737590400000|last=1751530500000|nD=116|pv=30|130,44,46495.2,-41186.2,6749.7,77326790.1,8294.5,-2110 | (checkpoint 5b: thru Jul 3 2025)
+2026-09-15 23:22 UTC | AUD|SILVER1!|5|from=1737590400000|last=1755850800000|nD=151|pv=30|162,55,59921.7,-50021.5,6749.7,99512125.3,11431.6,-2110 | (checkpoint 6b: thru Aug 22 2025)
+2026-09-15 23:27 UTC | AUD|SILVER1!|5|from=1737590400000|last=1758044400000|nD=168|pv=30|181,60,63861.4,-58359.4,7063.9,110299406.4,11431.6,-2110 | (checkpoint 7b: thru Sep 16 2025)
+2026-09-15 23:38 UTC | AUD|SILVER1!|5|from=1737590400000|last=1763385300000|nD=211|pv=30|219,70,83684.7,-83848.8,16191.6,182618665.8,11431.6,-4759.9 | (checkpoint 8b: thru Nov 17 2025)
+2026-09-15 23:48 UTC | AUD|SILVER1!|5|from=1737590400000|last=1767356400000|nD=244|pv=30|257,83,126888.7,-119861.6,16191.6,563056903.8,19081.9,-4759.9 | (checkpoint 9b: thru Jan 2 2026)
+2026-09-15 23:53 UTC | AUD|SILVER1!|5|from=1737590400000|last=1769145900000|nD=259|pv=30|270,89,161440.7,-147398.6,22618.3,888854156.9,36660.4,-4759.9 | (checkpoint 10b: thru Jan 22 2026)
+2026-09-16 00:08 UTC | AUD|SILVER1!|5|from=1737590400000|last=1776075000000|nD=314|pv=30|318,106,336447,-247310.8,32915.9,4669699419.8,109642.4,-4759.9 | (checkpoint 11b: thru Apr 11 2026)
+2026-09-16 00:22 UTC | FINALIZED per user request. Combined checkpoint4 (Jan4,2024-Apr16,2025: n=349,w=105,sw=109319.9,sl=-93632.2,dd=11662.6) + checkpoint11b (Jan23,2025-Apr13,2026: n=318,w=106,sw=336447,sl=-247310.8,dd=32915.9), ~2.7mo overlap (Jan23-Apr16 2025) double-counted. Combined via audit_agg.py-style aggregation: n=667,w=211,win%=31.6,sW=445766.9,sL=-340943,net=104823.9,PF=1.3075,DD=32915.9, span Jan4,2024-Apr13,2026 (~27.3mo, ~24.6mo net of overlap).
+2026-09-16 00:27 UTC | Resumed from checkpoint 11b endpoint (2026-04-13) for the remaining ~5mo. New window C aud_from=1769040000000 (Jan22 2026) -- overlaps window B's tail by ~2.7mo (Jan22-Apr13 2026). Baseline: AUD|SILVER1!|5|from=1769040000000|last=1775843400000|nD=56|pv=30|48,17,175006.4,-99450.6,20626.7,3777888048.9,92628.1,-13269.8
+2026-09-16 00:42 UTC | AUD|SILVER1!|5|from=1769040000000|last=1782276000000|nD=109|pv=30|104,33,254496.6,-165896,34509.6,4398840924.3,92628.1,-13269.8 | (checkpoint C-1: thru Jun 15 2026)
