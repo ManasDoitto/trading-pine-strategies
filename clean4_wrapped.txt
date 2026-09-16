@@ -1,0 +1,703 @@
+liquidity concepts are hard to understand and beginner Traders especially find
+it hard to wrap their heads around the concepts and even more advanced Traders
+they still struggle to identify and spot liquidity on the charts why do I think
+this is the case well because liquidity is literally everywhere and just like
+any other concept or trading strategy it's subjective we are all unique Traders
+looking at the market through different lenses trading in different ways
+understanding the market in a different way and according to me just like any
+other concept liquidity has to be systematized you need the system for
+identifying liquidity you need to know your different types of liquidity and you
+need to actually Implement liquidity into your trading strategy so that you
+actually know how to use it because everything that I teach you does not work on
+its own it has to be built in a overall process which is what this video series
+is designed to do and in today's lesson we're gonna do exactly this I'm gonna
+teach you how to understand liquidity Concepts I'm going to show you the
+different types of liquidity I use and I'm gonna teach you how to use them
+because again liquidity Concepts will become easier once you actually know what
+you're looking for so that when you actually see a liquidity pattern on the
+charts from the ones that I'm going to show you're going to be like yes that is
+a liquidity area I understand this so I'm gonna wait for it to get taken so as
+always guys grab a pen and paper open an ocean or a word file get ready to take
+notes and please cut out all distractions and stay with me this is going to be a
+relatively short video compared to the previous ones right so pay attention
+watch it till the end and make sure to also check out the link in the
+description download your PDF in order to facilitate your learning and without
+further Ado I hope you're excited let's get into it thank you alright as always
+we're gonna get started with an introduction to the different types of liquidity
+and of course first of all we're gonna have a look at what is actually liquidity
+then we're gonna study the different types with textbook examples with chart
+examples and towards the end of the video we're gonna just jump on the charts
+and have a look how you can actually practice identifying liquidity on your
+charts so that should can actually start seeing it because again without putting
+in the work without actually going to practice a concept cannot be learned just
+by watching a video so let's get into it first of all again what is liquidity
+well liquidity is the ability of a currency pair and not only current Spirit
+could be a stock it could be real estate everything right uh of an instrument to
+be traded but or sold on Demand right so a market is liquid when there is a
+constant flow and participation of buyers and sellers so a liquid Market is a
+market when anyone can come in at any time and sell his commodity an asset and
+as you probably know Forex the Foreign Exchange Market is one of the most liquid
+markets and real estate is one of the most illiquid markets why well because you
+can come at the market you can always buy you can always sell you can go at your
+local currency exchange they're always going to be able to give you money right
+or you can come into the market you can always open a trade right but with for
+example real estate you can't just go and then buy a property or you can just go
+out there and sell a property right it's pretty illiquid all right so the
+concept of liquidity is crucial because it is pretty much what drives the market
+and helps the bfis remember from the previous lesson execute their orders and
+for us retail Traders liquidity is not a problem as I already mentioned we just
+open our platform anytime and we can take our one to 100 lot contracts and
+trades right it's no problem but again as I told you in the previous lesson is
+supply and demand imagine you are a bank and you open your platform and you try
+to place a buy for 10K Lots or contracts and then like your platform gives you
+that mt4 sound right not enough liquidity to execute your order right so then
+what you have to do well you have to wait or you have to generate more liquidity
+Drive price towards those liquidity pools right and if you can also remember
+from the previous uh lesson remember where the liquidity actually is right where
+the stop losses are where the buy stops are where usually an exchange of an
+order happens and liquidity points are used by the bfis to get enough counter
+orders to theirs so that their order can get filled again for every buy there
+needs to be a sell and for every cell there needs to be a buy right but if the
+bank wants to take 10 000 Lots buy they need to have 10 000 Lots sell from the
+other side so that they can actually fill their order right and again they do
+this by taking other people's stop losses limit orders stop orders and tricking
+them into buying and selling which we're going to be exploring in this lesson
+and again in order to understand liquidity you need to have a little bit of a
+mindset shift because when you see a double top you are going to be marking this
+as a liquidity point when you see flat chopping price a consolidation you're
+always going to be marking it as a liquidity point and I'm gonna tell you why in
+a little bit and also the concept of a liquidity Gap is very important because
+this is like a recharge mechanism of the market I bet you haven't never seen a
+market that is just keep pushing up and up and up or down and down down forever
+right it usually needs liquidity to recharge and this is why we always get
+pullbacks we get those formations we get liquidity points and those are pretty
+much engineered by the big financial institutions okay so pretty much imagine
+you're going on a trip right now and you start from Italy and you want to go to
+the Netherlands right or maybe you even want to go to Russia I don't know a
+longer trip you can't just start and go all the way in one go right you're first
+gonna stop to get few you're gonna stop to eat you're gonna stop to sleep right
+and just as the market cannot just get from A to B in one straight move it's
+gonna move up it's gonna move down it's gonna correct it's gonna consolidate
+then it's gonna start moving again it's gonna then start pulling back again all
+right this is pretty much grabbing liquidity okay so that is pretty much the
+foundation this is the theorist right now let's get into some actionable stuff
+and I'm gonna show you uh the liquidity types that I personally use so as I
+previously said in the intro there are many forms of liquidity right you can
+look at liquidity in numerous ways but the key is to always kiss keep it simple
+stupid or stupid simple right so it has to be simple and systematic so liquidity
+can be identified above any high and Below any low why well because there are
+stop losses there and and there are stop orders also there so if I'm just to
+give you a very quick example right well this is the laser so let me put the pen
+so I have a push we have a pullback right the market is right there so where is
+the liquidity well there is liquidity Above This high and there is liquidity
+below this low so as the market goes up and makes a new high and again after
+every structure break what do you usually get after every structure break you
+get a pullback why well because the market has gathered the liquidity that was
+above this High okay and right now they're retracing back which is a form of a
+liquidity grab right so then as we're here where is the next liquidity Point
+well it's either below this low or above this High okay so then if the market
+goes on and actually takes this liquidity it creates a trend change right we're
+now bearish on this market and what happens next is you start to correct why
+well because we collected all the liquidity that was resting below the slow so
+those are pretty much the single lows and single highs what you can also have is
+equal highs and equal lows and usually you're going to see them as double tops
+double bottoms ranges um Penance I don't know triple tops everything right and
+I'm actually going to give you an assignment in a bit I want you to go and spot
+all double tops and double bottoms what you're usually gonna see is the
+following if I can only find my mouse right there it is we have a double tap
+right and what the Mark is usually going to do is something like this and then
+you're like oh double tap I'm gonna short the market but usually within every
+double top there is a spike above and that is when the market reverses why well
+because the stop losses of buyers are right there right sorry the stop loss of
+sellers are right there and the buyers that are actually looking for the
+breakout they're going to be entering buys right there so you have stop loss of
+Sellers and buy stop of buyers so on this fake move which we had a look at the
+previous lesson as that fake move the manipulation right sellers are stop loss
+right and then the buyers are triggering into the market and this is when we
+actually get the real move okay similar example on the double bottom you get a
+double bottom and usually the market is going to give you like a little reaction
+to trick people into buying the market they have their stop loss below right and
+then the market just is a little Wick boom takes it out and then it reverses
+okay so again double tops and double bottoms are imperfect but this is because
+of liquidity okay and when you see like perfectly equal highs or equal lows you
+know that this will eventually get taken the next type of liquidity is
+structural or supply and demand liquidity so those are old supply and demand
+zones or structural Levels by structural levels we mean higher lows higher highs
+lower highs and lower lows right and those are levels from which Traders are
+actually taking trades I'm gonna show you a textbook example later another
+liquidity type I use is a fake Trend change right what many of you know as a
+fake church as well because I see this concept used a lot the church thing right
+so this is pretty much the same you get a trend change or you get a charge and
+then it just gets stop loss right why because of liquidity and I'm gonna show
+you later the next one is trendline liquidity which I don't like right that I
+pretty much classify this as flat highs and flat lows right you can have also
+flags and channels this is very slow and correcting price action that is overall
+trending okay so again we have if you want to have a clear Trend usually you're
+gonna have like a nice push nice pullback right but the corrective one it likes
+looks something like this right it's still making hard highs and higher lows but
+it's very corrective and then usually you can draw trend line on the top on the
+bottom and then this right there is going to be your liquidity so again more
+examples on that later but those are the type of liquidity I personally use
+right there could be more you can add imbalance you can add this you can add
+that it doesn't matter what matters is what works for you and what is actually
+easy simple and systematic to understand so let's cover them one by one highs
+and lows liquidity so again as I previously mentioned every high and every low
+has liquidity it could come in in three ways a single high or low equal highs or
+equal lows and uh pretty much you can have like inducement levels or an old high
+note low okay so and I want you to remember that hard time frame matters the
+most a high or a low and a hard time frame will always matter more than one on
+the lower time frame so let's just have a look at the examples below right there
+so here we have a supply Zone that is formed the market has pushed away it's
+pulling back and then usually what happens it starts to pull away from the Zone
+this singular high is what a lot of people call inducement but what is this is
+just a single high okay why is this weak why is this liquidity because if this
+High fails to make a new low just like this then it's weak remember this goes
+back to the market structure lesson strong lows strong highs weak lows weak
+highs okay and usually what this does is it tricks people into selling so people
+are gonna sell from here where is their stop loss above right there pushes pulls
+back people are gonna sell from here where is their stop loss above so what we
+also have is like a descending trend line then the market does the manipulation
+comes into the supply Zone and then it sells off okay so this is one of the
+types which which is also called inducement this is just like a single high
+usually they are located a little tip right there they're located just below a
+supply zone or above a demand Zone in the opposite case okay the second one is
+equal highs and equal lows okay we have that same push to the downside and the
+market pulls back towards the supply Zone and what it starts doing starts doing
+like a little consolidation forming equal highs and also equal lows at the
+bottom okay so what does that mean is that the market is prepping for something
+and again if you just think logically people are here seeing a triple top what
+are they gonna do they're gonna try to sell the market because they think it's
+ready where is their stop loss gonna be just above what does the market do
+manipulates above their stop loss Taps into the actual supply and demand zone
+right and then it dumps and where is the Target the first Target is of course
+the equal lows that are uh like the next opposite liquidity Target and the next
+one is going to be the weak low okay so those are equal highs and equal lows and
+the final one is very simple this is like what you're gonna see happening a lot
+you have like an old high somewhere on the left right and then the market does
+all sort of fun stuff right this is where you can actually be looking to launch
+the market because we're in a push pullback right and then the market attacks
+that high takes out the weak high but then what you're a lot of times what
+you're gonna see is that the market then massively drops lower and creates a
+trend change and as I told you you cannot spot liquidity before it has actually
+happened right you cannot say oh this high is liquidity and after the market
+takes it out it's going to reverse no because then to me here the market is
+actually making a structure break and what I'm going to be doing is I'm gonna be
+looking to take a long from right there but then if the market makes a trend
+change in the opposite direction that is when I can say all right we took out
+the old high we made the liquidity Gap we created the trend change and that is
+when I'm actually ready to go short okay so those are the uh highs and lows
+liquidity examples those are the three types that I use my favorite one being
+the inducement one and the equal highs and lows because again with the singular
+one right there I am not going to be considering this a liquidity graph until we
+make a trend change so this is a very important point for you to to note so
+let's have a look at some examples there is one and I think we have uh yeah we
+pretty much have all of those at one place so what we have right there is if I
+just grab my laser because I had some hopefully you can see this right so here
+we have a major High right and then the market massively dumped lower its
+overall bearish we created like a pullback so what is this right there this is I
+would say flat liquidity this is flat price action right but again within the
+flat price action you're also going to have like a major low which is right
+there okay while the market does it comes in and like spot how it got taken look
+at that massive Wick so the market came in lots of Rejection it just filled in
+the wick and then after taking out the slow we just massively expand it so this
+is again a great uh type of like a liquidity graph where you have like flat
+price action takes it out and then massively reverse higher where does it go
+towards this massive major this is an old old high right what happens after we
+take out the note High well we get a reaction right and we had a very nice push
+to the downside what is this it's a higher low do we get a long from here
+absolutely where is our Target the week high we come in we take out the week
+high beautiful okay and what you can see right there is that again if I just get
+my drawing to to is that this time I would be saying that this is a structure
+break this is my demand Zone and I'm potentially going to be looking too long
+from here but again in hindsight what we can see is that the market took out
+this high and then caused the trend change and after this I can say well okay
+then this old high got taken and it caused the reversal so that right there was
+a liquidity grab and this is why I don't love uh old highs and lows because we
+don't know if it's going to be a liquidity gap or if again it's just going to be
+a breaker structure pullback high low formation and a continuation higher right
+what we can see right there very flat so equal lows on the bottom and equal
+highs on the top what happens is the market takes out the equal lows right and
+then what it does it forms a trend change so there is a structure break
+happening right there in fact the train change okay what caused the train change
+to track it back it's this low so this is technically our strong low where does
+the market come in to retest a strong low and then attacks the weak High okay so
+you can see it's actually Market structure but right now we combine Market
+structure with liquidity this is probably also the Asian range looking at it
+this is probably the Asian range we took it out we reversed to the upside we
+pull back higher low information and then we're pumping up right now so very
+very very very simple let's have a look at another example there it is so this
+is on the one minute right and I want to show you here the inducement highs and
+lows okay so this is a 50 minute demand Zone the market has pushed up and I can
+see right there that we have a 50 minute structure break okay and look at what
+the market does it pulls back it forms a little low and it gives you a pullback
+so what happens right there is that fomo Traders they're gonna start going long
+so they are long right there look at the candle there were people that bought
+from there where is their stop loss below right there the market dumps and takes
+out their stop loss what happens again next is we push up and what we actually
+get right there is a fake Trend change which we're going to cover in a bit so
+what happens right now is that people are looking to take a long trade from here
+also you can look at the Wicks there are there were some bullish reactions right
+there and then the market comes in and takes it and actually Taps into the 50
+minute demand Zone what happens later right if you're just patient to wait for
+the actual Trend change after the liquidity is grabbed what caused the trend
+change it's this low the market pulls back Taps the demand Zone which was a wick
+and then gives you the take profit towards the new weak high on the 15 minute
+okay so that's a great example of inducement highs and lows those are this low
+right there and this low right there those are single lows that are inducement
+why because those lows right when the market pushes away it makes people want to
+buy they think oh it's reversing I'm gonna buy oh it's reversing I'm gonna buy
+right no liquidity hasn't been taken yet and you still don't have your 50 minute
+Zone right so that is inducement by no example there it is this one is a
+slightly bit more complex one right but you can see a good example right there
+of a combination of liquidity what do we have right there is a node High what do
+we have right there is equal highs right and look at how the market like created
+this little range then we have usually liquidity is going to be grabbed with
+speed right but then you also later want to see speed away from it okay
+liquidity High which is a node high flat highs right there the market took it
+out with speed right and then I want you to pay very close attention right this
+is the low that caused the break of the high it got broken right there yes it's
+by a pipette but according to me even a pipette is a break so then what I do is
+I want to take a short where do I take a short well you can of course refine you
+can take this as a supply Zone you can take this is a supply Zone what I
+personally did is I used the guns tool the gun box right and you can enter
+anywhere within 50 of this whole manipulation range right and what you can see
+is the market started forming new liquidity it started forming flat lows right
+there it created this high this High what do people do right there they try to
+sell the market but for the aggressive traders that don't know how to place
+their stop loss right they're gonna Place their stop loss above this area
+instead of the major high right so this is all internal this is the major high
+this is the major low anything inside is internal so if you take a trade your
+stop loss should always go above or below the major highs and lows and what the
+market did it just came in took out this High has a single high liquidity
+inducement and then you just plummeted right so this is another example of
+singular highs and lows liquidity make sure to study it back later structural
+liquidity so this is uh I've seen it a lot within like people explaining it it's
+it's nice but it's it's much simpler than you think so structural liquidity
+those are just old structural levels higher lows higher highs lower highs and
+lower lows and or supply and demand zones all right so the the key to this is
+that many Traders refine their zones way too much they do not follow the current
+the current Trend and they end up becoming the liquidity to those levels here is
+an example right so usually the market is going to push up so let me grab my
+other two so that you actually see better it's going to push up down up down up
+down right and this is the top from here we make a trend change so immediately
+after the trend change what do we have is a bearish market okay but if I just
+grab my my pen right now the mistake that Traders do is that they still think
+the market is bullish so they're gonna drop a demand zone right there they're
+gonna drop a demand zone right there right but the market is bearish from here
+okay so they're gonna take along from here they're gonna where is their stop
+loss probably below here they get stop loss they're gonna say oh no the next one
+is gonna hold there is the next one they take along from here where is their
+stop loss right there then the market Taps again oh this is an old one right I'm
+gonna take it from here the third one is a charm it's gonna work out the market
+gives you a reaction and then it drops and usually you're gonna see uh in my
+videos that I code those areas reaction points because those old supply and
+demand zones they act as of course a supply and demand but they're just a
+reaction right you're always gonna see like this demand Zone it gave you a
+response this demand Zone it gave you a response right this demand Zone it also
+gave you a response but when do you know that actually the market is ready
+simple when you get a trend change the market is now bullish right and what
+happens is the flip right so you flip and right now what you have is demand
+demand demand but what a lot of people make a mistake is to still look at the
+Supply right Supply gives you a reaction breaks Supply gives your reaction
+breaks Supply right those are the old levels right that we were drawing and they
+usually are going to give you a response then the market is going to take out
+the major high again guys going back to Market structure and Trends this is your
+push this is your push this is your complex pullback this is your push right so
+you just gotta Master liquidity within those ranges so let me give you an
+example all right this is another one this is when you're taking quite a few
+losses before the trade actually moves in your direction right and usually
+you're gonna see it like this there is your hard time frame Zone and then what
+the market does it actually starts to initiate away from it and what it does it
+makes structure right lower high lower low consolidates lower high lower low
+consolidates lower high lower low right and then what do you do is instead of
+waiting for your Zone to tap instead of waiting for the market to get above 50
+so you can take a high probability trade you try to chase it and then this is
+your last supplies when you take a trade from here you get a stopless you're
+gonna be like okay no that's gonna want to hold you take us you take a trade
+from there stop loss above you get a stop loss okay no this is the last one that
+is gonna hold you take a trade gives you a reaction stop loss and this is when
+it actually Taps into the Zone gives you the entry has grabbed all the liquidity
+and then it tends to run okay so that is structural liquidity those are old
+lower highs and again remember within every lower high or a higher low
+respectively there is going to be supply and demand Zone right so again do not
+draw old supply and demand zones or structural levels flow with the current flow
+of the market there's an example uh yeah just study it but again you can see
+like what is the market doing right there it has a major Harlow it has a major
+higher high this is probably like a lower time frame chart right so this is a
+probably somewhere there is the major Harlow the market has pushed away right so
+since right here the market broke higher then it broke lower we are bearish so
+you can take a short here you can take a short here you can take a short here
+where pullback but the mistake you do is you're like okay the market is going to
+reverse from this demand Zone oh it's gonna reverse from this demand zone or
+it's going to reverse from this demand Zone the market blasts through this month
+blast through this one gave a reaction Blaster gave a reaction blast through
+until it actually stopped it turned bullish precisely right there and this is
+where you start longing the market and then again you make the same mistake ah
+this is Supply on the left reaction stop loss also plan the left reaction stop
+loss right there is a supply on the left it gave you a reaction right but this
+reaction just gave you a long setup right there and then it just blasted through
+it oh Supply right there gave a reaction blasted threat where is the liquidity
+above the major High rather which is of course weak so hopefully this makes
+sense and it's kind of starting to uh to show you some mistakes that you're
+doing right trying to look too much on the left trying to pick the right
+reversal area while all you have to do is just follow the market and follow the
+recent structure and know that all of these old areas like as soon as this trend
+change happened right there and the market turned bullish in alignment with the
+overall trend all of these are invalid all of these are going to give you a
+reaction but eventually they're going to get taken because the market is bullish
+on the hard time okay there's another example right you have a hard time frame
+Zone but you want to refine way too much you literally want to catch the bottom
+right demands on here here here here here here plenty of demand zones I want you
+to study what happens reaction stop loss reaction stop loss reaction right A lot
+of people are looking to buy from here stop loss another reaction with a trend
+change stop loss right then it came in again so again don't look at those levels
+on the left what you simply have to do is wait for the liquidity to be grabbed
+right wait for that hard time frame Zone to fully tap and wait for the price
+action to develop within that area right because if you try to pick all of these
+structural uh zones and supply and demand zones you're gonna fail because those
+are liquidity okay so more examples of that later on a live chart the next one
+is a fake TC paid charge this is very simple right you just get a trend change
+and it doesn't hold you get a stop loss and then usually the next one is gonna
+work right why does this work and why is this liquidity well because this tricks
+Traders into buying or selling before the liquidity is actually taken okay is
+there a way to know uh what is a real Trend change or what is a fake yes there
+is yes there is right and this is also part of my strategy a fake TC we always
+wait for fake to see if of course other liquidity hasn't been grabbed yet there
+is an example right in this case we tap into our zone right but guess what
+liquidity hasn't been taken yet and the market makes a trend change so this is
+where all the people are going along long long long long long long long where is
+their stop loss below they get taken and this is where we get the trend the real
+Trend change with the real momentum right and in this case you could have
+entered from here but this is the most recent higher low this is the major
+Harlow right there with stock liquidity on top with stock liquid on the bottom
+the market TAPS in right there and then gives you the take profit capes do we
+have some liquidity here some liquidity right there Taps into the major Harlow
+and continues to go on right so great example of fake Trend change there's
+another one right so the market Taps into the demand this is still a lower low
+lower high lower low the market gives you a trend change and that is where you
+can start to enter right to enter from right there but the market tries to push
+and it fails to take out the the high okay then it retraces all the way back
+down you can still look to enter here okay you enter right there the market
+still gives you a reaction but again remember liquidity hasn't been grabbed yet
+okay and then while the market does comes in takes out the stop losses below
+this area and then again gives you the real Trend change at the bottom gets you
+the entry and then goes on and hits take profit okay so in this case this trend
+change was fake it got taken right there and after it got taken here what we
+simply have to wait for is for the next Trend change to occur and then we take
+our trade so very very very simple approach and very powerful the next one is
+flat highs and lows liquidity very simple very straightforward the only
+difference you have to to make here is uh is the direction of those flat highs
+and lows right so this is a very simple it's flat but it's a little bit
+subjective because like sometimes the market can be moving amazingly but it
+could be a little bit flat right so it's slowly moving corrective in nature it's
+making structure but it's very choppy and this is where you usually have like
+the trend line liquidity and depending on the direction of the trade it can
+either be used as inducement or it can be used for targets okay so I have a
+couple of examples right there how we can look at liquidity this way so here we
+have a trend change this is our major Harlow this is where we want to take a
+long trade and then the market usually does this this is what I call in my uh
+Community The Runaway setup The Runaway type of liquidity which we're not going
+to be covering in this lesson and this is pretty much again lot lows what is
+flat lows it's liquidity it's inducement right so what the market does it like
+Stacks it Stacks it Stacks it Stacks then you have a sharp move tapping into
+your demand zone right so the liquidity right there it has been taken and then
+you get the real move okay so this type of liquidity is used as inducement
+because it makes people buy from here buy from here buy from here where is their
+stop loss below they got taken and then we run okay so this is the flat lows
+when they're used as uh inducement and in this example we have plot highs that
+are used for targets right because again we're looking to long on this Market we
+have all the confluences this is where we want to enter and what happens is that
+the market starts stacking lower highs and lower lows against us what does this
+make people do it makes them short short where is their stop loss above so when
+we actually get an entry you're going to see an impulsive reaction and where is
+the target of course above the flat high so this right now is not inducement
+this is flat High which is used for targets okay and then the next one is like a
+double manipulation we see this happening very often right you have a range the
+market takes out the high it takes out the low right so liquidity collected on
+top liquidity collected on the bottom and then it's usually going to go in the
+direction right so this is very tricky to trade and I do not advise trading this
+okay takes out the high takes out the low then wait for the real direction to be
+introduced wait for that Trend changer structure break and then just simply wait
+for the correction and the market to impose okay so that is flat highs and flat
+loads liquidity there's an example right I think we had a look at this example
+it was from one of the hard time from charts we had right so you can see here we
+have a base Supply sellers are entering here sellers are entering here seriously
+entering here right but we also have a little bit of a demand going on right
+there buyers enter their buyers enter their bars enter there what happens that
+the market takes out all the buyers so everybody got a stop loss right there in
+this flat price action and then where are with the next Target right so this is
+pretty much that double liquidation right taking out the low and then taking out
+the high okay so when you see price action like this compressing be prepared and
+usually it's gonna get taken as I previously mentioned with a lot of speed a lot
+of speed taken and usually then it's going to follow with a slight period of
+consolidation where you can get your entry and then a sharp move outside okay
+there's another example this is very choppy very very very flat right so what
+you have right there is just the pure consolidation but again what I want you to
+to look at is the details okay so we have uh let me just grab the other laser
+pointer we have the high we have the low push pullback demand is forming on the
+bottom demand here demand there but people are seeing Supply and resistance
+resistance so sellers here buyers here sellers here buyers here what happens is
+the market comes in stop losses takes the stop loss of the sellers right then
+the buyer so if I just illustrate them the buyers are entering right there with
+a breakout where is their stop loss below right there right the market comes in
+takes out their stop loss and then it launches in the next Direction and then
+you can see it drops again so what we have right there is that double
+manipulation we had an overall range right the market accumulated stop loss at
+the bottom stop loss at the top then it made a massive manipulative move higher
+and then massively dropped lower so this is probably news but again you get the
+point this is according to me like flat price action right there it forms some
+sort of structure but not as much okay the next concept is a liquidity Gap okay
+so this is pretty much uh a liquidity Gap is uh is also called sweep stop hunt
+liquidation manipulation it doesn't matter but it's a stop hunt right which is
+simply a break of any liquidity point that we just covered okay so a liquidity
+Gap takes liquidity and then launches the orders in the opposite side and again
+as I told you usually after a liquidity grab price will sharply reject and
+reverse and liquidity grab should always be followed by a large influx of
+momentum okay so if you get a liquidity Gap but then like the market is not
+moving which you're usually gonna see after a fake TC right or maybe even an
+inducement taking out the low if there is no liquidity then you gotta wait a
+little bit more like let's say for example we got like a say we got we got a
+demand Zone the market has pushed away we're coming back down and then the
+market like starts to form this takes out equal lows but then it does this right
+and maybe even cause the trend change so do you think this liquidity grab below
+right there is strong no why because it's still building this flat loads and
+usually what happens takes them all out then it makes you the momentum push and
+that is when you get the trade okay so if you don't have momentum after
+liquidity Gap then you are probably going to become the liquidity okay so wait
+for momentum and again uh the stop Count those are the BFI launching their fake
+orders in order to take out of the Trader's stop losses right and then usually
+they're gonna go so a liquidity wrap is actually a very good place to enter
+trades right it can be retested but it should not break because again if you
+have that same scenario of the previous lesson if you have a range the market
+makes a massive buy and then it sells off right so this is your flat highs flat
+lows manipulation this is the fake move okay so this is where the banks both in
+order to sell they are going to come back to retest to close the orders but very
+rarely they're gonna break above the zone right so if you actually spot a
+liquidity graph okay it is a very good place to enter your trades place the stop
+loss above and you are good to go okay and again liquidity graphs are in all
+time frames the concept is also fractal you can have liquidity gaps on the
+weekly daily one minute 15 seconds right again you just need to systematize it
+and keep it on the time frames that you're using so a liquidity gap on a hard
+time frame like the footage or the 50 minute will signify that a strong zone is
+created right so if you have like a supply and demand Zone that was made by a
+liquidity graph it's very strong what I mean by this is again similar example
+you have like a a downtrend the market makes a little range sell to buy right so
+you have right now a trend change you have a demand Zone that was made by
+grabbing liquidity below flat lows right so this is a very strong Zone created
+if we come back right there the chance of us pushing higher is Big okay and also
+liquidity got on a lower time frame which is the one minute permit this
+signifies liquidation which stops out early buyers and sellers understanding
+liquidity can increase your win rate by a lot because if you just wait for the
+liquidity to be grabbed when it comes to your entries right your win rate is
+going to increase Okay so make sure to also include liquidity graphs in your
+plan therefore so decide on which liquidity points you're going to be using
+after this lesson Right add them to your strategy and then again always wait for
+the liquidity map else you will become the liquidity so if you're getting a lot
+of stop losses if you are having those situations in which you take one loss two
+losses three losses and then the market moves in your direction right or you get
+a stop loss then the market just massively deployments in your direction then
+you are not utilizing liquidity in the right way okay so right now we're just
+going to jump on the charts of course there are some other additional Concepts
+on liquidity one of my favorite one is the Asian range I have already a video on
+that right so we have like the daily profiles as well usually like uh the Asian
+say the Asian station highly the London Station high and low they're going to be
+becoming liquidity so that is also other types of liquidity that I'm covering in
+the program and we also we have the Asian range which we have four profiles so
+again make sure to check out my Asian range video which is going to expand a
+little bit more on your really quick the understanding so right now I just want
+to go into charts show you a couple of examples show you how you can actually
+train your eyes to spot liquidity and hopefully it's gonna make sense so you can
+go on your own and practice identifying liquidity all right so we are on the
+charts right now and I'm gonna try to show you how you can potentially spot
+liquidity I'm first gonna start with a stop loss I just took because I was a
+victim of liquidity and now actually following what I teach so let me start with
+that and then I'm gonna show you some some good examples so today I took a long
+on your USD right and on the party time frame we are a little bit High okay so
+I'm not looking on the left what is happening on the left right I'm just
+focusing on what is happening right now but I was mainly focused on the 50
+minutes so today was a great example of taking out an old high which is also
+known as previous daily High okay so this is also a form of liquidity right
+which is considered an old high right which is the previous daily high so in
+this case this was the previous daily high this was also paired with the Asian
+high which is also liquidity right this is also paired with liquidity that is
+resting just in the opposite direction like look at this flat price action this
+is all flat price action right this is all potentially gonna get taken so what
+happens is on uh around Frankfurt open the market does this okay but again
+according to me what I told you like one of the drawbacks uh with the way I
+trade is that I follow structure according to me again at that time this was not
+a liquidity grab this to me was again a continuation but I was aware and I also
+shouted this in my morning analysis we took that trade it was a stop loss which
+is fine but again we took out previous daily High we took out Asian high with
+lots of momentum that could lead graph happened with lots of momentum we
+consolidate it for a little bit and then we just started dropping but I also
+want to show you how I also waited for an extra liquidity okay there is my uh
+demand Zone what did I told you what did I tell you about that liquid on the
+Left Right drawing this demand Zone the market reacting flushing drawing this
+demand Zone the market reacting flushing okay so what I was looking for is for
+this to be taken what we also had what is this guys right so this is a trend
+change right so this according to me was a fake Trend change what is this this
+is flat price action right there right the market pushed up and then it just
+started massively rolling down and I set it in the community this one is gonna
+reverse okay but still a setup is a setup okay we drop the liquidity of the fake
+TC we grab the liquidity of that structural liquid on the left and if you really
+zoom in right there this is where we got our actual TC and the trade was taken
+from here some of my members place the stop loss below I personally below like
+the major Zone I personally place it right there and that was a pretty quick
+stop loss right why well because the market grabbed macro liquidity right and it
+was gonna retrace on the way back down okay but you can see how I waited for the
+structure liquidity to be taken for the fake TC and also for these flat lows
+okay so this trade was valid according to me because I had all the liquidity
+graph um rules ticked okay so this is one way you can practice is liquidity okay
+you can go on your charts and have a look what happens after we take out major
+Keys what do we have what does happen after we take out major lows right like
+let's have a look at the previous day right there what we have is an overall
+bullish Market okay where is our old high it's right there so we can later
+explore like what happens we get a pullback but then we still continue to push
+higher okay so look what happens right there what is this type of price action
+right here it's very flat okay and not only that it's very flat but it's also
+the Asian range so again liquidity is going to be below the Asian low right and
+of course below all of these flat lows right there so for example all of this
+right there is flat and you can see where the flat price action starts this is
+where we came in to take it out okay so technically what happens is we went on
+to retest this Zone which is the zone that potentially formed the quality higher
+low formation so this is more advanced I call this tcobs right this is a bit
+more advanced we tap them right there okay so liquidity has been grabbed below
+the Asian range liquidity has been taken here liquidity has been taken there
+okay but this is the 15 minute time frame so what I want you to do is to draw 50
+minute zones or flowery zones and then drop to a time frame lower to actually
+see what is happening okay so right there I'm gonna drop on the one minute what
+do we have just before we tap the zone right we have lot loss right flat lows
+but this hasn't even tapped The Zone massively pushing to the downside what is
+this it's potential liquidity Gap but again uh I have a very important rule
+right that liquidity should not happen like I have specific percentages right
+there where you should be looking for liquidity Gap right I'm not going to be
+sharing here here we're focused on just liquidity okay what happens right here
+we tap into the zone and what do we make we make a trend change okay so what
+happens right there is that there are buyers entering this Market is this trade
+valid yes right but to me it's not because to me like this is not liquidity to
+me okay the market pushes up is that it actually gives you a 3r if you're
+looking for a quick trade you can hit TP but what happens later is the market
+actually forms like these flat lows we have a fake train change liquidity gap
+which happened precisely right there so what you just have to wait later is for
+a new trend change and what you can see immediately on the opposite side
+happening is you have a little bit of a trend line okay you have flat tops
+happening right there in the opposite direction which is always good for profit
+taking we took out the low what cause to take out the low it was this so this is
+where we made the trend change precise on this candle what caused the train
+change well pretty much is this big cell right you can see as I told you
+liquidity gaps are always going to happen with momentum massive sell-off
+immediate reaction caused the train change and you can be looking to enter on
+this bearish candle stop loss below and then the trade the trade should usually
+go right and where does it go towards the Asian high right so you can see what
+happens after you take out Asian high we we go down right this is the pretty
+much the liquidity grab this is the recharge mechanism creates a high low and
+then it continues to go up okay so this is pretty much how you can practice
+again this depends on your time frame so you need to do all the work coming uh
+onto this video so right now you can actually practice doing this here's another
+example right the market is bullish cool where is our valid 50 minute range it's
+right there why is it right there well zoom in where is our last break of
+structure it's right there what caused the last break of structure it's this
+swing low make it blue swing High okay anything inside is internal we don't care
+but what is happening right here is we have massive flat highs forming as a
+Target and we have massive flat lows right there forming us potential liquidity
+right I tend to form the flat loads with with this kind of tool it's the what's
+it called the Curve right you can see here what we have is a squeeze what does
+the market do Trends down pulls back massive sharp push wear into our demand
+Zone where taking this old low right so this is the liquidity graph what happens
+later a massive pump let's see on the one minute right so now we go into one
+minute what do you do let's see if we have some liquidity grab right there what
+is so this right there we are already tapping into the zone right what do we
+have right here is a trend change is this the real Trend change I don't know
+right you gotta you gotta practice to start identifying which is fake which is
+real okay this is the first train change that occurred right there is no train
+change here there is no train change train change anywhere this is the first one
+that occurred is this valid no because it's too early it's below it's still uh
+within Asia and liquidity hasn't been grabbed yet what do we also have is that
+fake Trend change combined with all of this fraud price action what happens the
+market massively comes in down everything is collected Asian low blood liquidity
+low fake Trend change old liquidity low so you have a very high probability
+chance right now that the Mark is gonna rock it what you have to Simply wait for
+is for the market to give you the signal chain change right find your Zone to
+enter there is your trade stop loss always goes below right there and then of
+course where you can Target is Asian high or you can of course go towards the
+new major high and you nail a pretty nice trade okay so hopefully is starting to
+make sense right so this is pretty much how I practice because you wanna
+systematize this you don't just want to go and say oh range flat highs oh we
+took the liquidity right and then we massively roll down that's perfect okay but
+how do you enter okay so I want you to zoom in right there and say okay well
+let's see we had all of these flat highs they got taken right there so let's but
+again at this point this is wrong to do because this was a push and like our
+major Harlow was right there so we were technically bullish at that time but at
+that top you can go and explore the top okay let me just go and check out the 15
+minutes okay what's happening on the 50 minutes well let's see we have a massive
+run up where is my major high low formation it's right there okay let's see what
+happens right there so this is our demand Asian range perfect the market comes
+in Taps into the area so right here you can go on and spot okay do we have
+liquidity well we have Asian low which is cool okay is the market bullish yes it
+is right so the highlighter is here the major high is there major low right so
+right here what you can go and do is you can drop to the 50 minute or first you
+can at least so for example this is where later we had a trend change okay let's
+try and change down what caused the trend change right there it's this guy right
+and this is where actually we got the short later on right so you can see here
+we have an old high liquidity which got taken so let's go and explore right oh
+we can't go all the way back down all right all right so so that's a Pity
+because that would have been a great example right but you get the point right
+where is this okay this is a little bit far away so we can't get right there
+right but what you have to do right now is go right here on the one minute and
+see that the market first stopped right there it made a fake TC and then it came
+in and took it out right there right then it gave you the real TC and probably
+you got a stop loss right and that's fine then the market reverses down it pulls
+back do you have any liquidity graphs within this area right this is what you
+gotta check okay so pretty much that's it okay this is how I practice you can
+first start with the with the following time frame right you can draw flowery
+zones but again I really love doing this on the 15 minute because the 50 minute
+offers you plenty of opportunity to to do so all right so for example uh let me
+just one final one okay final one so uh let's check out here so here we are
+bullish on the phone time frame but the market made a trend change right there
+unfortunately did not pull back then it made another uh structure break here and
+then it made a 15 minute train change up there what caused the train change it's
+this unfortunately we did not tap then we get another structure okay this is a
+tough example I did this yesterday yeah I we didn't get any trades yesterday but
+again you gotta go and explore it so there is a supply zone right here right and
+then there is a demand zone right there so let's see if we can could have gotten
+into any trades okay so there is a supply Zone and uh yeah so we can see right
+there the market so if I just move this away the market tapped inside the Zone
+what did it create it create a trend change right is it fake yes why because
+liquidity hasn't been grabbed what does the market do later it comes in begs the
+train change why is this right there on the left oh that's your structural
+supply and demand liquidity what happens with it it gets taken the market reacts
+and then goes on and takes it okay so after this is collected then you can be
+looking to take your short which eventually got a stop loss then we look at it
+on the other side right and in this case uh yeah the market didn't even tap the
+zone so we don't get any trade and then we can look at this guy right there okay
+so let's see what happens the market TAPS in what do we have first is we have
+one of these structured you could do what happens is there are buyers entering
+from right there where is their stop loss it's below right there what happens
+they get taken what is this right there oh it's a trend change okay where are
+people going to be entering from right there they get a reaction and then they
+get a stop loss okay then where is the next train change that occurred right
+here or you can even say right there right and then after all the liquidity is
+collected this liquidity Gap fake Trend change there is the real one with clean
+momentum right there right then you got the retest right and then the market I
+think that was the ooh yeah that was the the CPI so we don't trade at that time
+but you can see that it doesn't matter what the time is when the liquidity is
+grabbed when the concepts align you get your trade okay so those are pretty much
+some examples and some guidelines on how to to practice this if you have
+questions or if you need more examples let me know in the comments and I'm going
+to be making a separate video all right Fanatics hopefully you enjoyed the
+liquidity lesson you got a lot from it you learned the different types of
+liquidity we had a look at the charts and you know what to do from now on it's
+important go on your charts back test see how it works and start working on your
+trading plan and actually from this lesson adding liquidity Concepts into your
+trading plan and to all the knowledge that you have accumulated so far within
+Market structure it's a plan Demand right now we add liquidity to the to the to
+the kind of to the toolbox and up next we have entries how to enter trades like
+a pro for both swing and day trades all right so stay tuned for the next one
+make sure you're subscribed turn on the notification Bell on in order not to
+miss the updates and again the main thing you can do for me is to subscribe hit
+the like button so that I actually know that you're liking the video leave a
+comment below and let me know if you need more examples if you have any
+questions I'm always here for you in the comments so ask questions I love
+hearing them and I can't wait to see you on the next video wishing you a
+crushing trading week a crushing trading performance and hopefully all the
+concepts are already doing the work and you're having results

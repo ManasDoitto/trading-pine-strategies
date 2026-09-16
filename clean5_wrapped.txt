@@ -1,0 +1,808 @@
+all right I know all the concepts I know everything but all I need to know right
+now is how to actually get into a trade with a systematic entry strategy if you
+have this question in this video I'm gonna have you covered because in today's
+lesson we're gonna address how to actually enter trades both as a swing and day
+trader while covering time frames top-down analysis and two systematic ways of
+entering the market this is also the last video of the technical analysis video
+series so you better cut all distractions right now put down your phone close
+your charts right get at a quiet place and make this time investment to
+carefully study the content take notes and apply on your charts and make sure
+that you're well up to date with the previous content we had in the previous
+videos because if you're not you're gonna get lost right because this series is
+designed to take you by the hand step by step build all the tools you need in
+order to be a profitable Trader also make sure to visit the link in the
+description as I have some more gifts for you down there and without further Ado
+I I think it's time to get into the video because again entries is what
+everybody wants to learn all right let's learn how to enter into trades so what
+are the few important aspects of entries you think it's all about getting that
+sniper entry getting that high Precision one pip stop loss like going to extreme
+Precision not really it's all about actually being systematic and finding a way
+for you to enter the same traits over and over and over again without doubting
+too much and without being like okay should I enter here should I enter there no
+right but in order to get there you have to go through a couple of important
+parts of entries the first one is time frames you have to give each time frame a
+task because without proper top-down analysis you cannot get into high
+probability entry right you can't just go to the one minute and get a sniper
+range without having any context at all and this is why where a lot of people go
+wrong is that they go instead of first learning how to analyze Market structure
+trending markets supply and demand minor major structure right they jump onto
+entries because they think if you get the entry criteria good you're gonna win
+no the entries pretty much twenty percent of the of it all right so again what
+you have to do is you have to determine what is the aim of each time frame so
+what are you going to be looking for on this time frame what you're going to be
+looking on the second time frame what you're going to be looking on the third
+time right so each time frame has a task and we're gonna address this in this
+video then you have to Define your entry criteria to the fullest so usually
+before you take a trade you need to see a series of events before you engage in
+a trade so how does that series of event look like what do you want to see okay
+then of course you have to determine what is your required stop loss and take
+profit when it comes to your risk to reward okay so like uh for example for
+myself if I take my uh conservative entries which I'm about to teach you I
+require a stop loss of five Pips why because I want to be out of the trade when
+20 when it moves 25 Pips in profit okay I don't want to be swinging it for 60
+Pips relying on the market to give me 60 Pips of movement while I can be out in
+just 25 and call it a day okay so you need a checklist of steps that you need to
+take before you take every trade and also I'm gonna offering you a cheat sheet
+for that at the end okay next thing refining your trade management to the
+fullest as well because after you enter a trade amazing but what then when do
+you go break even are you gonna take partials are you gonna move your stop-loss
+in profit are you gonna Trail your trade right what are you gonna do after the
+trade and this is also where a lot of people also go wrong is that you enter a
+trade and then you just pretty much screw it over you either go break even get
+stopless then hit stake profit or you are take like a big portion and it
+continues to go into profit or you can do a lot of things that can screw your
+overall performance so again the third part is what are you gonna do when your
+trade is running into profit okay and pretty much that's it it's simple the next
+thing you have to do is learning how to let go of the outcome of the trade and
+just pretty much thinking probabilities and think long term because if you have
+the best entry strategy but you have a float mindset you do not allow the trade
+to play out to the fullest you you go break even too fast you're fearful to take
+the trade according to your rules uh you close the trade when it's half of your
+stop loss when you shouldn't close right you will still fail okay so also it's
+all a mindset game so let's address all of these aspects aspects one by one
+let's touch on trading time frames so how to understand time frames and which
+ones to trade on so first of all what do time frames mean okay we've covered
+this in the previous lesson but as I told you price is always the same and time
+frames are just a different representation of price right even if you're on the
+one yearly time frame or if you go all the way to the one minute time frame
+price is price it has done the same but just you get very little data on the on
+the one yearly but on the one minute you get lots of data you get candles every
+single minute okay so price is always the same what is different is the amount
+of information and depth of detail you see and again many Traders fixate their
+minds on different time frames thinking they're all different right so like the
+one hourly it's different than the flowery or the 15 minute is better than the
+five minute no they are all the same it's just the difference of the depth of
+detail and again you have to be systematic as I told you the market is fractal
+so you can reach the forward time frame how it look how the forwarded time frame
+looks like even if you're on your 15 minute chart I can very easily do that or
+you can be on the one minute chart but read how the 50 minute is looking like
+okay this is a great exercise you can do like go to your one minute time frame
+and try to draw how the 15 minute time frame is gonna look like this takes
+experience but there Comes A Time In which you can be just looking at one time
+frame but also reading the hard time frames although I don't do this and I don't
+advise doing it because again you need to look at the precise details on each
+time frame you're using again going back to previous lessons the higher time
+frames is where the money is this is where the bfis potentially operate and this
+is where we follow their footsteps because if you stay on the one minute on the
+smallest time frame you're always going to have big pushes you're always going
+to have big impulses and big initiations but again they don't hold much value
+well if you have a massive daily initiation a massive daily push well somebody's
+driving the price on the daily to the upside well it means that we're in an
+uptrend okay so hard timeframes will always prevail so again we simply want to
+follow the trend of the high time frame and again the quarterly is going to
+Prevail over the week the weekly is going to Prevail over the daily day lower
+4-H Voyage over 50 minutes and 50 minutes over one minute so if you are bearish
+on the footage and all of a sudden it starts massively going up then of course
+you go to the Daily and you see ah daily is bullish if you are bullish on The
+Daily but it goes down you go to the weekly ah weekly is bearish right because
+usually hard time frames will prevail and if you're on the hard time frames
+there is less noise which makes it easy to identify the main Direction so again
+always have a hard time frame in your mix lower time frames are only for entries
+and refinements okay you don't stay on the lower time frames the majority of
+your time is spent on the hard time frames like 4-H or 50 minute we're gonna go
+into that okay but only once you know what price is doing on the hard time frame
+then you drop to the lower time frame and search for your entry criteria that's
+it again I know a lot of strategies they just stay for example on the five
+minute and scalp on the five minute that's fine if it works for you great but if
+you really want to build a true Edge you need hard time frames and you do not
+drop to the lower time frames without having your hard time frame structure
+zones ranges the 50 range right your supply and demand zones and everything that
+I taught you so far so let's explore time frames and pretty much I'm gonna share
+with you which time frames I use and or just give you like a little bit of an
+overview what you you could be using because again here I'm not teaching you
+like a very specific strategy I do this in my private program because this is
+pretty much how I trade but again I give you all the tools so you can actually
+go out there and build your strategy first of all major big hard time frame BFI
+Direction BFI is Banks and financial institutions because again in our Forex
+space this is what they say hard time from this is where the banks trade do they
+really trade there probably not right but this is what we're told again this is
+how we think and again it usually makes sense okay so those time frames are
+again the big guys as we mentioned that is pretty much your macro Trend and
+again always be aware where prices in terms of the macro Trend are there any
+important zones where currently prices okay I personally I say it a lot on my
+weekly outlooks but I do not like major time frames because they take way too
+much time to to develop and me as a day trader scalper I don't need to know what
+is happening on the monthly time frame so I can take my trains on the one minute
+okay but if you are a swing Trader major time frames absolutely essential okay
+to me the forward time frame is the absolute golden time frame so to me this is
+the main time frame for direction this is my major structure this is where I
+identify my Trend my ranges my PD premium discounts my major structural levels
+my weak and strong highs and lows my supply and demand zones everything okay so
+this is the best time part this is the best higher time frame for day Traders I
+am a day trader so this is my hard time frame on a daily basis I do not go to
+the Daily or to the wiggler to the monthly all I check in the morning is the
+flower time frame okay if you are a swing Trader you can of course use the daily
+as well okay again I'm giving you all the time frame so you tweak according to
+your approach and according to your style of training then we need a minor
+structure time frame and this is where you actually jump on on a lower time
+frame than your major time frame right to actually look at how the market is
+looking like within those legs and this again guys we go back to Market
+structure video this is major minor structure for all the time frame that's your
+major 50 minute time frame that's your minor okay and you can be using anything
+in between the 15 and the 60 Minutes the hourly time frame all right but again
+you always link this towards your major time frame so according to the formally
+time frame and according to the following major structure how does the minor
+structure look like because the amount of structure is going to be in between
+the major one and this is where we usually capitalize on continuations And
+pullback Trades again just to give you a very brief example with my little pen
+on the 40 time frame we have a push and we're starting a pullback okay so that
+is our Harlow that is our high that's our major structure there's our 50 but
+then of course if you take all of this and you go to the 15 minute which is our
+minor structure right we're going to have like a massive uptrend the Mark is
+going to reach the top it's going to make a trend change so right now we're
+starting to pull back so I know that my 50 is here I know that the market has
+already shifting structure so what I'm going to be doing is I'm going to be
+working with the minor structure in order to get me towards the major one so I
+can take a couple of shorts until we tap 50 then as we top 50 knowing we're
+bullish I'm gonna be looking for the market to align and that is when I'm gonna
+start taking Longs okay that is the aim of the minor time frame to give you more
+details on how your major time frame looks like and how to position yourself in
+a more uh how to say like a specific yet refined entry okay because you don't
+just want to plot a Buy on the photo right there and place your stop loss below
+you want to be a little bit more precise and we get this Precision by having a
+minor time frame okay and again this is Market structure video go back watch it
+Angel time frames is where you go to if even if you really want to refine that's
+when you go to the angel time frames so after you determine your minor time
+frame positioning okay you have your entry Zone and then price Taps into your
+entry Zone that is when you drop lower if you wish to find an entry and on that
+entry time frame you have to be as detailed as possible regarding your rules
+because you can be all over the place right so again same example push and pull
+back on the Folly time frame we are bullish the 50 minute is currently in a
+downtrend and just recently after tapping the 50 it made a bullish Trend change
+there is our Zone okay so again we Define our entry Zone the price Taps into the
+entry Zone and it is that moment where we actually go to the one minute and
+again you just take this little piece of information and it looks like a little
+uptrend then it goes like a downtrend so you just wait for the market to align
+and then you go up it's fractal everything repeats on the same time frame and of
+course we're going to jump into examples we're all Theory right now so with
+that's being said what does this do this builds your top-down analysis process
+so let me give you uh an example process weekly or daily where are we there is
+it pushing or pulling back is it in premium or discount right now what makes
+sense to trade War where are the banks going are there any important levels to
+be aware of this is the only thing I do on the weekend daily I don't draw
+structure there I don't draw PD ranges I don't draw anything I only need to know
+okay what is that time frame doing so it may it gives me a little bit of an edge
+okay then follow the time frame is where I spend the well not the majority but
+this is where I get my hard time from Direction so there what is the trend and
+what is the market structure okay so what is the trend is an uptrend is the
+downtrend is it a consolidation is it currently in a push phase towards the week
+a lower high or is in the pullback phase towards premium discount what I mean by
+that do we have a push we have a pullback so is the market currently in a push
+phase towards the weak High which is right there so we're already having like a
+push or did the market push and it's currently correcting towards 50 so those
+are usually the two phases you're gonna have your other gonna be in a push phase
+towards the high or you're either going to be in a pullback phase right towards
+making a potential hard low formation this is the main thing you need on the
+forward time frame and of course your major Harlow and your major High because
+this pretty much determines your major range okay then 15 minutes injury price
+and zones this is again where I spend the majority of my time every day I pretty
+much stay on the 15 minute because I know how the forward time frame looks like
+so all I do is stay on the 50 minutes and this is why I draw my introduce
+intraday price intraday zones and again this is where I try to align with the
+forwarded time frame for continuations or of course look for the uh for the
+retracement trades so for retracement trades once again you have to wait for a
+TC so if you have an uptrend the market starts pulling back you need that TC on
+the top of the floor High okay or if you want to get into continuation you again
+need for the 50 minute to be aligned with the quality time frame so then you can
+start looking for the continuation okay and of course there are numerous details
+that we're going to be addressing right now I'm going to be giving you plenty of
+examples if you want to go into a continuation okay you usually have to wait for
+the quality time frame to top 50 of the leg okay or if you're trading into a
+retracement you trade it only until the 50 because when it Taps 50 you usually
+know that the market pushes has pulled back 50 steps you can go for a new high
+so if you still look for shorts right there it doesn't make a lot of sense okay
+and on the 50 minute it's always very important that you draw your zones and
+your structure breaks and your Trend changes it's exactly the same thing you do
+in the footage you do it on the 50 minute which is internal of the voyage and
+then you have your ancient time frame so this is from the one to five minutes
+you have first of all you have your intraday Zone which is on the 15 minute as
+the zone is tapped that is when you drop to the one to the five minute time
+frame and you look for your entry rules all right so you're probably tired of
+theory let's get it to the end revisit all of this because it's a lot of notes I
+want you to pause the video study what I have said right there it's a lesson
+it's a lecture you have to pause you have to take notes okay because that's a
+lot of things but I always want to go through the examples because there it
+really makes sense so how to trade from those supply and demand zones okay so
+you have your quality Trend you have your uh 15 minute Alliance you have your 50
+minute Zone what do you do as I keep saying this is a concept that I really want
+to ingrain into your head the market has a fractal nature so any setup you see
+on the monthly time frame will repeat on the one minute and the other way around
+okay it's just a matter of preference which time frame you're going to be using
+in this video I'm going to give you two types of simple entries okay so very
+simple first is an aggressive entry from The Zone okay so you're going to need a
+little bit of a bigger stop loss although there are ways to get the stop loss
+Tighter and the second one is the conservative entry which is after making a
+which is pretty much waiting for a structure shift inside the supply and demand
+Zone which utilizes the lower time frames so here's how the aggressive entry
+looks like you have a Zone you take the trade stop loss below the zone and then
+you target the new high or you wait you wait for exactly the same trade but as
+we tap the zone right as we tap the zone right there this is where you go to a
+lower time frame and you simply wait for an inch opportunity right there so with
+that being said let's actually jump into the entry strategies the first strategy
+I want to teach you is the set and forget entry this is perfect for swing
+Traders there are two things to remember you always need to know what is your
+hard time frame doing what is your full hourly timeframe doing okay so what is
+the major Market Direction because this is usually going to offer you the
+highest probability trade and also what is your middle time frame doing which
+illustrates your minor structure and your ranges within the major structure okay
+so in order to get a high probability trade you need to wait for the middle time
+frame to either align with the major or to be like in a pullback phase so more
+examples coming in where the staff entries set and forget it's always preferred
+to stick to the hard time from Trend so to trade Pro Trend and not go against it
+okay so it's always good to take those entry entries at extreme points on a hard
+time frame sorry art are going to be like at the higher high or a lower low or
+higher low or lower high what I mean by this right so extreme point is when the
+market pushes it pulls back and it makes the exactly the first Trend change that
+is an extreme Point why because it's the hard high the market pushes it pulls
+back towards discount there is Discount there is premium it makes the trend
+change that is an extreme point because it's a potential flight high low okay if
+you find yourself taking trades like this in the middle you're probably gonna
+get swept quite a few times okay because the market when it's in the middle
+right there it's not at an extreme point of a Harlow or at the high it tends to
+kind of change a couple of times before it actually moves so again it's always
+good to trade at extreme points okay for this uh entry is also very important to
+not micromanage your stop loss you place your stop loss it's usually below or
+above the zone you let it go okay and always Draw Bigger zones don't refine too
+much results in order to get a tight stop loss just keep it big for me I use my
+forward time frame that's my hard time frame and then 50 minute as my middle
+time frame very very simple let's look at some examples so there's the data so
+again I try to to be a little bit more um kind of outside of what I do because I
+want to offer you multiple opportunities to to figure out your trading strategy
+this is the daily okay the daily it broke structure down here it broke structure
+up there so we have a trend change the market has pulled back below 50 there is
+our major low there is our major High the market is below 50 so again if I ask
+you what makes sense to be traded right now is it shorts or is it Longs well
+hope will you say Longs because we're bullish okay going on to the next one so
+there is that 50 on the daily so again so the flow at the time frame right now
+acts as our kind of minor time frame okay so daily is bullish but again you can
+see the forward time frame is going bearish so what we have to wait for is for
+the 40 time frame to align there's a lower low we got a lower high the market
+failed to break it right here it pulled back again and that is where we broke it
+what caused the break you track it back there is the the the the point of the
+brake okay then what happens is the market goes on and aligns bullish on the
+forage again guys Wix are breaks to me hopefully you know this by now we have
+probably break okay so now the daily time frame is bullish body time frame is
+bullish so you have two conferences there is your flowery Harlow there is your
+quality higher high well this is not a higher low because it's the low that I
+should cause the brake so this is an extreme point okay so this is a higher low
+on The Daily and right now it's the first low as the fall of the time frame
+shift to structure you draw your range you wait for the market to be below 50
+there it is and at this Zone that is where you decide again if you want to swing
+trade it you can just simply take a trade from here stop loss below or what I'm
+gonna show you right now is you can drop to even lower time frame and utilize
+the saf entry which is on the 50 minute so there's your minor structure right
+now okay Wally Harlow volley High the market is below the 50 what it's doing is
+going in the downtrend what you have to wait for is right now for the 15 minute
+to also go bullish and find a place from where it actually went bullish okay so
+we have a lower low right there we have a lower high the market actually created
+an MSS formation right there and broke the last lower high okay so this is a
+valid lower high right there it broke it up what caused the break it's this Zone
+the market pulls back take your entry stop loss below right there and there's a
+trade again this one are Cherry Picked so don't call me out yes I went on and I
+picked those to be perfect because I can show I want to show you a perfect
+example later we're gonna go on the charts and we're gonna see that it doesn't
+work every single time okay but for me it's important for you to see the
+examples okay so again what you can do in this case is again as I told you there
+are ways to refine your your zones you can take like 25 of the Zone 50 of the
+zone you can take it from the top this I leave up to you to test out what works
+best and again your target is usually going to be the week high and that was on
+the voyage or you can also Target a 50-minute week high but again if you're
+trading from a bullish daily a bullish forage right a bullish 15 minute time
+frame you have a very big chance that the market is going to go up okay so
+that's first example in which we used actually three time frames okay major time
+frame on The Daily bullish minor time frame on the flowery bullish and then 50
+minute time frame into time frame we waited for it to align and we took our
+trade okay next example again daily time frame so this is really swing trading
+right there daily time frame is bearish okay there is our last break of
+structure what caused the break it's this range high range low the market just
+kissed 50 so what makes sense right now to be traded is it long since it shorts
+in terms of the daily well hopefully you say shorts because it's bearish buys
+let's see how the 40 time looks like oh well for the time frame is too bullish
+it got all of this shitty price action right there all of this range okay but
+what is the current what is the current range well the market so again we're not
+gonna go into Market structure details okay so you should be doing this by now
+following the structure okay from the previous video this is the Harlow this is
+the hard high where is the 50 right there where is the Demand right here so
+technically you can see the daily is bearish right now but the forward time
+frame is bullish but where are we right now we are at a higher high so what we
+could expect happening is to for the market to pull back and drive us into 50 so
+what are we gonna do right here is we're gonna take a counter Trend trade
+because right now the 40 time frames 2 hasn't aligned can you do that yes if you
+are remember a very important point from the theory before if you are at extreme
+points if you are somewhere right there in the middle you don't do this you only
+do this at our highs or at lower lows or right at harlows like here in this case
+we have a higher high jumping on the 15 minute there it is so we have the Asian
+high uh kind of chop for a little bit right there again the 15 minute was
+bullish from here breaking structure up that was our demand the market responded
+but then what it ended up doing Trend change so right now we know that this was
+our flowery Heart High how do we know that a higher high is formed when you have
+a 50 minute train change a train changes right we have our range Supply again
+you you pick what to choose do you want to take this do you want to take this do
+you want to take this or do you want to take even this it's up to you right I
+want you to go and back this and figure out your zones okay I just picked like
+this overall range which is the last kind of buy range initiation outside and
+this is where I'm going to be setting my short order guess what the market
+didn't tap do we care not really okay what the market does it continues to go
+down but as you can see right here it's just up the 50 so you should know that
+your probability of getting a short trade right now decreases but let's not
+forget that the daily Is bearish So eventually the flower is going to go from
+bullish to bearish and again this is why I really love the the 50 minute time
+frame because that's the first time and that is actually going to show you when
+this happens so what we have we have again base Supply going back to supply and
+demand lessons we have a valid range right there the 15 minute block structure
+created the base Supply can we trade from this absolutely yes okay Market comes
+back retests of course your stop loss should always go above the high right
+don't place it here you don't place it anywhere apart from the height and you do
+not micromanage what happens later well let me delete my tools right there the
+market goes on and makes another structure break we track it back what caused
+the break this is the high so this is our Strong high right now our trade is
+running into profit we have a new Strong high can we keep shorting absolutely we
+can short until we are wrong there is our supply stop loss above let's see what
+happens the market pulls back where's my mouse was disappeared all right there
+it is so the market pulls back Taps inside the the lower high stop loss above
+and just dumps so we hit 4r on the first trade we hit 4r on the second trade
+okay we had a new breaker structure what caused it it's this can we set a new
+order here absolutely but again the market does not pull back and you break a
+structure what caused the break it's this we set the New Order the market
+doesn't come back new breaker structure here this is what caused it maybe you're
+getting right there and you can see it just continues to roll down so we were
+bearish on the daily that was our major time frame Direction okay but on and for
+example on the 50 minute right there we just kept getting short and this is
+pretty much the set and forget approach we're gonna go into the live charts
+later and get some more examples so hopefully it makes sense if you have any
+questions the comments are open below the Precision entry I know you're all here
+for this so let's have a look first again hard time frame Major Market direction
+is it bullish is it bearish middle time frame what is the minor structure within
+the major structure what is currently happening so again let's not forget follow
+the time frame is right there 50 minutes is right there but this time we also
+have a lower entry time frame that gives us energy criteria and signals so again
+to me this is the one minute time frame although oftentimes I regret using the
+one minute because it could be noisy it could give you a couple of stop losses
+but you also have to be fine with that while do you need for precision entries
+you need to have Mastery over your higher emitter time frames because you only
+go to lower time frames after Joe's 2 are ready you need to have precise and
+strict rules to let you know exactly what you're looking for on the lower time
+frames so don't just go out go there without knowing what you're going to be
+looking for you have to be patient and wait for your strict rules to play out
+because if you go fomo and you don't wait for your rules to play out you're
+gonna take losses okay and of course the biggest drawdown of this one is you
+have time you need time to stay on the charts and monitor it on the lower time
+frame because again when you drop to the one minute it can take 30 minutes until
+your setup comes on and you have to be there because it only costs you one
+minute to miss the trade and that's the biggest drawdown of training on a lower
+time frames okay the good thing is that for precision entries we utilize exactly
+the same steps as the set and forget entry but again once we have a tap of a
+supply and demand Zone on the 50 minute that is where you drop even lower and
+then we wait for a series of events to occur what are those let's have a look
+here are the rules okay so first we have our we have our set and forget engine
+criteria fulfilled so we have over 40 Trend check we have our 50 minute Zone
+check we have our 50 minute PD range check always good okay then as this zone is
+tapped that is when we drop to the lower time frame which for me is the one
+minute time frame we wait for the for our liquidity point to be taken so there
+is a series of events five things to happen before you take a trade first Trend
+second minor structure minor structure POI and range good everything is met
+lower time frame okay you drop as the Zone tops lower time and what do you look
+for there you wait for liquidity points to be grabbed again liquidity lessons
+this is pretty much you do this in order to trick early bars and sellers get
+their stop loss then usually your trade gets a much bigger probability you can
+remove this on on from your rules right but again you might take one or two stop
+losses before you get the winner so you better wait for some sort of a liquidity
+grab before you take the trade then what you simply wait Trend change and you
+know how train change works because it works on absolutely every single time
+frame so what you're looking for here is for your one minute the lower time
+frame to align with the 50 minute very simple we did this exactly this with the
+saf entry right now we're going to be doing with with this the only difference
+here is that we also look for a liquidity graph okay and then what we have to
+find out is okay what is the supply and demand Zone that caused the one minute
+TC and we enter from there and we place a safe stop loss so if you want to
+visualize this again quality time frame broke structure major Harlow major
+higher high fifty percent what do we look for is wait for the market to pull
+back below 50 in order to get a higher probability long trade okay then as soon
+as it's here we'll drop to the 50 minute the 50 minute is going to be bearish
+because if You observe this leg right there the 15 minute is going to be bearish
+what we wait for is for the 50 minute to align with the 4-H how do we know that
+it aligns Trend change there's our train change again price is fractal we have a
+50 range right there we also have 50 range on the 50 minute you can definitely
+do that the market pulls back below 50 it Taps into the hard time from the mat
+and again for your saf entry you just enter from here stop loss below easy but
+if you want to do the Precision entry you drop to a lower time frame okay and
+what you wait for it on the lower time frame is again for that same alignment
+but the only difference as I keep saying is that you can wait for liquidity
+graph so the market Taps into your Zone creates a flat blows creates equal lows
+creates maybe a fake TC creates a little bit of a range manipulates it okay so
+wait for this don't rush to enter on the First Signal because it's usually on a
+lower time frame there is a lot of noise while on the 15 minute diffusion Center
+from here it can come in do all this BS and then it's gonna go but your stop
+loss is safe but if you go in on the one minute right there Energy Center from
+here stop loss below you're gonna get stopped right so again what you wait for
+is first liquidity grab train change you find what caused the train change you
+enter from there stop loss below easy right it's very very easy let's have a
+look at some examples there it is so here we're in the voyage that's us-30 on
+the voyage okay so we have a break of structure um yeah probably we had one
+right there so then we have a breaker structure here bullish where is the low
+right there is the high right there right so here we can be looking to short on
+the 50mm but right now we're focused on Pro Trend we're focused on Longs okay we
+are below the 50 so we're potentially about to make a new high low formation for
+us to head into the highs and take out the flowerly weak High dropping on to the
+50 minute okay the 50 minute was bearish bearish bearish bearish right broke
+structure down respected can you be taking shorts here yes as we saw in the
+previous example right as long as the 15 minute goes down you can be taking
+shorts I mean there is a break of structure there is your Zone take it set and
+forget or even drop to the one minute to look for your short but eventually what
+happens is the market consolidates for a little bit right there and then
+massively expands okay then again what happens right now is that the forwarded
+time frame was bullish and right now the 50 minute time frame was bullish if you
+want to make this clear I used to on here in my top right corner I used to write
+these things down okay flowery bullish 15 minute bearish so what I had to wait
+for is for that 15 minute to align with the footage you can definitely do that
+okay so we have right now is a massive alignment so what we have to wait for
+right now is for our Zone to tap simple you don't trade without having a Zone
+you don't trade from the middle there it is no Market comes back Taps into our
+zone so again you can either do a set and forget approach right here and just
+enter from right there no stop loss below but in this case we're going to drop
+to lower time frame and see what we can do right there there it is so again you
+have to wait for some sort of liquidity liquidity was even forming right there
+you see this trend line the market massively smashed it right but again we look
+at structure we don't look at trend lines we look at structure the market broke
+here yes that was the major Harlow formation but again this is a higher high you
+don't want a lunk right there train change Can you short yes right but this is
+the one minute you don't do this the market came all the way down right here and
+as it tapped The Zone it made a TC so again there are multiple sorts of
+liquidity okay we covered a lot of them in this case what we have is not a
+liquidity within here but liquidity happened right there because again here you
+can see the market shifts bearish all of this is trend line liquidity all of
+this is also liquidity the market comes in starts making like a fake TC right
+there so you can see tops it makes a fake internal TC all right but again you
+ask the question what is the the supply and demand Zone that actually caused the
+first TC there's our first DC there's the demands are not caused it so you want
+to trade from this one you don't want to do all of that middle thing right there
+again you trade from the extremes remember going back to previous lesson you
+take the trade from there and you get 5r at a potential like liquidity point or
+you can swing it to the fences I don't know what happens right let's see boom
+there's your weak high so again you also have to think of okay what is my trade
+management how am I gonna approach this okay but again this is a great example
+of uh liquidity not being perfect but again if you have your rules if you know
+that the 50 minute is bullish wait for the one minute to align you ask the
+question what caused the one minute to align and this is where you take your
+trade okay and again guys saying it again those are Cherry Picked yes I went on
+the charts I uh backtest and I found examples that look good so I can show you
+good examples okay another trade EU time EU time frame Euro USD 40 time in
+bearish right so again you can see where's my mouse uh keeps disappearing
+there's brake construction down okay what caused it this the market pulls back
+shorts right there another break of structure what caused it uh it's this in
+this case you can see I forgot to mark it right there we shifted bullish for a
+little while so here we shifted bullish eventually we shifted bearish okay what
+caused this break is this guy major har major High major low pull back a bill
+above 50 what does it make sense to be traded right now shorts why because we're
+bearish so what we have to be looking for right now is for the 50 minute to go
+short okay but there is a big but I have a rule in my community so I'm gonna
+share something with you that is uh I usually keep it secret as long as the 50
+minute goes you go with the 50 minute until you're wrong why because in this
+case I've seen it oftentimes the market decides to actually shift the trend
+maybe there is a daily demand zone right there and the market is gonna turn
+bullish on The Daily so what the 50 minute does bullish bullish bullish bullish
+bullish bullish bullish boys and it breaks the high okay you're like I will
+follow he was Birch why did we turn bullish well because of daily and that is
+why I told you the lower time frames always gonna Trump so look at this great
+example the market made this lower low it went on and made a trend change what
+caused the train change it's this can you take a long cure absolutely you can
+smash it another break of structure what caused this breaker structure this can
+you take along from here absolutely but your stop was a bit big another break of
+structure what caused this breaker structure it's this can you take a look here
+uh yes but it's Asia so you don't take it because you can get swept okay and
+then of course this was the high this was the low all of this is internal if you
+just care for the look at the candles right that's the highest point that's the
+lowest point although it's internal you make a lot of mistakes saying ah train
+change oh structure break no that's internal the market TAPS in goes on and
+breaks another structure break so what you really see right now is that the 50
+minute is just beautifully bullish so to me as long as the 15 minute is bullish
+I go long this is exactly where we broke the 15 minute High what caused the
+break it's this little Zone retested broke up again what caused this break it's
+the zone right so heart hello demand we're retesting that zone you can take a
+set and forget approach play stop loss below or you can go to the one minute
+let's see how it looks like there it is okay so that's the 50 minute break the
+market pulls back so let's first see okay so we tap into the Zone do we take
+liquidity yeah what's this so do you remember from the liquidity list what is
+this it's structural liquidity it's it's fake supply and demand because again
+people are going to be looking to take a loan from here and you can see that the
+reaction there were people longing from here guess where their stop loss was
+right there and look at how the market massively takes everything what about
+this this is also supply and demand Zone and this is why I told you guys do not
+refine don't look too much on the lower tires and try to pick that sniper Ranger
+because it's not about getting a sniper entry it's about entering at the right
+place guess what there were buyers entering from there look at the reaction they
+got in they got it even here where was their stop loss below the slope look
+where the market goes and then what it does later is it just aligns bullish and
+that is when we strike after the liquidity grab there's our Trend change stop
+loss is 3.4 Pips for me if it's below five Pips I smash the trade okay and the
+result TP in three minutes why did it go so fast is because it stopped out these
+Traders and it also stopped out these Traders And when everybody stop stopped
+out that is when it goes and this is why I believe you have to be looking for
+always for liquidity gaps so hopefully this makes sense it's very very very
+simple what I want to show you right now it's something amazing that I'm going
+to be sharing with you this is a road map right this is a flow chart so let me
+try to break this down okay I actually advise to to do this on your own so this
+is just an example okay this is what I use I have tweaked a little bit towards
+what I teach you for my community members it's it's way different than that but
+let me give you like a little breakdown so this is where the major time frame is
+you see this is where we start okay if the following time frame is bullish you
+go on the left if the fire time frame is bearish you go on the right let's say
+it's bullish okay so what is it doing what is the current phase of the market is
+it pushing towards a weak High which looks like this right it's pushing towards
+a week high or is it pulling back into 50 which looks like this we're still in
+the pullback okay so depending on this then you flow okay so then cool it's this
+phase so I dropped to the 50 minute what do I do on the 50 minutes well if it's
+pushing towards the weak High you want to go long so you find the last clear 50
+minute Zone that calls the structure break okay and of course you gotta wait for
+liquidity that's it simple so that this one is very simple all you need to do in
+this case is just go long and do that for all the time frame is taken what about
+this guy so say that the market is pulling back right here so then you have two
+things that could happen is the market still kind of pulling back into 50
+percent but it's still uh I mean above premium so I see it's it's above it's
+bigger than 50 is this right well well yeah it's technically in premium in order
+for us to buy this is premium this is Discount we need the market to get into
+discount so if it's above 50 then you find what caused the 50 minute TC and you
+trade this as long as you are not in 50 so say here we got the TC and even
+structure breaks you can take those shorts until the 50 percent that is this
+this case if the 50 minutes I mean if the forward time frame has run out tap the
+fifty percent right so it's if it's at the 50 on the forage then you wait for a
+15 minute TC at hard time from demand so again on the 40 time frame you can have
+Demand right there the market is usually tap into this demand and the 50 minute
+is gonna align so when the 50 minute aligns when it's below the 50 you go to
+this profile right there okay because right now we're aligned so we want to go
+again towards the weak High so hopefully it makes sense study this chart I'm
+gonna go in examples right now but I'm gonna share this with you you can play
+with it you can do your own okay and again Zone requirements in order to have a
+Zone it must break structure strongly with momentum leave some imbalance it
+needs to be an engulfing candle okay so there needs to be a big engulfing candle
+if there is not on the 15 minute to go to the 25 minute to the 30 minute and of
+course you would like to see some sort of manipulation taking liquidity like a
+range took liquidity and then initiated those are the most powerful supply and
+demand zones and there are your entry rules identify the profile where are you
+in terms of your macro Trend and where are you in terms of your minor Trend
+right there the 50 minute where is your supply and demand Zone retest so again
+on the 50 minute where is your Zone okay and then of course you can do the saf
+entry the set and forget enter from The Zone with a safe stop loss or you can go
+to the Precision entry so you wait for a liquidity grab you wait for a trend
+change and then you execute and manage the trade there is your cheat sheet again
+Link in the description I'm gonna send this to you right so with that being said
+there are additional entry models right this is not all this is very simple and
+I want you to go in your chart and try to figure it out I have worked really
+hard uh for my personal training to find out like the best way to enter trades
+the best way to also further capitalize on trades uh if you get an initial entry
+then we have like two three types of entries aggressive one which is our swing
+trading strategy we have the TC entry and then we have the the continuation
+entry so we have three entry models that allow us to continuously kind of get
+into trade and scale into trade while keeping it extremely systematic so again
+if you want to learn absolutely everything The Fanatic way of course is though
+is the way to go right so right now I want to jump on a chart let's jump on a
+chart practice also with the with the tool that I'm gonna give you and have a
+look at how you can actually practice getting into trades all right welcome to
+the charts as you can see we have our flow chart right there so I'm just gonna
+give you an example I'm gonna try to keep it two examples only so we can keep
+the video short while I will try to explain to you what I mean okay let me just
+share with you an example we are actually in a trade right now okay so first of
+all let's of course do our top-down analysis uh if you're no here we shifted
+bearish right so the range so yeah we can have definitely uh this short right
+there and then we can have other short right now the market then broke structure
+down right so the market was bearish but then uh it was uh yesterday we came on
+and we actually shifted the structure up and right now we have a brand new
+structure here well forex.com uh yeah yeah definitely this is also brake
+structure up happening right there so currently this is our higher low formation
+so let me first talk about the trade we are right now and then we're gonna jump
+onto two more examples okay I'm gonna start talking a lot right now so probably
+this video is gonna go three hours a joke so what do we have we have a push okay
+so we have a push face fight because just zoom in while keeping this thing right
+there so we have a push phase right the market made a new car hide this is our
+higher low that caused the break of the heart height the market made a high ride
+there so what do we want to see right now is for the market to start pulling
+back below 50 okay so again what are we probably bullish where are we pull back
+into 50 so now we drop to the 50 minute okay let's bring this back up right
+there man this one why can't it stay just in one place can I lock it or somehow
+uh yeah okay doesn't matter I'm gonna keep dragging it with me so again you can
+see the market kind of made a new higher high okay and the little example here
+is that it kind of came in and tapped the 50 and then the short occurred a
+little bit later okay so again attention to details you could have definitely
+skipped this short okay but let's just stick to that okay the market is right
+now bullish it's at a high how do you know that our high is formed when you have
+a trend change this is exactly when the train changes occurs so right now we are
+at this right now okay the market is in premium we want to get the market into
+discount in order to get along so what we want to do is we trade into the 50
+which is counter Trend okay so now 50 minute what caused the trend change it's
+this right in this case we took uh we took a slightly bigger Zone like that I
+think it's on another time frame the market pushed pulls back into the zone two
+things you can do set and forget take your trade from there stop loss above of
+course a little bit bigger and you write it down towards like the 50 which can
+give you around 2R because that is one of the trades you can take what we did is
+we dropped to the one minute and we did the Precision inch the market comes in
+grabs liquidity on the left right and what it does so what we have to wait for
+right now is for the one minute to align the one minute made a higher high the
+one minute made the lower low train change down the market came in gave us an
+entry stop loss above four Pips and uh it's a very choppy because we have a CPI
+uh there right now but it it got us to 3r right so there is a trait very very
+very very simple that's it and this is again a counter Trend rate so you can
+decide to risk if you wish a little bit less but you can see in just two minutes
+we frame the trade follow the time frame higher high 15 minute time frame train
+change down so we have actually the confidence we don't try to keep longing as
+the market is making the highs uh sorry to keep shorting catching the top we
+wait for the market to show us when the top is formed and that is when we get
+into the trade so let's see if this one is actually going to go on and take out
+the low I don't think so because we have cpis we're probably gonna do this and
+then it's gonna do some mad stuff so there is one trade let me show you another
+trade can I just okay nice I'm Gonna Keep copy pasting it so let me show you
+right here exactly right there if you ask the question the following was bullet
+a bearish why did it turn bullish let's check out the daily what is the daily
+doing how to break a structure up here what do we have right there demand so
+what is the daily doing it's bullish so right we were bearish right there the
+market made a massive push to the downside they eventually ended up taking it
+out why check your hard time frame okay at this precise point right here what we
+could have done okay well the quality time frame right now is bearish we drop
+our range okay so what are we right now let me just put this back up okay so the
+file is bearish we're going to the right we're put and we are right now pulling
+back towards the 50 okay so we are still below discount so we want to get the
+market into premium so that we can start shorting the market so what we can do
+is we can counter trade trading into the fifty percent so that is currently our
+situation when do we know that a lower low is formed again when we have a trend
+change so again according to your rules according to me the train change the
+current exactly right there what caused the train change in the zone can you
+take a trade here absolutely yes do you do the set and forget approach like this
+and then Target like the 50 which in this case gave you a 3r and if you decide
+to re to leave a runner oh you're looking pretty good right you're looking
+pretty good right or we can jump to the one minutes let's see if we actually got
+something on the one minute hmm hell yes with it right the market comes in plot
+lows took them out lower high blood lows took them out this is exactly where we
+shifted bullish on the on the one minute what caused the shift bullish right
+here there's your trade Precision entry stop loss below I mean this stop loss is
+ridiculous right two Pips and yeah then you can Target like you can see the 15
+minute High gives you 4r and if you go towards the 50 it gives you 17 r but this
+trade for me six o'clock I don't trade at six man yeah well again it's according
+to your style if you trade New York station there is your trade it literally
+caught the bottom after a 50 minute train change set and forget approach
+Precision entry everything was there with liquidity wrap as well okay another
+example early this week uh so if I just do this just before it happened okay so
+again this is hindsight guys okay I'm just remember those examples I want to
+show you examples okay I take losses my win rate is 40 to 45 percent so again
+what I show you Works 45 of the times so again don't think that it's 100 please
+I'm not one of those guys to pretend like oh this is what you have to do there
+is our high there is our lobe okay so again back into structure high low should
+be red but again where is our 50 boom so where is the market so you open your
+chart seven o'clock okay you open your your two where is the market what is it
+doing bearish cool there we are are we what are we doing right now well we are
+currently at 50 above 50 so what we have to be looking for is for the 15 minute
+uh for a 50 minute TC to align bearish so then we can jump into this phase okay
+so let's see what we do we drop to the 50 minute time frame in this precise case
+you have to be mastered Market structure okay this is exactly where we broke the
+50 minute low what caused the break of the 50 minute low again you can you can
+take it in numerous ways you can do this for me it was actually this little guy
+right there so the market broke and this to me again I was looking at this I
+didn't take this trade by the way guys because it was Monday bank holiday so I
+did not trade but there was a perfect example of a setup okay so in this case we
+also have liquidity I mean this is liquidity High an old high this is liquidity
+high right so where what does the market do Bank comes in and smashes it why
+because there are people trying to Short from here which is internal structure
+remember so major Folly High major value low on the 50 minute you also have to
+do the same major 15 minute High major 50 minute low everything inside you don't
+trade the only thing you care about is how do I get a short could we have gotten
+short right there absolutely here absolutely if you get your entry set up okay
+but on the next day we come in right there the Asian high is taken liquidity is
+taken we drop to the one minute so the laminate takes lots of liquidity right
+now so what we have to wait for is for the one minute to align okay technically
+the one minute the lines right here you can also take this that's what happens
+boom the one minute aligned it broke all structure so it's exactly this time
+where the one minute has aligned after a liquidity wrap so you just take your
+trade right nowadays I don't even draw zones in one minute because all I need to
+see is that I have a safe stop loss like in this case I can be entering like
+even from here with a five Pips or if I wish a little bit tighter I can then
+turn from here let's just say like I don't know four Pips or something
+conservative what can you target well first of all you can Target a 50 minute
+low where in this case it's this or you can just Target again guys targets are
+up to you I always advise three r four five hour if you can get this you're
+absolutely golden don't swing to defenses okay so let's do like a regular like
+in this case we're trading with the trend so we can do 4r and yeah again it was
+bank holiday the market reacted it came uh I think it came one more time yeah it
+came one more time right but you can see the Strong high remains intact okay and
+yeah eventually if I just jump uh to another time frame eventually we massively
+dropped so it turned into actually this one turned into a massive trade lower
+okay so hopefully you get the you get the the mindset you get actually how it
+works right it just works every single time again if I even if I again right
+here you can see here we had uh there was a slight here we have this massive
+push lower that let's say caused the breakup structure down so what are we doing
+we draw the range okay say we're say we're right there the market is just making
+a new lower low we usually like wait for the first bullish candle but again
+we're on the 50 minute because the 50 minutes is going to give us a trend change
+so they jump on the 50 minute okay uh the 15 minute online that I remember this
+day you have to line right here broke down broke up so can you take a set and
+forget approach here absolutely to me it was a little bit too early and then you
+can see the market starts rolling you usually want to trade it towards the 50
+okay Boom the market is above 50 so here you have guys two choices if we are at
+fifty percent so in this case we're bearish uh pull back into 50 we're at 50 so
+you either have to wait for a 50 minute TC to align down so you can go pro Trend
+with the bearish one or as I told you you follow 15 minutes until you're wrong
+okay 50 minute broke here boom 50 minute broke here boom right this one did not
+get retested uh let's see if this one is going to get retested nope but again
+what we did is we broke another one what caused this break it's this okay so
+there is your setup you keep following the trend set and forget approach boom
+stop loss below six flip stop loss again targeting 3r because for swing trades
+you don't want to Target way too much same thing you can drop on the one minute
+okay what do we have here let me just get this out of the way for a little bit
+what do we have here well again we have that same thing right we have lots of
+zones right there that are potentially gonna get taken let's see if they get
+taken actually boom okay so again people look to enter from there they enter
+from here stop loss is below they get taken so what are we looking for right now
+is for the one minute to align there's your alignment what's the stop loss three
+Pips let's just smash the trade go for 3r like in this case uh for a tight stop
+loss I usually do 4r and we get another stop loss right so that's cool okay
+amazing example very good let's see let's see what happens so we got a stop loss
+right the market broke down then we look for the market to break up oh yeah oh
+guys I remember this trade so so this is the trade I took two stop losses last
+week on Monday why because I was I didn't play the set and forget approach I
+played the one minute approach so uh this is where so let me see oh yeah so this
+is where we aligned and yeah then the second trade was right here so then I
+think here I made a mistake as well that I place a tight stop loss that I don't
+remember but again we align here again so even if you take a stop loss you keep
+waiting because as long as your zone is intact if you get another Trend change
+you can still enter into the trade right and uh yeah I think eventually we
+tapped so I think yeah pretty much the second trade that took us from here but I
+took two stop loss on this one so maybe I took even a stop loss here I don't
+really remember what I did but again you just wait for it you wait for the train
+change oh no no no I took a break even I took a break even here because I was a
+scared bastard yeah but then again as you can see we run into the highs and the
+swing trade is looking way better okay so pretty much those are the chat
+examples make sure to actually go on and utilize this chart I'm going to share
+this with you uh via email I'm gonna send it to you so make sure to click in the
+description so right now let's go and wrap it up all right we've come all the
+way until the end so this is the end of the poor video series which actually
+turned five so after this do you feel a better Trader type in the comments below
+if you do feel like a better Trader what were your main insights from all the
+videos what did you learn and are you already having success by now you should
+have built your risk management plan first video understood basic and advanced
+Market structure second video supply and demand Concepts and how to use them
+third liquidity fourth and right now Master two very simple entry systems on
+this video so again this is a great Foundation I mean I really went ahead and
+given you a lot of tools a lot of stuff a lot of Concepts that really work
+amazing okay so what right now what I advise you to do go back to video one and
+cover them again because again just by watching a single video once it's not
+gonna make you understand the concepts if you don't see them every single day so
+this is why in the community we're here showing up every single day and pretty
+much if you follow us for like for one month inside the community uh you pretty
+much become masters of the concepts okay so focus on the technical videos
+especially you don't need to watch the training plan videos three times right so
+focus on the technical videos which are like all the videos after the training
+plan take notes study find examples back test see how it works figure out how it
+works for you figure out your time frames figure out everything okay and then of
+course try to build the strategy section of your trading plan because again
+first with it risk and money management we did monetary goals we did your why we
+did everything but then the second part of your plan is to have a strategy in
+place again hard time frames minor time frames Angel time frames Angel strategy
+trade management everything right so that's it we're wrapping it up so again
+what would you like to see further we wrapped up the series hopefully found lots
+of value with well throughout this series we actually hit 100 000 subscribers
+which is absolutely insane right I want to keep providing so what would you like
+to see do you have any content ideas just let me know okay I love you all thank
+you for all the support I give all of this knowledge uh to actually help you get
+a better Trader learn what actually works in the market and avoid all the BS
+that is out there so without said thank you so much once again and I'll talk to
+you on my next videos hopefully you're gonna crush the markets with all these
+Concepts and if you have any questions you always know where to find me the best
+place is via email at support trainingfanatic.com of course leave a comment I'm
+always there to answer and uh yeah talk to you soon

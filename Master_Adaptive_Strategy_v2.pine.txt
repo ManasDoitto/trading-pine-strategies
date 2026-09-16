@@ -14,7 +14,7 @@ grp_risk = "Risk Management"
 inp_rr = input.float(2.5, "Reward:Risk Ratio (Initial)", group=grp_risk, step=0.1)
 inp_sl_atr = input.float(1.5, "Initial Stop Loss ATR", group=grp_risk, step=0.1)
 inp_trail_atr = input.float(1.0, "Trailing Stop ATR", group=grp_risk, step=0.1)
-inp_sl_cap = input.int(120, "Stop Loss Hard Cap (Points)", group=grp_risk)
+inp_max_sl_percent = input.float(0.5, "Stop Loss Max Cap (%)", group=grp_risk, step=0.1)
 
 grp_time = "Session Filter"
 inp_session = input.session("1730-2330", "Trading Session (IST)", group=grp_time)
@@ -88,7 +88,8 @@ if longCondition and strategy.position_size == 0
     max_sl = close - (inp_sl_atr * atr)
     sl_raw := math.max(sl_raw, max_sl)
     
-    sl_level := math.max(sl_raw, close - inp_sl_cap)
+    max_sl_cap_points = (close * inp_max_sl_percent) / 100
+    sl_level := math.max(sl_raw, close - max_sl_cap_points)
     tp_level := close + ((close - sl_level) * inp_rr)
     strategy.entry("Long", strategy.long)
     strategy.exit("Exit Long", from_entry="Long", stop=sl_level, limit=tp_level)
@@ -99,7 +100,8 @@ if shortCondition and strategy.position_size == 0
     max_sl = close + (inp_sl_atr * atr)
     sl_raw := math.min(sl_raw, max_sl)
     
-    sl_level := math.min(sl_raw, close + inp_sl_cap)
+    max_sl_cap_points = (close * inp_max_sl_percent) / 100
+    sl_level := math.min(sl_raw, close + max_sl_cap_points)
     tp_level := close - ((sl_level - close) * inp_rr)
     strategy.entry("Short", strategy.short)
     strategy.exit("Exit Short", from_entry="Short", stop=sl_level, limit=tp_level)
