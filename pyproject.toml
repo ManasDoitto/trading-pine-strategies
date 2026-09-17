@@ -1,0 +1,6 @@
+[project]
+name = "trading-alerts"
+version = "0.1.0"
+description = "trading_agents (option-buying analysis) + trading_exec (signal checker, position watcher, alerts)"
+requires-python = ">=3.11"
+# tomllib (trading_exec/config.py, trading_agents/core/config.py) needs 3.11+.

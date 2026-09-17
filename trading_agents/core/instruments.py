@@ -2,35 +2,75 @@
 
 Same source as the repo-root dhan_expired_options.py; cached once per day under
 journal_data/cache/. Expiries are never hardcoded.
+
+The in-memory cache is date-stamped (not just "loaded once"): a long-lived process that crosses
+midnight must not keep trading against yesterday's expiry list. Under the old process-forever cache,
+a normal-looking [shadow entry] alert could quietly name an already-expired contract.
+
+The download is defended against a hung connection and a truncated response: a stall used to block
+the whole poll loop forever with no exception, and a short-but-valid partial CSV would get cached and
+trusted all day - which shows up as "ATM option not usable" on a perfectly liquid chain, not as an
+obvious data error.
 """
+import time
 from collections import Counter
 from datetime import date
 
 import pandas as pd
+import requests
 
 from .config import data_dir, load_config
 
 SCRIP_MASTER_URL = "https://images.dhan.co/api-data/api-scrip-master.csv"
+MIN_ROWS = 100_000                       # the real file is ~207k rows; anything far short is a truncation
+REQUIRED_EXCHANGES = {"MCX", "NSE"}
+DOWNLOAD_ATTEMPTS = 3
 
 _cache = None
+_cache_date = None
+
+
+def _download(url, dest_tmp):
+    """Fetch the scrip master to a temp file with a timeout and a few retries, and refuse to cache
+    anything that looks truncated. Only os.replace()s the real cache file once this passes."""
+    last_err = None
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        try:
+            with requests.get(url, timeout=(10, 120), stream=True) as r:
+                r.raise_for_status()
+                with open(dest_tmp, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=1 << 20):
+                        f.write(chunk)
+            df = pd.read_csv(dest_tmp, low_memory=False)
+            if len(df) < MIN_ROWS or not REQUIRED_EXCHANGES <= set(df["SEM_EXM_EXCH_ID"].unique()):
+                raise ValueError(f"scrip master looks truncated: {len(df)} rows, "
+                                 f"exchanges {sorted(df['SEM_EXM_EXCH_ID'].unique())}")
+            return df
+        except Exception as e:
+            last_err = e
+            if attempt < DOWNLOAD_ATTEMPTS:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"scrip master download failed after {DOWNLOAD_ATTEMPTS} attempts: {last_err}")
 
 
 def load_scrip_master(refresh=False):
-    global _cache
-    if _cache is not None and not refresh:
+    global _cache, _cache_date
+    today = date.today()
+    if _cache is not None and _cache_date == today and not refresh:
         return _cache
     cache_dir = data_dir("cache")
-    path = cache_dir / f"scrip_master_{date.today():%Y%m%d}.csv"
+    path = cache_dir / f"scrip_master_{today:%Y%m%d}.csv"
     if path.exists() and not refresh:
         df = pd.read_csv(path, low_memory=False)
     else:
-        df = pd.read_csv(SCRIP_MASTER_URL, low_memory=False)
-        df.to_csv(path, index=False)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        df = _download(SCRIP_MASTER_URL, tmp)
+        tmp.replace(path)                # atomic: a reader never sees a half-written cache file
         for old in cache_dir.glob("scrip_master_*.csv"):
             if old != path:
                 old.unlink()
     df["_expiry"] = pd.to_datetime(df["SEM_EXPIRY_DATE"], errors="coerce").dt.date
-    _cache = df
+    _cache, _cache_date = df, today
     return df
 
 

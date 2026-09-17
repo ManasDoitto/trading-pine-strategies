@@ -12,12 +12,26 @@ Rules, chosen to be pessimistic rather than flattering:
   real exit, so the month-end report can say which exit style would have served better
 """
 import json
+import os
 from datetime import date, datetime, timedelta
 
 from trading_agents.core import instruments
 from trading_agents.core.market_data import intraday_bars
 
 from .config import data_dir, load_config
+
+
+def _atomic_write_json(path, obj):
+    """write-temp-then-replace: an OOM kill or power loss mid-write can never truncate the real
+    file. Without this, a crash mid-save leaves shadow.load() raising JSONDecodeError forever -
+    tick_safely catches it, sends one [checker error], and the loop then goes quiet for the day."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=1, default=str)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
 
 STORE = "shadow_trades.json"
 
@@ -32,7 +46,7 @@ def load():
 
 
 def save(trades):
-    path().write_text(json.dumps(trades, indent=1, default=str), encoding="utf-8")
+    _atomic_write_json(path(), trades)
 
 
 def open_trades(trades=None):
@@ -228,7 +242,7 @@ def load_watches():
 
 
 def save_watches(watches):
-    watch_path().write_text(json.dumps(watches, indent=1, default=str), encoding="utf-8")
+    _atomic_write_json(watch_path(), watches)
 
 
 def open_watches(watches=None):

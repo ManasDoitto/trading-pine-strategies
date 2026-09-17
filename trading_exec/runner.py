@@ -305,6 +305,8 @@ def run_loop(until_text=None, notify_fn=None, sleep=time.sleep, max_ticks=None):
     about the token, and never exits on an error - only at --until or Ctrl-C."""
     global _LOCK
     notify_fn = notify_fn or notify
+    if not health.assert_ist(notify_fn):
+        return 2
     _LOCK = acquire_single_instance()
     if _LOCK is None:
         print(f"{_stamp()} another runner is already polling; exiting so alerts are not duplicated.")

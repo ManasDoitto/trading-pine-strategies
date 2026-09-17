@@ -7,6 +7,10 @@
   the day would be silently ignored by a running checker. fresh_client() reads the file each time.
 - runner_state.json remembers whether the checker already started today, so a mid-day start is
   announced as a restart.
+- assert_ist() catches a server clock that isn't IST before the loop does anything else. Every bar
+  timestamp in the system is naive IST (trading_agents/core/market_data.py); if `now` disagrees,
+  poller.closed_bars silently drops every bar as "still forming" and the loop produces zero signals
+  forever - no exception, no [feed down], nothing that looks like a failure.
 """
 import base64
 import json
@@ -18,6 +22,7 @@ from dotenv import dotenv_values
 from .config import REPO_ROOT, data_dir
 
 STATE = "runner_state.json"
+IST_OFFSET = timedelta(hours=5, minutes=30)
 
 
 def token_from_env_file():
@@ -55,9 +60,19 @@ def fresh_client():
     values = dotenv_values(REPO_ROOT / ".env")
     for key in ("DHAN_CLIENT_ID", "DHAN_ACCESS_TOKEN"):
         if values.get(key):
-            os.environ[key] = values[key]
+            os.environ[key] = values[key].strip()   # token_from_env_file() strips; this must match it
     from trading_agents.core.dhan_client import get_dhan_client
     return get_dhan_client()
+
+
+def _atomic_write(path, text):
+    """write-temp-then-replace: a crash or OOM kill mid-write can never truncate the real file."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
 
 
 def mark_started(day, state_dir=None):
@@ -66,5 +81,30 @@ def mark_started(day, state_dir=None):
     state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     first = state.get("last_start_date") != day.isoformat()
     state.update(last_start_date=day.isoformat(), last_start_at=datetime.now().replace(microsecond=0).isoformat())
-    path.write_text(json.dumps(state), encoding="utf-8")
+    _atomic_write(path, json.dumps(state))
     return first
+
+
+def clock_offset_ok(now=None, tolerance=timedelta(minutes=1)):
+    """True if the local (naive) clock agrees with IST to within `tolerance`.
+
+    Every bar timestamp in the system is naive IST; the loops compare that against datetime.now(), so
+    this is really asking "does datetime.now() agree with the clock the bars were built from"."""
+    now = now or datetime.now()
+    return abs((now - datetime.utcnow()) - IST_OFFSET) <= tolerance
+
+
+def assert_ist(notify_fn):
+    """Called once at the top of each unattended loop. Returns True if the clock is fine. If it
+    isn't, sends one unmistakable alert and the caller must stop rather than run all day producing
+    nothing."""
+    if clock_offset_ok():
+        return True
+    off = datetime.now() - datetime.utcnow()
+    notify_fn("[fatal] server clock is not IST", [
+        f"local now - UTC now = {off}, expected 5:30:00.",
+        "Every 5m bar would be filtered as 'still forming' and NO signals would ever fire - silently.",
+        "Fix: sudo timedatectl set-timezone Asia/Kolkata, confirm 'System clock synchronized: yes',",
+        "then restart this unit.",
+    ], "error")
+    return False

@@ -42,6 +42,7 @@ from trading_agents.facts.journal import live_positions
 
 from .config import data_dir, load_config
 from .notify import notify
+from .shadow import _atomic_write_json
 
 STORE = "trade_watch_state.json"
 BENCHMARK_FALLBACK_INR = 4000.0
@@ -61,7 +62,7 @@ def _load_state():
 
 
 def _save_state(state):
-    _path().write_text(json.dumps(state, indent=1, default=str), encoding="utf-8")
+    _atomic_write_json(_path(), state)
 
 
 def _cfg():
@@ -308,6 +309,8 @@ def run_loop(until_text=None, sleep=None, max_ticks=None):
     from . import health
     from .runner import parse_hhmm
 
+    if not health.assert_ist(notify):
+        return 2
     sleep = sleep or _time.sleep
     lock = acquire_single_instance_watch()
     if lock is None:

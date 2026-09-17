@@ -22,6 +22,7 @@ import sys
 import traceback
 from datetime import date, datetime
 
+from trading_agents.core.config import data_dir as agents_data_dir
 from trading_agents.facts import premarket as premarket_facts
 
 from . import health
@@ -46,10 +47,9 @@ def build_facts(day, only=None):
         premarket_facts.main(argv)
     except Exception as e:
         return None, f"{type(e).__name__}: {e}"
-    path = f"journal_data/facts/{day.isoformat()}_premarket.json"
+    path = agents_data_dir("facts") / f"{day.isoformat()}_premarket.json"
     try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f), None
+        return json.loads(path.read_text(encoding="utf-8")), None
     except Exception as e:
         return None, f"facts written but unreadable: {e}"
 

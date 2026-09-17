@@ -1,6 +1,7 @@
 import math
 import unittest
 from datetime import date, datetime
+from unittest import mock
 
 from trading_agents.core import black76, rules, trades
 from trading_agents.core.dhan_client import READ_METHODS, ReadOnlyDhan
@@ -316,6 +317,104 @@ class Black76Test(unittest.TestCase):
 
     def test_iv_out_of_range(self):
         self.assertIsNone(black76.implied_vol(120, 100, 100, 0.1, 0.05, "CE"))   # call can't exceed F
+
+
+class ScripMasterLoaderTest(unittest.TestCase):
+    """The scrip-master download must not hang forever, and a truncated/short response must never
+    be cached and trusted for the rest of the day."""
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+
+        from trading_agents.core import instruments
+        self.instruments = instruments
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cache_dir = Path(self.tmp.name)
+        self.patch = mock.patch.object(instruments, "data_dir", lambda *a: self.cache_dir)
+        self.patch.start()
+        instruments._cache, instruments._cache_date = None, None
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+        self.instruments._cache, self.instruments._cache_date = None, None
+
+    def good_df(self, n=150_000):
+        import pandas as pd
+        exch = (["MCX"] * (n // 2)) + (["NSE"] * (n - n // 2))
+        return pd.DataFrame({"SEM_EXM_EXCH_ID": exch, "SEM_TRADING_SYMBOL": [f"X{i}" for i in range(n)],
+                             "SEM_EXPIRY_DATE": ["2026-12-31"] * n})
+
+    def test_a_truncated_download_is_rejected_and_retried(self):
+        calls = []
+
+        def fake_get(url, timeout=None, stream=None):
+            calls.append(1)
+            df = self.good_df(n=100) if len(calls) < 3 else self.good_df()   # short twice, then good
+
+            class Resp:
+                def raise_for_status(self):
+                    pass
+
+                def iter_content(self, chunk_size=None):
+                    import io
+                    buf = io.BytesIO()
+                    df.to_csv(buf, index=False)
+                    yield buf.getvalue()
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+            return Resp()
+
+        with mock.patch.object(self.instruments, "requests") as req, \
+             mock.patch.object(self.instruments.time, "sleep", lambda s: None):
+            req.get.side_effect = fake_get
+            df = self.instruments.load_scrip_master()
+        self.assertEqual(len(calls), 3)                                 # retried past the two short ones
+        self.assertEqual(len(df), 150_000)
+        self.assertEqual(list(self.cache_dir.glob("*.tmp")), [])         # no leftover temp file
+
+    def test_a_permanently_truncated_download_raises_rather_than_caching(self):
+        def fake_get(url, timeout=None, stream=None):
+            class Resp:
+                def raise_for_status(self):
+                    pass
+
+                def iter_content(self, chunk_size=None):
+                    yield b"SEM_EXM_EXCH_ID,SEM_TRADING_SYMBOL,SEM_EXPIRY_DATE\nMCX,X,2026-12-31\n"
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+            return Resp()
+
+        with mock.patch.object(self.instruments, "requests") as req, \
+             mock.patch.object(self.instruments.time, "sleep", lambda s: None):
+            req.get.side_effect = fake_get
+            with self.assertRaises(RuntimeError):
+                self.instruments.load_scrip_master()
+        self.assertEqual(list(self.cache_dir.glob("scrip_master_*.csv")), [])   # never cached
+
+    def test_in_memory_cache_expires_at_midnight(self):
+        from datetime import timedelta
+        today, tomorrow = date.today(), date.today() + timedelta(days=1)
+        with mock.patch.object(self.instruments.pd, "read_csv",
+                               lambda p, low_memory=None: self.good_df(n=100_001)):
+            (self.cache_dir / f"scrip_master_{today:%Y%m%d}.csv").write_text("x", encoding="utf-8")
+            first = self.instruments.load_scrip_master()
+            self.assertIs(self.instruments.load_scrip_master(), first)      # same process, same day: cached
+
+            with mock.patch.object(self.instruments, "date") as fake_date:
+                fake_date.today.return_value = tomorrow
+                (self.cache_dir / f"scrip_master_{tomorrow:%Y%m%d}.csv").write_text("x", encoding="utf-8")
+                second = self.instruments.load_scrip_master()
+        self.assertIsNot(second, first)                                     # date changed: reloaded, not stale
 
 
 if __name__ == "__main__":

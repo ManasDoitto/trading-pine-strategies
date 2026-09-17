@@ -95,6 +95,13 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(len(shadow.load()), 1)
         self.assertEqual(len(shadow.open_trades()), 1)
 
+    def test_save_is_atomic_no_tmp_file_and_valid_json_survives(self):
+        shadow.save([shadow.open_trade(sig(), atm(), {}, datetime(2026, 9, 16, 11, 45))])
+        names = sorted(p.name for p in Path(self.tmp.name).iterdir())
+        self.assertEqual(names, [shadow.STORE])                  # no leftover .tmp
+        json.loads(shadow.path().read_text(encoding="utf-8"))    # parses cleanly
+        self.assertEqual(len(shadow.load()), 1)
+
     def test_exit_scan_long_short_and_tie(self):
         t = dict(side="LONG", sl=10158.9, target=10364.5)
         _, level, reason = shadow._exit_scan(t, bars([(10200, 10240, 10190, 10230),
@@ -442,6 +449,62 @@ class ResilienceTest(unittest.TestCase):
             self.assertTrue(health.mark_started(date(2026, 9, 18), Path(tmp)))
             self.assertFalse(health.mark_started(date(2026, 9, 18), Path(tmp)))
             self.assertTrue(health.mark_started(date(2026, 9, 19), Path(tmp)))
+
+    def test_mark_started_write_is_atomic_no_tmp_file_left_behind(self):
+        # a crash mid-write must never truncate the real file - this proves a completed write is
+        # whole and leaves no .tmp litter, not that an already-corrupt file self-heals (it must keep
+        # raising, since silently discarding that evidence would be worse)
+        from trading_exec import health
+        with tempfile.TemporaryDirectory() as tmp:
+            health.mark_started(date(2026, 9, 18), Path(tmp))
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), [health.STATE])
+            json.loads((Path(tmp) / health.STATE).read_text(encoding="utf-8"))   # parses cleanly
+            health.mark_started(date(2026, 9, 19), Path(tmp))                    # second write, same story
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), [health.STATE])
+
+    def test_clock_offset_ok_matches_ist_and_rejects_utc(self):
+        from trading_exec import health
+        ist_now = datetime(2026, 9, 18, 12, 0)
+        with mock.patch.object(health, "datetime") as dt:
+            dt.now.return_value = ist_now
+            dt.utcnow.return_value = ist_now - timedelta(hours=5, minutes=30)
+            self.assertTrue(health.clock_offset_ok())
+            dt.utcnow.return_value = ist_now                                # UTC clock: 0 offset
+            self.assertFalse(health.clock_offset_ok())
+
+    def test_assert_ist_sends_one_alert_and_returns_false_on_a_bad_clock(self):
+        from trading_exec import health
+        sent = []
+        with mock.patch.object(health, "clock_offset_ok", lambda: False), \
+             mock.patch.object(health, "datetime") as dt:
+            dt.now.return_value = datetime(2026, 9, 18, 12, 0)
+            dt.utcnow.return_value = datetime(2026, 9, 18, 12, 0)           # UTC == local: 0 offset
+            ok = health.assert_ist(lambda t, l, s="info": sent.append((t, s)))
+        self.assertFalse(ok)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0], ("[fatal] server clock is not IST", "error"))
+
+    def test_assert_ist_true_and_silent_when_the_clock_is_fine(self):
+        from trading_exec import health
+        sent = []
+        with mock.patch.object(health, "clock_offset_ok", lambda: True):
+            self.assertTrue(health.assert_ist(lambda t, l, s="info": sent.append(t)))
+        self.assertEqual(sent, [])
+
+    def test_run_loop_refuses_to_start_on_a_bad_clock(self):
+        from trading_exec import health, runner
+        with mock.patch.object(health, "assert_ist", lambda notify_fn: False):
+            self.assertEqual(runner.run_loop(notify_fn=lambda *a, **k: None), 2)
+
+    def test_fresh_client_strips_whitespace_like_token_from_env_file_does(self):
+        from trading_exec import health
+        with mock.patch.object(health, "dotenv_values",
+                               lambda p: {"DHAN_CLIENT_ID": "cid\r\n", "DHAN_ACCESS_TOKEN": "tok \n"}), \
+             mock.patch("trading_agents.core.dhan_client.get_dhan_client", lambda: "client"):
+            health.fresh_client()
+        import os
+        self.assertEqual(os.environ["DHAN_CLIENT_ID"], "cid")
+        self.assertEqual(os.environ["DHAN_ACCESS_TOKEN"], "tok")
 
 
 class BankNiftyV04WiringTest(unittest.TestCase):
