@@ -24,7 +24,7 @@ from trading_agents.core.dhan_client import get_dhan_client
 from trading_agents.core.market_data import DhanApiError
 
 from . import atm as atm_mod
-from . import guards, health, poller, shadow, signals
+from . import guards, health, poller, shadow, signals, trade_watch
 from .config import data_dir, enabled_instruments, instrument_cfg, load_config
 from .notify import notify
 
@@ -89,14 +89,23 @@ def handle_signal(client, sig, now):
                 observed = shadow.open_trade(sig, near, atm_mod.premium_targets(near, sig), now,
                                              observational=True)
                 shadow.record(observed)
+        # No option was buyable, but the strategy still took this trade on the underlying. Follow it
+        # in points so the exit is reported too - unless an observational trade already tracks it.
+        watch = None
+        if not observed:
+            watch = shadow.open_watch(sig, blocks, now)
+            shadow.record_watch(watch)
         sig.status = "BLOCKED"
         sig.note = "; ".join(blocks) + (" | recorded observationally" if observed else "")
         signals.append(sig)
         extra = ([f"", f"Recorded observationally: {observed['symbol']} at {_fmt(observed['entry_premium'])}"
                   f" (DTE {observed['dte_at_entry']}) - tracked to measure what the floor costs, never traded."]
                  if observed else [])
+        if watch:
+            extra += ["", f"Following it on {sig.signal_label or 'the underlying'}: you get [signal exit]"
+                          " when it hits its stop or target."]
         notify(f"[blocked] {head}", base + ["", "Blocked by:"] + [f"- {b}" for b in blocks] + extra, "warning")
-        return dict(signal=sig.to_dict(), blocked=blocks, trade=None, observational=observed)
+        return dict(signal=sig.to_dict(), blocked=blocks, trade=None, observational=observed, watch=watch)
 
     trade = shadow.open_trade(sig, a, prem, now)
     shadow.record(trade)
@@ -138,9 +147,13 @@ def handle_armed(client, sig, now):
 
 
 def tick(client, now=None):
-    """One full pass: new signals, then mark open shadow trades."""
+    """One full pass: new signals, then mark open shadow trades.
+
+    Real positions are NOT watched here: trade_watch runs as its own faster loop, and two
+    processes sharing its state file would race."""
     now = now or datetime.now()
-    out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], armed=0, blocked=0, opened=0, closed=[])
+    out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], armed=0, blocked=0, opened=0,
+               closed=[], watch_closed=[])
     for sig in poller.poll_once(client, now):
         if sig.kind == "armed":
             out["signals"].append(handle_armed(client, sig, now)["signal"])
@@ -162,10 +175,24 @@ def tick(client, now=None):
             f"a 30% premium stop would have given {_fmt(t.get('premium_stop_net_inr'),0)} INR"
             if t.get("premium_stop_net_inr") is not None else "the 30% premium stop was never hit",
         ], "info")
+
+    _watches, watch_closed = shadow.mark_watches(client, now)
+    for w in watch_closed:
+        out["watch_closed"].append(w)
+        pts = w.get("pts")
+        notify(f"[signal exit] {w['instrument']} {w['side']} {w['exit_reason']} (not traded)", [
+            w["strategy"].split(" (")[0],
+            f"{w.get('signal_label') or 'underlying'} {_fmt(w.get('entry_fill'))} -> {_fmt(w.get('exit_level'))}",
+            f"{'+' if (pts or 0) >= 0 else ''}{_fmt(pts)} pts   {_fmt(w.get('r_multiple'), 2)} R"
+            f"   held {_fmt(w.get('hold_min'), 0)} min",
+            "",
+            f"No option was bought: {w['blocked_by']}",
+        ], "info")
+
     return out
 
 
-def status(now=None):
+def status(now=None, client=None):
     now = now or datetime.now()
     trades = shadow.load()
     op = shadow.open_trades(trades)
@@ -175,8 +202,16 @@ def status(now=None):
         print(f"  {t['symbol']} {t['side']} entry {_fmt(t['entry_premium'])} last {_fmt(t.get('last_premium'))}"
               f" | underlying stop {_fmt(t['sl'])} target {_fmt(t['target'])}")
     print(f"signals today: {len(todays)} ({sum(s.status == 'BLOCKED' for s in todays)} blocked)")
+    watching = shadow.open_watches()
+    print(f"blocked signals being followed: {len(watching)}")
+    for w in watching:
+        print(f"  {w['instrument']} {w['side']} from {_fmt(w.get('entry_fill') or w['signal_entry'])}"
+              f" | stop {_fmt(w['sl'])} target {_fmt(w['target'])} | {w['blocked_by']}")
     print(f"realised today: {_fmt(shadow.realised_today_inr(now.date(), trades), 0)} INR")
     print(f"closed all-time: {sum(t['status'] == 'CLOSED' for t in trades)}")
+    if client is not None:
+        print("real open positions:")
+        trade_watch.status(client)
 
 
 class LoopState:
@@ -317,7 +352,7 @@ def main(argv=None):
         sys.stdout = sys.stderr = log
 
     if args.status:
-        status()
+        status(client=get_dhan_client())
         return 0
 
     if args.loop:

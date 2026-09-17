@@ -94,11 +94,13 @@ def _underlying_bars(client, trade, now):
     start = datetime.fromisoformat(trade["bar_time"]).date()
     if trade.get("signal_security_id"):
         sid, seg, kind = trade["signal_security_id"], trade["signal_segment"], trade["signal_series_type"]
-    else:                                   # records from before signal series were stored
+    elif trade.get("expiry"):               # records from before signal series were stored
         ref = instruments.reference_series(trade["instrument"], date.fromisoformat(trade["expiry"]))
         if ref is None:
             return None
         sid, seg, kind = ref["security_id"], ref["segment"], ref["instrument"]
+    else:
+        return None
     bars = intraday_bars(client, sid, seg, kind, start, now.date(), interval=5)
     return bars[bars["time"] > datetime.fromisoformat(trade["bar_time"])]
 
@@ -205,3 +207,104 @@ def record(trade):
     trades.append(trade)
     save(trades)
     return trades
+
+
+# ---------------------------------------------------------------- blocked-signal watches
+# A blocked signal buys nothing, so there is no premium to track - but the strategy still took the
+# trade on the underlying, and the trader wants to know how it ended. A watch follows the same
+# stop/target on the same series the signal was computed on, and is priced in POINTS only. Watches
+# are kept apart from shadow trades so they can never reach the month-end verdict.
+WATCH_STORE = "blocked_watch.json"
+MAX_WATCH_DAYS = 10                      # a watch that never resolves is closed at the last price
+
+
+def watch_path():
+    return data_dir() / WATCH_STORE
+
+
+def load_watches():
+    p = watch_path()
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+
+
+def save_watches(watches):
+    watch_path().write_text(json.dumps(watches, indent=1, default=str), encoding="utf-8")
+
+
+def open_watches(watches=None):
+    return [w for w in (watches if watches is not None else load_watches()) if w["status"] == "OPEN"]
+
+
+def open_watch(signal, blocks, now=None):
+    """Start following a blocked signal on the underlying."""
+    now = now or datetime.now()
+    return dict(
+        id=f"{signal.instrument}-{signal.bar_time}-{signal.side}-watch",
+        signal_key=signal.key, strategy=signal.strategy, instrument=signal.instrument,
+        side=signal.side, bar_time=signal.bar_time,
+        opened_at=now.replace(microsecond=0).isoformat(),
+        blocked_by="; ".join(blocks),
+        signal_entry=signal.entry_hint, entry_fill=None,
+        sl=signal.sl, target=signal.target, risk_pts=signal.risk_pts, rr=signal.rr,
+        signal_instrument=getattr(signal, "signal_instrument", "") or signal.instrument,
+        signal_security_id=getattr(signal, "signal_security_id", ""),
+        signal_segment=getattr(signal, "signal_segment", ""),
+        signal_series_type=getattr(signal, "signal_series_type", ""),
+        signal_label=getattr(signal, "signal_label", ""),
+        flat_at=getattr(signal, "flat_at", ""),
+        status="OPEN", exit_at=None, exit_level=None, exit_reason=None, pts=None, r_multiple=None,
+    )
+
+
+def record_watch(watch):
+    watches = load_watches()
+    if any(w["id"] == watch["id"] for w in watches):
+        return watches
+    watches.append(watch)
+    save_watches(watches)
+    return watches
+
+
+def _close_watch(watch, when, level, reason):
+    when = when.to_pydatetime() if hasattr(when, "to_pydatetime") else when
+    watch["status"] = "CLOSED"
+    watch["exit_at"] = when.replace(microsecond=0).isoformat()
+    watch["exit_level"], watch["exit_reason"] = level, reason
+    if watch.get("entry_fill") is not None and level is not None:
+        sign = 1 if watch["side"] == "LONG" else -1
+        watch["pts"] = round((level - watch["entry_fill"]) * sign, 2)
+        watch["r_multiple"] = round(watch["pts"] / watch["risk_pts"], 2) if watch.get("risk_pts") else None
+        watch["hold_min"] = round((datetime.fromisoformat(watch["exit_at"])
+                                   - datetime.fromisoformat(watch["opened_at"])).total_seconds() / 60, 1)
+    return watch
+
+
+def mark_watch(client, watch, now=None):
+    """Fill the watch at the bar after the signal, then close it on the first stop/target touch."""
+    now = now or datetime.now()
+    bars = _underlying_bars(client, watch, now)
+    if bars is None or bars.empty:
+        return watch
+    if watch.get("entry_fill") is None:
+        watch["entry_fill"] = float(bars["open"].iloc[0])     # the Pine fills at the next bar's open
+    t, level, reason = _exit_scan(watch, bars)
+    if t is not None:
+        _close_watch(watch, t, level, reason)
+    elif (now - datetime.fromisoformat(watch["opened_at"])).days >= MAX_WATCH_DAYS:
+        last = bars.iloc[-1]
+        _close_watch(watch, last["time"], float(last["close"]), "STALE")
+    return watch
+
+
+def mark_watches(client, now=None):
+    """Mark every open watch. Returns (all_watches, newly_closed)."""
+    watches = load_watches()
+    closed = []
+    for w in watches:
+        if w["status"] != "OPEN":
+            continue
+        mark_watch(client, w, now)
+        if w["status"] == "CLOSED":
+            closed.append(w)
+    save_watches(watches)
+    return watches, closed

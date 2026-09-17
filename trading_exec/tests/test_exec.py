@@ -7,7 +7,7 @@ from unittest import mock
 
 import pandas as pd
 
-from trading_exec import guards, report, shadow, signals
+from trading_exec import guards, report, shadow, signals, trade_watch
 from trading_exec.signals import Signal
 
 
@@ -162,6 +162,83 @@ class ObservationalTest(unittest.TestCase):
         self.assertEqual(rep["instruments"]["CRUDEOIL"]["stats"]["net"], -1500)
         self.assertEqual(rep["observational"]["CRUDEOIL"]["n"], 1)
         self.assertIn("DTE floor refused", report.to_markdown(rep))
+
+
+def pos(symbol="CRUDEOIL 17 SEP 2026 9600 PUT", side="LONG", avg_entry=69.0, ltp=69.0, **over):
+    p = dict(symbol=symbol, side=side, qty_units=400.0, lots=4.0, avg_entry=avg_entry, ltp=ltp,
+             pnl_pts=None if ltp is None else round(ltp - avg_entry, 2),
+             unrealized_inr=None if ltp is None else round((ltp - avg_entry) * 400, 2),
+             product="INTRADAY", expiry="2026-09-17", right="PE", strike=9600.0, carried_forward_units=0.0)
+    p.update(over)
+    return p
+
+
+class TradeWatchTest(unittest.TestCase):
+    """The real-account watcher: a card on entry, then cut / hold / profit / averaging alerts."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir_patch = mock.patch.object(trade_watch, "data_dir", lambda *a: Path(self.tmp.name))
+        self.dir_patch.start()
+        self.sent = []
+        self.notify_patch = mock.patch.object(
+            trade_watch, "notify", lambda title, lines, sev="info": self.sent.append((title, sev)))
+        self.notify_patch.start()
+        self.card_patch = mock.patch.object(trade_watch, "quality_card", lambda c, p, now=None: (["card"], []))
+        self.card_patch.start()
+        self.bench_patch = mock.patch.object(trade_watch, "average_win_inr", lambda u: (4000.0, "test average"))
+        self.bench_patch.start()
+
+    def tearDown(self):
+        for p in (self.dir_patch, self.notify_patch, self.card_patch, self.bench_patch):
+            p.stop()
+        self.tmp.cleanup()
+
+    def levels(self, alerts):
+        return [a["level"] for a in alerts]
+
+    def test_new_position_sends_a_quality_card_once(self):
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos()])), ["opened"])
+        self.assertEqual(trade_watch.check(None, positions=[pos()]), [])
+        self.assertEqual([t for t, _ in self.sent], ["[trade opened] CRUDEOIL 17 SEP 2026 9600 PUT"])
+
+    def test_warn_then_cut(self):
+        trade_watch.check(None, positions=[pos()])                                  # entry card
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos(ltp=57.0)])), ["warn"])   # -17%
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos(ltp=14.7)])), ["cut"])    # -78.7%
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos(ltp=14.7)])), [])         # once only
+        self.assertEqual([s for _, s in self.sent], ["info", "warning", "error"])
+
+    def test_hold_ladder_fires_on_time_plus_loss(self):
+        t0 = datetime(2026, 9, 17, 19, 54)
+        trade_watch.check(None, now=t0, positions=[pos()])
+        # 10 minutes in and 12% down: under the 30-minute rung, so nothing yet
+        self.assertEqual(self.levels(trade_watch.check(None, now=t0 + timedelta(minutes=10),
+                                                       positions=[pos(ltp=60.7)])), [])
+        out = self.levels(trade_watch.check(None, now=t0 + timedelta(minutes=35), positions=[pos(ltp=60.7)]))
+        self.assertEqual(out, ["hold0"])
+
+    def test_profit_alert_at_the_average_win(self):
+        trade_watch.check(None, positions=[pos()])
+        # +9 points on 400 units = 3,600 INR, under the 4,000 benchmark
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos(ltp=78.0)])), [])
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[pos(ltp=80.0)])), ["profit"])
+
+    def test_averaging_down_is_flagged(self):
+        trade_watch.check(None, positions=[pos()])
+        added = pos(avg_entry=53.0, ltp=40.0, qty_units=800.0, lots=8.0)
+        self.assertIn("averaging", self.levels(trade_watch.check(None, positions=[added])))
+        self.assertIn("[AVERAGING DOWN] CRUDEOIL 17 SEP 2026 9600 PUT", [t for t, _ in self.sent])
+
+    def test_closed_position_sends_a_result_card(self):
+        trade_watch.check(None, positions=[pos()])
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[])), ["closed"])
+        self.assertEqual(trade_watch.check(None, positions=[]), [])
+
+    def test_short_positions_and_missing_ltp_are_ignored(self):
+        rows = [pos(side="SHORT", ltp=10.0), pos(ltp=None)]
+        self.assertEqual(trade_watch.check(None, positions=rows), [])
+        self.assertEqual(self.sent, [])
 
 
 class ReportTest(unittest.TestCase):
@@ -438,6 +515,77 @@ class BankNiftyV04WiringTest(unittest.TestCase):
         self.assertEqual((when.strftime("%H:%M"), level, reason), ("15:20", 56045.0, "EOD"))
         early_stop = bars([(56000, 56010, 55850, 55880)], start="2026-09-17T15:10:00")
         self.assertEqual(shadow._exit_scan(t, early_stop)[2], "SL")
+
+
+class BlockedWatchTest(unittest.TestCase):
+    """A blocked signal buys nothing, but the strategy still took it: follow it in points."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.patch = mock.patch.object(shadow, "data_dir", lambda *a: Path(self.tmp.name))
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+
+    def watch(self, side="LONG", **over):
+        s = sig(side=side, **over)
+        w = shadow.open_watch(s, ["DTE 1 below floor 2", "spread 88.0% over the 15% cap"],
+                              datetime(2026, 9, 16, 11, 35))
+        shadow.record_watch(w)
+        return w
+
+    def client_for(self, rows, start="2026-09-16T11:35:00"):
+        frame = bars(rows, start=start)
+        return mock.patch.object(shadow, "_underlying_bars", lambda c, t, n: frame)
+
+    def test_target_closes_the_watch_in_points(self):
+        self.watch()
+        with self.client_for([(10200, 10240, 10190, 10230), (10230, 10370, 10225, 10360)]):
+            _all, closed = shadow.mark_watches(None, datetime(2026, 9, 16, 12, 0))
+        self.assertEqual(len(closed), 1)
+        w = shadow.load_watches()[0]                                # the store is the source of truth
+        self.assertEqual((w["status"], w["exit_reason"]), ("CLOSED", "TARGET"))
+        self.assertEqual(w["entry_fill"], 10200.0)                  # filled at the next bar's open
+        self.assertEqual(w["pts"], 164.5)                           # 10364.5 - 10200
+        self.assertEqual(w["r_multiple"], 4.0)
+        self.assertIn("DTE 1 below floor 2", w["blocked_by"])
+
+    def test_short_watch_profits_when_price_falls(self):
+        self.watch(side="SHORT", entry=9812.0, sl=9862.47, target=9610.13, risk=50.47)
+        with self.client_for([(9810, 9815, 9800, 9805), (9805, 9808, 9600, 9605)]):
+            _all, closed = shadow.mark_watches(None, datetime(2026, 9, 17, 18, 0))
+        self.assertEqual(closed[0]["exit_reason"], "TARGET")
+        self.assertEqual(closed[0]["pts"], 199.87)                  # 9810 fill -> 9610.13
+        self.assertGreater(closed[0]["r_multiple"], 3.9)
+
+    def test_stop_wins_a_tie_and_loses_one_r(self):
+        self.watch()
+        with self.client_for([(10200, 10370, 10150, 10200)]):
+            _all, closed = shadow.mark_watches(None, datetime(2026, 9, 16, 12, 0))
+        self.assertEqual(closed[0]["exit_reason"], "SL")
+        self.assertEqual(closed[0]["r_multiple"], -1.0)
+
+    def test_unresolved_watch_stays_open_then_goes_stale(self):
+        self.watch()
+        quiet = [(10200, 10210, 10195, 10205)] * 3
+        with self.client_for(quiet):
+            _all, closed = shadow.mark_watches(None, datetime(2026, 9, 16, 13, 0))
+        self.assertEqual((closed, len(shadow.open_watches())), ([], 1))
+        with self.client_for(quiet):
+            _all, closed = shadow.mark_watches(None, datetime(2026, 9, 30, 13, 0))
+        self.assertEqual(closed[0]["exit_reason"], "STALE")
+
+    def test_watches_never_reach_the_shadow_verdict(self):
+        self.watch()
+        self.assertEqual(shadow.load(), [])                         # a different store entirely
+        self.assertEqual(shadow.realised_today_inr(date(2026, 9, 16)), 0)
+
+    def test_recording_the_same_watch_twice_is_ignored(self):
+        self.watch()
+        self.watch()
+        self.assertEqual(len(shadow.load_watches()), 1)
 
 
 class UnattendedRunnerTest(unittest.TestCase):
