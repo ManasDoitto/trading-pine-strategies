@@ -1,0 +1,70 @@
+//@version=5
+indicator("Valid Range Structure (Day Trading System)", overlay=true, max_labels_count=500, max_lines_count=500)
+
+// =====================================================================
+// Day Trading System: Valid Ranges (Opposite Candle + Pullback Candle)
+// =====================================================================
+
+// State tracking variables
+var int push_dir = 0 // 1 for pushing UP, -1 for pushing DOWN
+var float highest_high = na
+var int highest_idx = na
+var float lowest_low = na
+var int lowest_idx = na
+
+// On the first bar, establish an initial direction
+if bar_index == 0
+    highest_high := high
+    highest_idx := bar_index
+    lowest_low := low
+    lowest_idx := bar_index
+    push_dir := close > open ? 1 : -1
+
+// Main Logic
+if push_dir == 1
+    // PUSHING UP: Looking for a Valid Swing High
+    if high > highest_high
+        highest_high := high
+        highest_idx := bar_index
+    
+    // Check Opposite Candle (OC) and Pullback Candle (PBC)
+    bool is_oc = close < open // Bearish candle in an uptrend
+    bool is_pbc = high <= highest_high // Wick does not break the extreme
+    
+    // A single candle can be both OC and PBC. It must occur AFTER the extreme candle.
+    if is_oc and is_pbc and bar_index > highest_idx
+        // Valid Swing High Confirmed!
+        label.new(x=highest_idx, y=highest_high, text="SH", style=label.style_label_down, color=color.new(color.red, 30), textcolor=color.white, size=size.small)
+        
+        // Optional: Draw a line from the previous Swing Low to this Swing High
+        if not na(lowest_idx)
+            line.new(x1=lowest_idx, y1=lowest_low, x2=highest_idx, y2=highest_high, color=color.gray, style=line.style_dotted)
+
+        // Switch direction to down
+        push_dir := -1
+        lowest_low := low
+        lowest_idx := bar_index
+
+else if push_dir == -1
+    // PUSHING DOWN: Looking for a Valid Swing Low
+    if low < lowest_low
+        lowest_low := low
+        lowest_idx := bar_index
+        
+    // Check Opposite Candle (OC) and Pullback Candle (PBC)
+    bool is_oc = close > open // Bullish candle in a downtrend
+    bool is_pbc = low >= lowest_low // Wick does not break the extreme
+    
+    // A single candle can be both OC and PBC. It must occur AFTER the extreme candle.
+    if is_oc and is_pbc and bar_index > lowest_idx
+        // Valid Swing Low Confirmed!
+        label.new(x=lowest_idx, y=lowest_low, text="SL", style=label.style_label_up, color=color.new(color.green, 30), textcolor=color.white, size=size.small)
+        
+        // Optional: Draw a line from the previous Swing High to this Swing Low
+        if not na(highest_idx)
+            line.new(x1=highest_idx, y1=highest_high, x2=lowest_idx, y2=lowest_low, color=color.gray, style=line.style_dotted)
+
+        // Switch direction to up
+        push_dir := 1
+        highest_high := high
+        highest_idx := bar_index

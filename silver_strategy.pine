@@ -1,0 +1,161 @@
+//@version=5
+strategy("Silver Valid Range Strategy (Optimized)", overlay=true, calc_on_every_tick=false, max_labels_count=500, max_lines_count=500)
+
+// ==========================================
+// User Inputs
+// ==========================================
+fib_level = input.float(0.50, title="Fib Retracement Entry")
+target_r = input.float(3.0, title="Target Reward (R)")
+sl_buffer = input.float(0.0, title="Stop Loss Buffer (Ticks)")
+sweep_duration = input.int(4, title="Sweep Duration Max Hours")
+session_start = input.string("0900-2330", title="Trading Session")
+
+// ==========================================
+// Function: Valid Range Structure (OC + PBC)
+// ==========================================
+// We define a function that will be executed in the context of request.security()
+f_get_structure() =>
+    var int push_dir = 0
+    var float highest_high = na
+    var int highest_time = na
+    var float lowest_low = na
+    var int lowest_time = na
+    
+    var float last_valid_high = na
+    var float last_valid_low = na
+    
+    // Initialize
+    if bar_index == 0
+        highest_high := high
+        highest_time := time
+        lowest_low := low
+        lowest_time := time
+        push_dir := close > open ? 1 : -1
+        
+    bool new_valid_high = false
+    bool new_valid_low = false
+    
+    if push_dir == 1
+        if high > highest_high
+            highest_high := high
+            highest_time := time
+            
+        bool is_oc = close < open
+        bool is_pbc = high <= highest_high
+        
+        if is_oc and is_pbc and time > highest_time
+            last_valid_high := highest_high
+            new_valid_high := true
+            push_dir := -1
+            lowest_low := low
+            lowest_time := time
+            
+    else if push_dir == -1
+        if low < lowest_low
+            lowest_low := low
+            lowest_time := time
+            
+        bool is_oc = close > open
+        bool is_pbc = low >= lowest_low
+        
+        if is_oc and is_pbc and time > lowest_time
+            last_valid_low := lowest_low
+            new_valid_low := true
+            push_dir := 1
+            highest_high := high
+            highest_time := time
+            
+    // Return a tuple of the structure state
+    [last_valid_high, last_valid_low, new_valid_high, new_valid_low, push_dir, highest_high, lowest_low]
+
+// ==========================================
+// Fetch Higher Timeframe States
+// ==========================================
+// We use lookahead_on with [1] history reference to ensure 100% no repainting, or simply lookahead_off. 
+// Standard practice for step-wise execution is lookahead_off, but we want the exact state at the start of the current bar.
+[h1h, l1h, new_h1h, new_l1h, dir1h, ext_h1h, ext_l1h] = request.security(syminfo.tickerid, "60", f_get_structure(), lookahead=barmerge.lookahead_off)
+[h15m, l15m, new_h15m, new_l15m, dir15m, ext_h15m, ext_l15m] = request.security(syminfo.tickerid, "15", f_get_structure(), lookahead=barmerge.lookahead_off)
+[h5m, l5m, new_h5m, new_l5m, dir5m, ext_h5m, ext_l5m] = request.security(syminfo.tickerid, "5", f_get_structure(), lookahead=barmerge.lookahead_off)
+
+// Daily extremes (for sweeps)
+[prev_daily_high, prev_daily_low] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead=barmerge.lookahead_off)
+
+// ==========================================
+// Strategy Execution Logic
+// ==========================================
+var int active_sweep = 0 // 1 = swept high, -1 = swept low
+var float sweep_extreme = na
+var int sweep_time = na
+
+// 1. Detect Sweeps on 15m
+// A sweep happens when 15m pushes beyond the daily extreme but reverses
+if ext_h15m > prev_daily_high and dir15m == -1 // was pushing up, broke daily high, now pushing down
+    active_sweep := 1
+    sweep_extreme := ext_h15m
+    sweep_time := time
+else if ext_l15m < prev_daily_low and dir15m == 1 // was pushing down, broke daily low, now pushing up
+    active_sweep := -1
+    sweep_extreme := ext_l15m
+    sweep_time := time
+
+// Check sweep expiry
+if not na(sweep_time) and (time - sweep_time) > (sweep_duration * 60 * 60 * 1000)
+    active_sweep := 0
+
+// 2. Detect 5m Trend Change (TC)
+var bool trade_pending = false
+var float entry_price = na
+var float sl_price = na
+var float tp_price = na
+var int trade_dir = 0
+
+// If sweeping high, we look for a 5m bearish TC (price breaks valid low)
+if active_sweep == 1 and not trade_pending and strategy.position_size == 0
+    if close < l5m // 5m candle closed below last valid low
+        // TC confirmed
+        trade_dir := -1
+        trade_pending := true
+        // Fib retracement of the new leg (from sweep extreme down to the low of the candle that broke structure)
+        entry_price := sweep_extreme - ((sweep_extreme - low) * fib_level)
+        sl_price := sweep_extreme + (sl_buffer * syminfo.mintick)
+        risk = sl_price - entry_price
+        tp_price := entry_price - (risk * target_r)
+        active_sweep := 0
+
+// If sweeping low, we look for a 5m bullish TC (price breaks valid high)
+if active_sweep == -1 and not trade_pending and strategy.position_size == 0
+    if close > h5m // 5m candle closed above last valid high
+        // TC confirmed
+        trade_dir := 1
+        trade_pending := true
+        // Fib retracement of the new leg (from sweep extreme up to the high of the candle that broke structure)
+        entry_price := sweep_extreme + ((high - sweep_extreme) * fib_level)
+        sl_price := sweep_extreme - (sl_buffer * syminfo.mintick)
+        risk = entry_price - sl_price
+        tp_price := entry_price + (risk * target_r)
+        active_sweep := 0
+
+// 3. Execution
+if trade_pending
+    if trade_dir == 1
+        strategy.entry("Long", strategy.long, limit=entry_price)
+        strategy.exit("Exit Long", "Long", limit=tp_price, stop=sl_price)
+    else if trade_dir == -1
+        strategy.entry("Short", strategy.short, limit=entry_price)
+        strategy.exit("Exit Short", "Short", limit=tp_price, stop=sl_price)
+    
+    // Invalidate setup if we break the sweep extreme before entry, or if end of day
+    if (trade_dir == 1 and close < sl_price) or (trade_dir == -1 and close > sl_price)
+        strategy.cancel_all()
+        trade_pending := false
+
+// Clear pending if in trade
+if strategy.position_size != 0
+    trade_pending := false
+
+// Close all at end of session
+if hour == 23 and minute >= 15
+    strategy.close_all("EOD")
+    strategy.cancel_all()
+    trade_pending := false
+    active_sweep := 0
