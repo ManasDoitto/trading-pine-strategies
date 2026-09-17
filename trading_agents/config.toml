@@ -146,6 +146,37 @@ max_sl = 5.0
 rr = 3.0
 session = ["09:15", "23:30"]
 
+# BankNifty v0.4 (working_strategies/BankNifty/1), default inputs copied from the Pine. It runs on the
+# front-month FUTURE (NSE:BANKNIFTY1!): its core filter needs volume and VWAP, which the index lacks.
+# engine = "v04" -> trading_agents/core/signals_v04.py. The v4.0 agents' strategy sections skip it.
+[strategy.BANKNIFTY]
+engine = "v04"
+name = "BankNifty v0.4 EMA pullback + 15m ADX gate (working_strategies/BankNifty/1)"
+ema_fast = 9
+ema_med = 21
+ema_slow = 200
+entry_window = ["09:30", "15:00"]
+skip_open_min = 15
+flat_window = ["15:15", "15:30"]
+flat_exit_at = "15:20"             # the force-flat close fills at the next bar's open
+atr_min_pts = 50.0
+atr_buff = 0.15
+stop_floor_atr = 0.5
+max_stop_atr = 2.0
+rr = 2.5
+wick_frac = 0.5
+vol_mlt = 1.0
+rsi_len = 3
+rsi_max_long = 80
+rsi_min_short = 20
+pb_lookback = 10
+reclaim_win = 8
+cool_bars = 3
+allow_coil = true
+cluster_mlt = 1.0
+cluster_buf = 0.25
+htf_adx_min = 25.0
+
 # Pre-registered forward test (memory: crude-v4-forward-test). Never move these goalposts.
 [forward_test.CRUDEOIL]
 strategy = "v4.0 SHA flip RR3 (variant lab V21), TradingView shared slot, MCX:CRUDEOIL1! 5m"

@@ -73,6 +73,7 @@ def open_trade(signal, atm, premium_targets, now=None, observational=False):
         signal_series_type=getattr(signal, "signal_series_type", ""),
         signal_label=getattr(signal, "signal_label", ""),
         signal_entry=signal.entry_hint,
+        flat_at=getattr(signal, "flat_at", ""),
         risk_pts=signal.risk_pts, rr=signal.rr,
         lots=atm["lots"], qty_units=qty,
         entry_premium=entry, entry_bid=atm.get("bid"), entry_ask=atm.get("ask"),
@@ -110,9 +111,16 @@ def _option_bars(client, trade, now):
 
 
 def _exit_scan(trade, ubars):
-    """First underlying touch of stop or target after entry. Stop wins a tie, as in simulate()."""
+    """First underlying touch of stop or target after entry. Stop wins a tie, as in simulate().
+    A strategy with a same-day force-flat (BankNifty v0.4, flat_at 15:20) exits at that bar's open."""
     is_long = trade["side"] == "LONG"
+    flat_at = None
+    if trade.get("flat_at"):
+        hh, mm = trade["flat_at"].split(":")
+        flat_at = datetime.min.replace(hour=int(hh), minute=int(mm)).time()
     for r in ubars.to_dict("records"):
+        if flat_at is not None and r["time"].time() >= flat_at:
+            return r["time"], float(r["open"]), "EOD"
         hit_sl = r["low"] <= trade["sl"] if is_long else r["high"] >= trade["sl"]
         hit_tp = r["high"] >= trade["target"] if is_long else r["low"] <= trade["target"]
         if hit_sl or hit_tp:
@@ -147,6 +155,8 @@ def mark(client, trade, now=None):
         if t is not None:
             at_exit = obars[obars["time"] <= t] if not obars.empty else obars
             exit_premium = float(at_exit["close"].iloc[-1]) if len(at_exit) else trade.get("last_premium")
+            if reason == "EOD" and len(at_exit) and at_exit["time"].iloc[-1] == t:
+                exit_premium = float(at_exit["open"].iloc[-1])          # the force-flat fills at the open
             _close(trade, t, level, reason, exit_premium)
             return trade
 

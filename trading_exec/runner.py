@@ -69,7 +69,7 @@ def handle_signal(client, sig, now):
     prem = atm_mod.premium_targets(a, sig)
     all_trades = shadow.load()
     ctx = dict(now=now,
-               signals_today=signals.on_date(signals.load_all(), now.date()),
+               signals_today=[s for s in signals.on_date(signals.load_all(), now.date()) if s.kind == "entry"],
                open_positions=shadow.open_trades(all_trades),
                realised_today_inr=shadow.realised_today_inr(now.date(), all_trades))
     blocks = guards.check(sig, a, ctx)
@@ -117,11 +117,35 @@ def handle_signal(client, sig, now):
     return dict(signal=sig.to_dict(), blocked=[], trade=trade)
 
 
+def handle_armed(client, sig, now):
+    """A BankNifty v0.4 stop entry was armed: say where the trigger is before any trade happens."""
+    a = atm_mod.resolve(client, sig.instrument, sig.option_right, now)
+    above = sig.side == "LONG"
+    lines = [f"trigger: {sig.signal_label} trades {'above' if above else 'below'} {_fmt(sig.entry_hint)}",
+             f"if triggered: stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}",
+             sig.note, ""]
+    if a.get("usable"):
+        lines += [f"option a buyer would use: {a['symbol']} ({a['lots']} lots = {a['qty_units']} units, DTE {a['dte']})",
+                  f"ask now {_fmt(a['entry_premium'])}  spread {_fmt(a['spread_pct'], 1)}%  "
+                  f"theta {_fmt(a.get('theta_pct_of_premium'), 1)}% of premium/day"]
+    else:
+        lines += ["option preview unavailable: " + "; ".join(a.get("reasons") or ["unknown"])]
+    lines += ["", "No trade yet. [shadow entry] follows only if the trigger is hit."]
+    sig.status = "ARMED"
+    signals.append(sig)
+    notify(f"[setup armed] {sig.instrument} {sig.side} ({sig.strategy})", lines, "info")
+    return dict(signal=sig.to_dict(), blocked=[], trade=None)
+
+
 def tick(client, now=None):
     """One full pass: new signals, then mark open shadow trades."""
     now = now or datetime.now()
-    out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], blocked=0, opened=0, closed=[])
+    out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], armed=0, blocked=0, opened=0, closed=[])
     for sig in poller.poll_once(client, now):
+        if sig.kind == "armed":
+            out["signals"].append(handle_armed(client, sig, now)["signal"])
+            out["armed"] += 1
+            continue
         res = handle_signal(client, sig, now)
         out["signals"].append(res["signal"])
         out["blocked"] += bool(res["blocked"])
@@ -166,10 +190,15 @@ class LoopState:
 
 
 def watching_lines():
+    from trading_agents.core.config import load_config as agents_config
+    strategies = agents_config().get("strategy", {})
     lines = []
     for traded in enabled_instruments():
-        source = instrument_cfg(traded).get("signal_from", traded)
-        lines.append(f"- {traded} options, signal on {source}" if source != traded else f"- {traded}")
+        tcfg = instrument_cfg(traded)
+        source = tcfg.get("signal_from", traded)
+        series = f"{source} futures" if tcfg.get("signal_series") == "future" else source
+        name = (strategies.get(source) or {}).get("name", "no strategy")
+        lines.append(f"- {traded} options, signal on {series}: {name.split(' (')[0]}")
     return lines
 
 

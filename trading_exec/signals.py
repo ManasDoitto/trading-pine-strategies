@@ -35,10 +35,13 @@ class Signal:
     signal_segment: str = ""
     signal_series_type: str = ""      # FUTCOM or INDEX
     signal_label: str = ""            # e.g. SILVER-04Dec2026-FUT
+    kind: str = "entry"               # "entry", or "armed" (a v0.4 stop entry armed, not yet triggered)
+    flat_at: str = ""                 # HH:MM a same-day strategy force-closes (BankNifty v0.4: 15:20)
 
     @property
     def key(self):
-        return f"{self.strategy}|{self.instrument}|{self.side}|{self.bar_time}"
+        base = f"{self.strategy}|{self.instrument}|{self.side}|{self.bar_time}"
+        return base if self.kind == "entry" else f"{base}|{self.kind}"
 
     @property
     def option_right(self):

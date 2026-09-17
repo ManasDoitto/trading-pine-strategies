@@ -153,9 +153,11 @@ def instrument_facts(client, u, as_of, as_of_dt, cfg):
     prior = bars[bars["time"].dt.date < as_of]
     und = levels.level_summary(bars, as_of)
     scfg = cfg.get("strategy", {}).get(u)
+    if scfg and scfg.get("engine", "v40") != "v40":
+        scfg = None                         # the brief models v4.0 state only
     strat = (signals.v40_state(prior, scfg) if scfg else
              dict(modelled=False, available=False,
-                  note="BANKNIFTY v0.4 (EMA pullback + 15m ADX gate) is not modelled in Python yet"))
+                  note="BANKNIFTY v0.4 state is not included in this brief; its live signals come from the signal checker"))
 
     ref_close = und["prev_day"]["close"] if und.get("available") else None
     chains = dict(nearest=options.chain_snapshot(client, u, exps[0], as_of_dt, pcfg, ref_close))
@@ -227,7 +229,7 @@ def build(client, as_of, only=None):
             "settlement price and can differ (up to 66 pts on crude in Aug-Sep 2026); highs and lows match "
             "Dhan's daily bars exactly.",
             "v4.0 state is a Python port of the Pine strategy on Dhan bars -- approximate; the simulated "
-            "position is indicative only. BANKNIFTY v0.4 is not modelled.",
+            "position is indicative only. BANKNIFTY v0.4 state is not included here (the signal checker runs it).",
             "Option-chain values before the open reflect the previous session. Theta is per calendar day "
             "(Dhan greeks); b76_* fields are a local Black-76 cross-check.",
             "Chains failing the quality gates are marked usable=false; their premiums/IVs must not be quoted.",

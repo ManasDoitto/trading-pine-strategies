@@ -89,6 +89,20 @@ def underlying_future(underlying, option_expiry=None):
                 expiry=r["_expiry"], label=r.SEM_TRADING_SYMBOL)
 
 
+def front_future(underlying):
+    """The front-month future a continuous chart shows (CRUDEOIL1!, SILVER1!, BANKNIFTY1!).
+    MCX futures are FUTCOM; NSE index futures are FUTIDX. It rolls on the day after expiry."""
+    nse = instrument_cfg(underlying)["option_segment"].startswith("NSE")
+    kind, segment = ("FUTIDX", "NSE_FNO") if nse else ("FUTCOM", "MCX_COMM")
+    fut = _rows(underlying, kind).dropna(subset=["_expiry"]).sort_values("_expiry")
+    fut = fut[fut["_expiry"] >= date.today()]
+    if fut.empty:
+        return None
+    r = fut.iloc[0]
+    return dict(security_id=str(int(r.SEM_SMST_SECURITY_ID)), segment=segment, instrument=kind,
+                expiry=r["_expiry"], label=r.SEM_TRADING_SYMBOL)
+
+
 def reference_series(underlying, option_expiry=None):
     """The underlying price series used for levels / moneyness of an option."""
     cfg = instrument_cfg(underlying)

@@ -48,8 +48,12 @@ lots = 2
 min_dte = 2
 max_spread_pct = 15.0
 
+# BankNifty v0.4 runs on the front-month FUTURE (NSE:BANKNIFTY1!) - it needs volume and VWAP - and is
+# bought as BANKNIFTY index options. It alerts [setup armed] when its stop entry arms, then
+# [shadow entry] when the trigger is hit. Its trades are flat by 15:20.
 [instruments.BANKNIFTY]
-enabled = false                     # until v0.4 is ported to Python
+enabled = true
+signal_series = "future"
 lots = 2
 min_dte = 2
 max_spread_pct = 15.0

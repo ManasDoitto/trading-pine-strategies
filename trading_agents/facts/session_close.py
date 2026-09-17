@@ -68,7 +68,7 @@ def strategy_session(bars, scfg, day):
     """v4.0 signals and simulated trades belonging to `day`."""
     if not scfg:
         return dict(modelled=False, available=False,
-                    note="BANKNIFTY v0.4 (EMA pullback + 15m ADX gate) is not modelled in Python yet")
+                    note="BANKNIFTY v0.4 signals are not included in this review; the signal checker runs them")
     if len(bars) < signals.WARMUP_BARS + 50:
         return dict(modelled=True, available=False, note=f"only {len(bars)} 5m bars of history")
     df = signals.v40_frame(bars, scfg)
@@ -155,7 +155,10 @@ def instrument_facts(client, u, day, cfg, premarket, journal):
         prior = levels.level_summary(bars, day)
         sess = session_summary(day_bars, prior if prior.get("available") else None)
 
-    strat = strategy_session(bars[bars["time"].dt.date <= day], scfg_all.get(u), day)
+    scfg = scfg_all.get(u)
+    if scfg and scfg.get("engine", "v40") != "v40":
+        scfg = None                         # this review models v4.0 signals only
+    strat = strategy_session(bars[bars["time"].dt.date <= day], scfg, day)
     user = user_session_trades(journal, day, u)
     align = alignment(user.get("entries_today", []), strat.get("signals", []), pcfg["signal_match_minutes"])
 

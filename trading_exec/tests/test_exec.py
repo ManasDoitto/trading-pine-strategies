@@ -68,7 +68,9 @@ class GuardTest(unittest.TestCase):
                             for b in guards.check(s, atm(), self.ctx(realised_today_inr=-10000))))
 
     def test_disabled_instrument(self):
-        self.assertTrue(any("disabled" in b for b in guards.check(sig(instrument="BANKNIFTY"), atm(), self.ctx())))
+        off = lambda u: dict(enabled=False, lots=2, min_dte=2, max_spread_pct=15.0)
+        with mock.patch.object(guards, "instrument_cfg", off):
+            self.assertTrue(any("disabled" in b for b in guards.check(sig(), atm(), self.ctx())))
 
 
 class ShadowTest(unittest.TestCase):
@@ -362,6 +364,80 @@ class ResilienceTest(unittest.TestCase):
             self.assertTrue(health.mark_started(date(2026, 9, 18), Path(tmp)))
             self.assertFalse(health.mark_started(date(2026, 9, 18), Path(tmp)))
             self.assertTrue(health.mark_started(date(2026, 9, 19), Path(tmp)))
+
+
+class BankNiftyV04WiringTest(unittest.TestCase):
+    """BankNifty v0.4: armed and entry signals, intrabar trigger detection, and the 15:20 force-flat."""
+
+    P = dict(name="BankNifty v0.4 test", rr=2.5, reclaim_win=8, flat_exit_at="15:20")
+    SERIES = dict(security_id="68390", segment="NSE_FNO", instrument="FUTIDX", label="BANKNIFTY-Sep2026-FUT")
+
+    def frame(self):
+        t0 = datetime(2026, 9, 17, 10, 0)
+        return pd.DataFrame(dict(time=[t0 + timedelta(minutes=5 * i) for i in range(300)],
+                                 open=1.0, high=1.0, low=1.0, close=1.0, volume=1.0))
+
+    def run_v04(self, sim, ltp=None):
+        from trading_exec import poller
+
+        class Client:
+            def ticker_data(self, securities):
+                return {"data": {"data": {"NSE_FNO": {"68390": {"last_price": ltp}}}}}
+
+        df = self.frame()
+        with mock.patch.object(poller.v04, "v04_frame", lambda b, p: df), \
+             mock.patch.object(poller.v04, "simulate", lambda d, p: sim):
+            return poller.v04_signals(Client(), "BANKNIFTY", "BANKNIFTY", self.P, self.SERIES, df), df
+
+    def order(self, df, side="LONG"):
+        return dict(side=side, arm_bar=298, arm_time=df["time"].iat[298], trig=56010.0, sl=55900.0, tp=56285.0,
+                    risk_pts=110.0)
+
+    def test_armed_on_the_last_bar(self):
+        df = self.frame()
+        o = dict(self.order(df), arm_bar=299, arm_time=df["time"].iat[299])
+        sim = dict(events=[dict(kind="armed", bar=299, time=o["arm_time"], **o)], position=None,
+                   live=dict(L=o, S=None), trades=[])
+        out, _ = self.run_v04(sim, ltp=55950.0)                      # below the trigger: no entry
+        self.assertEqual([(s.kind, s.side, s.entry_hint, s.sl, s.target) for s in out],
+                         [("armed", "LONG", 56010.0, 55900.0, 56285.0)])
+        self.assertIn("until", out[0].note)
+        self.assertEqual(out[0].flat_at, "15:20")
+
+    def test_entry_filled_on_the_last_closed_bar(self):
+        df = self.frame()
+        o = self.order(df)
+        fill = dict(kind="filled", bar=299, time=df["time"].iat[299], side="LONG", arm_time=o["arm_time"],
+                    entry=56010.0, sl=55900.0, tp=56285.0, risk_pts=110.0)
+        out, _ = self.run_v04(dict(events=[fill], position=dict(side="LONG"), live=dict(L=None, S=None), trades=[]))
+        self.assertEqual([(s.kind, s.bar_time) for s in out], [("entry", df["time"].iat[299].isoformat())])
+
+    def test_intrabar_trigger_cross_is_an_entry_on_the_forming_bar(self):
+        df = self.frame()
+        sim = dict(events=[], position=None, live=dict(L=self.order(df), S=None), trades=[])
+        crossed, _ = self.run_v04(sim, ltp=56012.0)
+        self.assertEqual(len(crossed), 1)
+        s = crossed[0]
+        self.assertEqual((s.kind, s.bar_time), ("entry", (df["time"].iat[-1] + timedelta(minutes=5)).isoformat()))
+        self.assertIn("intrabar", s.note)
+        not_yet, _ = self.run_v04(sim, ltp=56005.0)
+        self.assertEqual(not_yet, [])
+
+    def test_armed_and_entry_keys_never_collide(self):
+        a = sig(bar_time="2026-09-17T10:05:00")
+        b = Signal(**{**{k: getattr(a, k) for k in ("strategy", "instrument", "side", "bar_time", "entry_hint",
+                                                     "sl", "target", "risk_pts", "rr")}, "kind": "armed"})
+        self.assertNotEqual(a.key, b.key)
+        self.assertEqual(a.key, "v4.0|CRUDEOIL|LONG|2026-09-17T10:05:00")          # entry keys unchanged
+
+    def test_shadow_force_flat_exit_at_1520_open(self):
+        t = dict(side="LONG", sl=55900.0, target=56285.0, flat_at="15:20")
+        rows = bars([(56000, 56050, 55950, 56020), (56020, 56060, 55990, 56040), (56045, 56070, 56030, 56060)],
+                    start="2026-09-17T15:10:00")
+        when, level, reason = shadow._exit_scan(t, rows)
+        self.assertEqual((when.strftime("%H:%M"), level, reason), ("15:20", 56045.0, "EOD"))
+        early_stop = bars([(56000, 56010, 55850, 55880)], start="2026-09-17T15:10:00")
+        self.assertEqual(shadow._exit_scan(t, early_stop)[2], "SL")
 
 
 class UnattendedRunnerTest(unittest.TestCase):
