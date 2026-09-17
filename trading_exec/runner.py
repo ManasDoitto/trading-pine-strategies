@@ -63,6 +63,14 @@ def _fmt(x, nd=2):
     return "n/a" if x is None else (f"{x:,.{nd}f}" if isinstance(x, (int, float)) else str(x))
 
 
+def _when(iso):
+    """2026-09-17T20:50:00 -> 17-Sep 20:50, which is what a phone has room for."""
+    try:
+        return datetime.fromisoformat(str(iso)).strftime("%d-%b %H:%M")
+    except ValueError:
+        return str(iso)
+
+
 def handle_signal(client, sig, now):
     """Resolve the option, run guards, and either record a shadow trade or a blocked signal."""
     a = atm_mod.resolve(client, sig.instrument, sig.option_right, now)
@@ -75,7 +83,7 @@ def handle_signal(client, sig, now):
     blocks = guards.check(sig, a, ctx)
 
     head = f"{sig.instrument} {sig.side} signal ({sig.strategy})"
-    base = [f"bar {sig.bar_time}  {sig.signal_label or 'underlying'} {_fmt(sig.entry_hint)}",
+    base = [f"{_when(sig.bar_time)} bar  {sig.signal_label or 'underlying'} {_fmt(sig.entry_hint)}",
             f"stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}"]
 
     if blocks:
@@ -112,7 +120,7 @@ def handle_signal(client, sig, now):
     sig.status = "SHADOW"
     sig.note = trade["id"]
     signals.append(sig)
-    notify(f"[shadow entry] {head}", base + [
+    notify(f"[shadow entry] {head}", ["SIMULATED - you hold nothing from this alert.", ""] + base + [
         "",
         f"option {a['symbol']}  ({a['lots']} lots = {a['qty_units']} units, DTE {a['dte']})",
         f"entry at ask {_fmt(a['entry_premium'])}  (bid {_fmt(a['bid'])}, spread {_fmt(a['spread_pct'],1)}%)",
@@ -197,7 +205,7 @@ def status(now=None, client=None):
     trades = shadow.load()
     op = shadow.open_trades(trades)
     todays = signals.on_date(signals.load_all(), now.date())
-    print(f"open shadow trades: {len(op)}")
+    print(f"SHADOW BOOK (simulated, not your account): {len(op)} open")
     for t in op:
         print(f"  {t['symbol']} {t['side']} entry {_fmt(t['entry_premium'])} last {_fmt(t.get('last_premium'))}"
               f" | underlying stop {_fmt(t['sl'])} target {_fmt(t['target'])}")
@@ -207,7 +215,7 @@ def status(now=None, client=None):
     for w in watching:
         print(f"  {w['instrument']} {w['side']} from {_fmt(w.get('entry_fill') or w['signal_entry'])}"
               f" | stop {_fmt(w['sl'])} target {_fmt(w['target'])} | {w['blocked_by']}")
-    print(f"realised today: {_fmt(shadow.realised_today_inr(now.date(), trades), 0)} INR")
+    print(f"realised today (shadow): {_fmt(shadow.realised_today_inr(now.date(), trades), 0)} INR")
     print(f"closed all-time: {sum(t['status'] == 'CLOSED' for t in trades)}")
     if client is not None:
         print("real open positions:")

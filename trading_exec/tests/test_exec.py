@@ -8,7 +8,7 @@ from unittest import mock
 
 import pandas as pd
 
-from trading_exec import guards, morning, report, shadow, signals, trade_watch
+from trading_exec import evening, guards, morning, notify as notify_mod, report, shadow, signals, trade_watch
 from trading_exec.signals import Signal
 
 
@@ -658,6 +658,139 @@ class MorningJobTest(unittest.TestCase):
         g = self.sent(token_status="expires_before_close", expiry=datetime(2026, 9, 18, 10, 21))
         self.assertIn("Token expires 18-Sep 10:21", g["text"])
         self.assertEqual(g["severity"], "info")
+
+
+class TelegramMarkupTest(unittest.TestCase):
+    """Numbers and trading terms are what the eye needs first, so they are bold - and nothing else breaks."""
+
+    def test_numbers_and_terms_are_bold(self):
+        got = notify_mod.markup("premium 69.00 -> 14.70  (-79%)")
+        self.assertEqual(got, "premium <b>69.00</b> -&gt; <b>14.70</b>  (<b>-79%</b>)")
+
+    def test_contract_symbols_are_left_whole(self):
+        got = notify_mod.markup("option SILVERM-24Sep2026-240000-CE (2 lots)")
+        self.assertIn("SILVERM-24Sep2026-240000-CE", got)          # not shredded into bold fragments
+        self.assertIn("<b>2</b> lots", got)
+
+    def test_adjacent_bolds_merge_into_one_phrase(self):
+        self.assertIn("<b>SHORT TARGET</b>", notify_mod.markup("CRUDEOIL SHORT TARGET"))
+        self.assertIn("<b>-1,100 INR</b>", notify_mod.markup("net -1,100 INR"))
+        two_spaces = notify_mod.markup("risk 50.47 pts  R:R 4")     # a wider gap is a column, kept apart
+        self.assertIn("<b>50.47 pts</b>  <b>R:R 4</b>", two_spaces)
+
+    def test_html_is_escaped_before_tags_are_added(self):
+        got = notify_mod.markup("spread 88.0% & <script>")
+        self.assertIn("&amp;", got)
+        self.assertIn("&lt;script&gt;", got)
+        self.assertNotIn("<script>", got)
+
+    def test_telegram_sends_html_and_skips_without_credentials(self):
+        with mock.patch.object(notify_mod, "env", lambda k: None):
+            self.assertIn("skipped", notify_mod._telegram("[shadow entry] CRUDEOIL", "premium 69.00"))
+        sent = {}
+
+        class Resp:
+            ok = True
+
+        def fake_post(url, json=None, timeout=None):
+            sent.update(json)
+            return Resp()
+
+        patches = [mock.patch.object(notify_mod, "env", lambda k: "x"),
+                   mock.patch.object(notify_mod, "load_config", lambda: {"notify": {"telegram": True}}),
+                   mock.patch.object(notify_mod, "_log", lambda line: None),
+                   mock.patch.dict("sys.modules", {"requests": mock.Mock(post=fake_post)})]
+        with contextlib.ExitStack() as stack:
+            for p in patches:
+                stack.enter_context(p)
+            out = notify_mod.notify("[blocked] CRUDEOIL SHORT signal", ["DTE 1 below floor 2"], "warning")
+        self.assertEqual(out["telegram"], "sent")
+        self.assertEqual(sent["parse_mode"], "HTML")
+        self.assertTrue(sent["text"].startswith("⛔ <b>BLOCKED</b> · <b>CRUDEOIL SHORT</b>"))
+        self.assertIn("<b>DTE 1</b>", sent["text"])
+
+    def test_the_card_is_built_for_a_phone(self):
+        head = notify_mod.headline("[shadow entry] SILVERM LONG signal (Silver v4.0 wide-ATR)")
+        self.assertEqual(head, "🟢 <b>SHADOW ENTRY</b> · <b>SILVERM LONG</b>\n<i>Silver v4.0 wide-ATR</i>")
+        card = notify_mod.body(["stop 237,415.95  target 242,008.15", "", "Blocked by:", "- DTE 1 below floor 2"])
+        self.assertIn(" · ", card)                                  # column gaps become separators
+        self.assertIn("• <b>DTE 1</b> below floor <b>2</b>", card)  # dashes and indents become bullets
+        self.assertIn("\n\n", card)                                 # blank lines still break sections
+
+    def test_an_exit_icon_follows_the_outcome(self):
+        self.assertTrue(notify_mod.headline("[shadow exit] SILVERM LONG TARGET").startswith("🎯"))
+        self.assertTrue(notify_mod.headline("[shadow exit] CRUDEOIL SHORT SL").startswith("🛑"))
+        self.assertTrue(notify_mod.headline("[cut it] CRUDEOIL 18 SEP 2026 9600 PUT", "error").startswith("🚨"))
+
+    def test_clock_times_contract_names_and_ratios_survive(self):
+        self.assertIn("17-Sep 20:50", notify_mod.markup("17-Sep 20:50 bar"))
+        self.assertIn("CRUDEOIL 17 SEP 2026 9600 PUT", notify_mod.markup("R4 on CRUDEOIL 17 SEP 2026 9600 PUT"))
+        self.assertIn("<b>0.89x</b>", notify_mod.markup("range 0.89x ATR"))
+        self.assertIn("<b>4,650.00</b>", notify_mod.markup("(bid 4,650.00, spread 1.1%)"))
+
+    def test_a_sentence_about_signals_is_not_mangled(self):
+        head = notify_mod.headline("[token expired] Dhan token has expired - no signals are being checked")
+        self.assertIn("no signals are being checked", head)
+
+
+class EveningJobTest(unittest.TestCase):
+    """The post-market digest: your day first, then each strategy, then the shadow book."""
+
+    FACTS = {"instruments": {"CRUDEOIL": {
+        "available": True,
+        "session": {"close": 9760.0, "change_pct": -0.58, "range_vs_atr": 0.89},
+        "strategy": {"available": True, "signals": [1], "trades": [], "trades_net_pts": 0.0},
+        "alignment": {"entries": 10, "matched_a_signal": 0}}},
+        "scorecard": {"rows": [{"underlying": "CRUDEOIL", "rule_bias": "bearish", "outcome": "flat",
+                                "rule_correct": False}]}}
+    JOURNAL = {"today": {"summary_round_trips": {"n": 10, "net": -1100.0, "win_rate": 90.0, "profit_factor": 0.95},
+                         "violations": [{"rule": "R4", "title": "Premium stop not respected",
+                                         "symbol": "CRUDEOIL 17 SEP 2026 9600 PUT", "inr": -21720.0}]}}
+
+    def sent(self, journal=None, facts=None, error=None):
+        got = {}
+
+        def fake(title, lines, severity="info"):
+            got.update(title=title, text="\n".join(lines), severity=severity)
+            return {}
+
+        patches = [
+            mock.patch.object(evening, "build_facts", lambda d, s, o: (facts, error)),
+            mock.patch.object(evening, "_facts", lambda d, kind: journal),
+            mock.patch.object(evening.health, "token_from_env_file", lambda: "t"),
+            mock.patch.object(evening.health, "token_expiry", lambda t: datetime(2026, 9, 19, 10, 0)),
+            mock.patch.object(evening.health, "token_status", lambda *a: "ok"),
+            mock.patch.object(evening, "shadow_lines", lambda d: ["shadow: 1 closed, 9,960 INR"]),
+        ]
+        with contextlib.ExitStack() as stack:
+            for p in patches:
+                stack.enter_context(p)
+            evening.run(date(2026, 9, 17), notify_fn=fake)
+        return got
+
+    def test_digest_leads_with_your_own_day(self):
+        g = self.sent(journal=self.JOURNAL, facts=self.FACTS)
+        self.assertEqual(g["title"], "[post-market] Thu 17-Sep")
+        self.assertTrue(g["text"].startswith("you: 10 round trips, net -1,100 INR"))
+        self.assertIn("R4 Premium stop not respected", g["text"])
+        self.assertIn("-21,720 INR", g["text"])
+
+    def test_digest_grades_the_morning_call_and_your_alignment(self):
+        g = self.sent(journal=self.JOURNAL, facts=self.FACTS)
+        self.assertIn("CRUDEOIL C 9,760.00 (-0.58%)", g["text"])
+        self.assertIn("v4.0: 1 signals, 0 trades, 0.0 pts", g["text"])
+        self.assertIn("your 10 entries: 0 matched a signal", g["text"])
+        self.assertIn("morning bias bearish -> flat (wrong)", g["text"])
+        self.assertIn("shadow: 1 closed", g["text"])
+
+    def test_a_day_without_trades_says_so(self):
+        quiet = {"today": {"summary_round_trips": {"n": 0}, "violations": []}}
+        self.assertIn("you took no trades today", self.sent(journal=quiet, facts=self.FACTS)["text"])
+
+    def test_failed_build_still_alerts(self):
+        g = self.sent(error="DH-901 invalid token")
+        self.assertIn(evening.BUILD_FAILED, g["text"])
+        self.assertEqual(g["severity"], "warning")
 
 
 class UnattendedRunnerTest(unittest.TestCase):

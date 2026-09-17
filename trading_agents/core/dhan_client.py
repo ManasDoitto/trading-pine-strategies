@@ -17,7 +17,9 @@ READ_METHODS = frozenset({
 })
 
 # Minimum seconds between consecutive calls of the same method (Dhan rate limits).
-_MIN_GAP = {"option_chain": 3.1, "expiry_list": 3.1}
+# ticker_data is 1/sec: below that it returns a payload with no data, which every caller reads as
+# "no price" rather than as an error (verified 2026-09-17 - back-to-back calls dropped the quote).
+_MIN_GAP = {"option_chain": 3.1, "expiry_list": 3.1, "ticker_data": 1.1}
 _DEFAULT_GAP = 0.25
 
 
