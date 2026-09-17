@@ -673,7 +673,7 @@ class TelegramMarkupTest(unittest.TestCase):
         self.assertIn("<b>2</b> lots", got)
 
     def test_adjacent_bolds_merge_into_one_phrase(self):
-        self.assertIn("<b>SHORT TARGET</b>", notify_mod.markup("CRUDEOIL SHORT TARGET"))
+        self.assertIn("<b>CRUDEOIL SHORT TARGET</b>", notify_mod.markup("CRUDEOIL SHORT TARGET"))
         self.assertIn("<b>-1,100 INR</b>", notify_mod.markup("net -1,100 INR"))
         two_spaces = notify_mod.markup("risk 50.47 pts  R:R 4")     # a wider gap is a column, kept apart
         self.assertIn("<b>50.47 pts</b>  <b>R:R 4</b>", two_spaces)
@@ -723,10 +723,18 @@ class TelegramMarkupTest(unittest.TestCase):
         self.assertTrue(notify_mod.headline("[cut it] CRUDEOIL 18 SEP 2026 9600 PUT", "error").startswith("🚨"))
 
     def test_clock_times_contract_names_and_ratios_survive(self):
-        self.assertIn("17-Sep 20:50", notify_mod.markup("17-Sep 20:50 bar"))
+        self.assertIn("<b>17-Sep</b> 20:50", notify_mod.markup("17-Sep 20:50 bar"))   # the clock stays whole
         self.assertIn("CRUDEOIL 17 SEP 2026 9600 PUT", notify_mod.markup("R4 on CRUDEOIL 17 SEP 2026 9600 PUT"))
         self.assertIn("<b>0.89x</b>", notify_mod.markup("range 0.89x ATR"))
         self.assertIn("<b>4,650.00</b>", notify_mod.markup("(bid 4,650.00, spread 1.1%)"))
+
+    def test_script_strike_and_expiry_are_bold_as_one_piece(self):
+        got = notify_mod.markup("R4 on CRUDEOIL 17 SEP 2026 9600 PUT (-21,720 INR)")
+        self.assertIn("<b>CRUDEOIL 17 SEP 2026 9600 PUT</b>", got)      # one name, one bold run
+        self.assertIn("<b>SILVERM-24Sep2026-240000-CE</b>", notify_mod.markup("option SILVERM-24Sep2026-240000-CE x"))
+        self.assertIn("<b>BANKNIFTY-Sep2026-FUT</b>", notify_mod.markup("trigger: BANKNIFTY-Sep2026-FUT above 1"))
+        self.assertIn("<b>CRUDEOIL</b>", notify_mod.markup("CRUDEOIL C 9,760.00"))
+        self.assertIn("<b>18-Sep</b>", notify_mod.markup("18-Sep 20:50 bar"))
 
     def test_a_sentence_about_signals_is_not_mangled(self):
         head = notify_mod.headline("[token expired] Dhan token has expired - no signals are being checked")

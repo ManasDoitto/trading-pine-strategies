@@ -24,9 +24,16 @@ NUMBER = re.compile(r"(?<![\w.,:-])[-+]?\d[\d,]*(?:\.\d+)?(?:%|x)?(?![\w:-])(?!,
 JARGON = re.compile(r"(?<![\w-])(LONG|SHORT|CE|PE|SL|TARGET|EOD|EXPIRY|STALE|ATM|DTE|IV|PF|R:R|INR|pts)"
                     r"(?![\w-])")
 ADJACENT = re.compile(r"</b> <b>")          # one space only: wider gaps are deliberate columns
-# "CRUDEOIL 17 SEP 2026 9600 PUT" is a name. Bolding its digits turns it into confetti, so it is
-# held aside while the rest of the line is marked up. Hyphenated symbols are already safe.
-SYMBOL = re.compile(r"[A-Z][A-Z]+ \d{1,2} [A-Z]{3} \d{4} [\d.]+ (?:PUT|CALL|CE|PE)")
+# What the eye hunts for first: which script, which strike, which expiry. Each is bold as ONE piece -
+# "CRUDEOIL 17 SEP 2026 9600 PUT" bolded digit by digit is confetti, not a name - so these are matched
+# first, wrapped whole, and held aside while the rest of the line is marked up.
+UNITS = [
+    re.compile(r"[A-Z][A-Z]+ \d{1,2} [A-Z]{3} \d{4} [\d.]+ (?:PUT|CALL|CE|PE)"),   # CRUDEOIL 17 SEP 2026 9600 PUT
+    re.compile(r"[A-Z][A-Z0-9]+(?:-[A-Za-z0-9]+)+"),                               # SILVERM-24Sep2026-240000-CE
+    re.compile(r"(?<![\w-])\d{1,2} [A-Z]{3} \d{4}(?![\w-])"),                      # 17 SEP 2026
+    re.compile(r"(?<![\w-])\d{1,2}-[A-Z][a-z]{2}(?:-\d{2,4})?(?![\w-])"),          # 24-Sep, 24-Sep-2026
+    re.compile(r"(?<![\w-])(?:BANKNIFTY|CRUDEOIL|SILVERM|SILVER|NIFTY|FINNIFTY)(?![\w-])"),
+]
 NUM_X = re.compile(r"(?<=\d)x(?![\w-])")    # 0.89x ATR
 
 
@@ -40,14 +47,16 @@ def markup(text):
     held = []                                # a Dhan option name is one thing, not five numbers
 
     def hold(m):
-        held.append(m.group(0))
+        held.append(f"<b>{m.group(0)}</b>")
         return f"\x00{'Q' * (len(held))}\x00"
 
-    safe = SYMBOL.sub(hold, safe)
+    for unit in UNITS:
+        safe = unit.sub(hold, safe)
     safe = NUMBER.sub(lambda m: f"<b>{m.group(0)}</b>", safe)
     safe = JARGON.sub(lambda m: f"<b>{m.group(0)}</b>", safe)
     safe = ADJACENT.sub(" ", safe)          # "DTE 6" reads better than "DTE" "6" side by side
-    return re.sub(r"\x00(Q+)\x00", lambda m: held[len(m.group(1)) - 1], safe)
+    safe = re.sub(r"\x00(Q+)\x00", lambda m: held[len(m.group(1)) - 1], safe)
+    return ADJACENT.sub(" ", safe)          # again, now the held names are back in place
 
 
 # These alerts are read on a phone, usually mid-session and in a hurry, so every one is a card: an
