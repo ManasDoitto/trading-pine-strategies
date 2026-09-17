@@ -196,6 +196,25 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(report.compare_exits([dict(net_inr=1.0)])["comparable"], 0)
 
 
+class UnattendedRunnerTest(unittest.TestCase):
+    def test_parse_hhmm(self):
+        from datetime import time as dtime
+        from trading_exec.runner import parse_hhmm
+        self.assertEqual(parse_hhmm("23:59"), dtime(23, 59))
+        self.assertEqual(parse_hhmm(" 08:55 "), dtime(8, 55))
+
+    def test_only_one_runner_can_hold_the_lock(self):
+        from trading_exec.runner import acquire_single_instance
+        with tempfile.TemporaryDirectory() as tmp:
+            first = acquire_single_instance(Path(tmp))
+            self.assertIsNotNone(first)
+            self.assertIsNone(acquire_single_instance(Path(tmp)))       # a second runner is refused
+            first.close()                                               # process exit releases it
+            again = acquire_single_instance(Path(tmp))
+            self.assertIsNotNone(again)
+            again.close()
+
+
 class StageASafetyTest(unittest.TestCase):
     """Stage A must contain no order-capable code at all."""
 

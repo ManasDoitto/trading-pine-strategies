@@ -6,19 +6,56 @@ It holds only a ReadOnlyDhan client, so it cannot place an order even if somethi
     python -m trading_exec.runner --once     # one pass (safe to run any time)
     python -m trading_exec.runner --loop     # keep polling
     python -m trading_exec.runner --status   # what's open and what happened today
+
+Unattended (Windows Task Scheduler):
+    pythonw -m trading_exec.runner --loop --until 23:59 --log exec_data/runner.log
+
+Only one --loop runner can poll at a time: a second one exits immediately, so overlapping starts
+never double every alert. The lock is held by the OS and released if the process dies.
 """
 import argparse
+import os
 import sys
 import time
-from datetime import date, datetime
+from datetime import date, datetime, time as dtime
 
 from trading_agents.core.dhan_client import get_dhan_client
 from trading_agents.core.market_data import DhanApiError
 
 from . import atm as atm_mod
 from . import guards, poller, shadow, signals
-from .config import load_config
+from .config import data_dir, load_config
 from .notify import notify
+
+_LOCK = None                                   # held for the process lifetime once acquired
+
+
+def parse_hhmm(text):
+    hh, mm = text.strip().split(":")
+    return dtime(int(hh), int(mm))
+
+
+def acquire_single_instance(lock_dir=None):
+    """An OS-level lock on exec_data/runner.lock. Returns the open file (keep a reference) or
+    None if another runner holds it. The OS releases the lock when the process exits or crashes,
+    so a crash never leaves a stale lock behind."""
+    f = open((lock_dir or data_dir()) / "runner.lock", "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        return None
+    return f
+
+
+def _stamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _fmt(x, nd=2):
@@ -123,7 +160,13 @@ def main(argv=None):
     ap.add_argument("--once", action="store_true")
     ap.add_argument("--loop", action="store_true")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--until", help="HH:MM; with --loop, exit cleanly at this time (e.g. 23:59, after the MCX close)")
+    ap.add_argument("--log", help="append all output to this file (for unattended runs with no console)")
     args = ap.parse_args(argv)
+
+    if args.log:
+        log = open(args.log, "a", encoding="utf-8", buffering=1)
+        sys.stdout = sys.stderr = log
 
     if args.status:
         status()
@@ -131,10 +174,19 @@ def main(argv=None):
 
     client = get_dhan_client()
     if args.loop:
+        global _LOCK
+        _LOCK = acquire_single_instance()
+        if _LOCK is None:
+            print(f"{_stamp()} another runner is already polling; exiting so alerts are not duplicated.")
+            return 0
+        until = parse_hhmm(args.until) if args.until else None
         gap = load_config()["source"]["poll_seconds"]
         told = False
-        print(f"polling every {gap}s. Ctrl-C to stop.")
+        print(f"{_stamp()} polling every {gap}s" + (f" until {args.until}" if until else "") + ". Ctrl-C to stop.")
         while True:
+            if until and datetime.now().time() >= until:
+                print(f"{_stamp()} reached --until {args.until}; stopping.")
+                return 0
             try:
                 out = tick(client)
                 told = False
@@ -145,7 +197,7 @@ def main(argv=None):
                 if not told:                       # tell once per outage, not every poll
                     notify("[feed down] Dhan API failure", [str(e), "", "Signals are NOT being checked."], "error")
                     told = True
-                print("feed error:", e)
+                print(f"{_stamp()} feed error:", e)
             except KeyboardInterrupt:
                 print("stopped.")
                 return 0
