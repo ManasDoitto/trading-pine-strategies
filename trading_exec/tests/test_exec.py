@@ -464,7 +464,7 @@ class BankNiftyV04WiringTest(unittest.TestCase):
 
         df = self.frame()
         with mock.patch.object(poller.v04, "v04_frame", lambda b, p: df), \
-             mock.patch.object(poller.v04, "simulate", lambda d, p: sim):
+             mock.patch.object(poller.v04, "simulate", lambda d, p, start=0: sim):
             return poller.v04_signals(Client(), "BANKNIFTY", "BANKNIFTY", self.P, self.SERIES, df), df
 
     def order(self, df, side="LONG"):
