@@ -1,3 +1,4 @@
+import contextlib
 import json
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from unittest import mock
 
 import pandas as pd
 
-from trading_exec import guards, report, shadow, signals, trade_watch
+from trading_exec import guards, morning, report, shadow, signals, trade_watch
 from trading_exec.signals import Signal
 
 
@@ -586,6 +587,77 @@ class BlockedWatchTest(unittest.TestCase):
         self.watch()
         self.watch()
         self.assertEqual(len(shadow.load_watches()), 1)
+
+
+class MorningJobTest(unittest.TestCase):
+    """The 08:27 job: the digest must go out even when the facts build fails."""
+
+    FACTS = {"instruments": {
+        "CRUDEOIL": {"available": True,
+                     "underlying": {"prev_day": {"close": 9339.0}, "prev_day_change_pct": -0.12,
+                                    "atr_regime": "normal", "atr_ratio": 1.2},
+                     "strategy": {"available": True, "alignment": "long-aligned", "position": None,
+                                  "pending_entry": None},
+                     "options": {"nearest": {"dte": 27, "atm_strike": 9350.0,
+                                             "atm": {"ce": {"ltp": 550.0, "theta_pct_of_premium": 1.8}}}}},
+        "SILVERM": {"available": True,
+                    "underlying": {"prev_day": {"close": 239940.0}, "prev_day_change_pct": 1.35,
+                                   "atr_regime": "normal", "atr_ratio": 1.06},
+                    "strategy": {"available": True, "position": {"side": "LONG", "entry": 240031.0,
+                                                                 "sl": 238897.86, "tp": 243430.43,
+                                                                 "open_pts": -91.0}},
+                    "options": {"nearest": {"dte": 6, "atm_strike": 240000.0,
+                                            "atm": {"ce": {"ltp": 4302.0, "theta_pct_of_premium": 7.2}}}}},
+        "BANKNIFTY": {"available": False},
+    }}
+
+    def sent(self, **over):
+        got = {}
+        args = dict(day=date(2026, 9, 18), facts=self.FACTS, error=None,
+                    token_status="ok", expiry=datetime(2026, 9, 19, 10, 0))
+        args.update(over)
+        patches = [
+            mock.patch.object(morning, "build_facts", lambda d, o: (args["facts"], args["error"])),
+            mock.patch.object(morning.health, "token_from_env_file", lambda: "t"),
+            mock.patch.object(morning.health, "token_expiry", lambda t: args["expiry"]),
+            mock.patch.object(morning.health, "token_status", lambda *a: args["token_status"]),
+            mock.patch.object(morning, "enabled_instruments", lambda: ["CRUDEOIL", "SILVERM", "BANKNIFTY"]),
+        ]
+        with contextlib.ExitStack() as stack:
+            for p in patches:
+                stack.enter_context(p)
+
+            def fake(title, lines, severity="info"):
+                got.update(title=title, text="\n".join(lines), severity=severity)
+                return {}
+            morning.run(args["day"], notify_fn=fake)
+        return got
+
+    def test_digest_shows_price_strategy_and_theta(self):
+        g = self.sent()
+        self.assertEqual(g["title"], "[pre-market] Fri 18-Sep")
+        self.assertIn("CRUDEOIL 9,339.00 (-0.12%)  ATR normal 1.20x", g["text"])
+        self.assertIn("flat, long-aligned", g["text"])
+        self.assertIn("theta 1.8%/day", g["text"])
+        self.assertIn("holding LONG from 240,031.00", g["text"])
+        self.assertIn("BANKNIFTY: no data", g["text"])
+        self.assertEqual(g["severity"], "info")
+
+    def test_failed_build_still_alerts_and_says_so(self):
+        g = self.sent(facts=None, error="DH-901 invalid token")
+        self.assertIn(morning.BUILD_FAILED, g["text"])
+        self.assertIn("DH-901", g["text"])
+        self.assertEqual(g["severity"], "warning")
+
+    def test_expired_token_leads_the_digest(self):
+        g = self.sent(token_status="expired", expiry=datetime(2026, 9, 18, 10, 21))
+        self.assertTrue(g["text"].startswith("TOKEN EXPIRED (18-Sep 10:21)"))
+        self.assertEqual(g["severity"], "warning")
+
+    def test_token_expiring_is_a_note_not_a_failure(self):
+        g = self.sent(token_status="expires_before_close", expiry=datetime(2026, 9, 18, 10, 21))
+        self.assertIn("Token expires 18-Sep 10:21", g["text"])
+        self.assertEqual(g["severity"], "info")
 
 
 class UnattendedRunnerTest(unittest.TestCase):
