@@ -17,14 +17,15 @@ import argparse
 import os
 import sys
 import time
+import traceback
 from datetime import date, datetime, time as dtime
 
 from trading_agents.core.dhan_client import get_dhan_client
 from trading_agents.core.market_data import DhanApiError
 
 from . import atm as atm_mod
-from . import guards, poller, shadow, signals
-from .config import data_dir, load_config
+from . import guards, health, poller, shadow, signals
+from .config import data_dir, enabled_instruments, instrument_cfg, load_config
 from .notify import notify
 
 _LOCK = None                                   # held for the process lifetime once acquired
@@ -154,6 +155,125 @@ def status(now=None):
     print(f"closed all-time: {sum(t['status'] == 'CLOSED' for t in trades)}")
 
 
+class LoopState:
+    """What the loop has already told you, so each problem is announced once, not every minute."""
+
+    def __init__(self):
+        self.feed_down = False
+        self.error = False
+        self.token = None
+        self.warned = set()
+
+
+def watching_lines():
+    lines = []
+    for traded in enabled_instruments():
+        source = instrument_cfg(traded).get("signal_from", traded)
+        lines.append(f"- {traded} options, signal on {source}" if source != traded else f"- {traded}")
+    return lines
+
+
+def check_token(state, now, until, notify_fn):
+    """Warn once per token per condition: expiring before the close, within the hour, or expired."""
+    token = health.token_from_env_file()
+    expiry = health.token_expiry(token)
+    status = health.token_status(expiry, now, until)
+    key = (token[-12:], status)
+    messages = {
+        "expires_before_close": ("[token warning] Dhan token expires before today's close",
+                                 [f"expires {expiry:%d-%b %H:%M}; the checker runs until {until.strftime('%H:%M') if until else 'stopped'}.",
+                                  "Regenerate DHAN_ACCESS_TOKEN in .env before then - it is picked up automatically."]),
+        "expires_within_hour": ("[token expiring] Dhan token expires within the hour",
+                                [f"expires {expiry:%d-%b %H:%M}.",
+                                 "Regenerate DHAN_ACCESS_TOKEN in .env now - it is picked up automatically."]),
+        "expired": ("[token expired] Dhan token has expired - no signals are being checked",
+                    [f"expired {expiry:%d-%b %H:%M}.",
+                     "Regenerate DHAN_ACCESS_TOKEN in .env; checking resumes within a minute."]),
+    }
+    if status in messages and key not in state.warned:
+        state.warned.add(key)
+        notify_fn(*messages[status], "warning")
+    return expiry, status
+
+
+def tick_safely(state, client_ref, notify_fn, now=None, tick_fn=None):
+    """One poll that can never kill the loop. Rebuilds the client when .env has a new token, and
+    announces each outage once and each recovery once."""
+    tick_fn = tick_fn or tick
+    try:
+        token = health.token_from_env_file()
+        if client_ref[0] is None or token != state.token:
+            client_ref[0] = health.fresh_client()
+            if state.token is not None and token != state.token:
+                notify_fn("[token refreshed] picked up the new Dhan token", ["Signal checking continues."], "info")
+            state.token = token
+        out = tick_fn(client_ref[0], now)
+        if state.feed_down or state.error:
+            notify_fn("[recovered] signal checking resumed", [f"at {datetime.now():%H:%M}"], "info")
+        state.feed_down = state.error = False
+        return out
+    except DhanApiError as e:
+        if not state.feed_down:
+            notify_fn("[feed down] Dhan API failure", [str(e), "", "Signals are NOT being checked until this clears."],
+                      "error")
+            state.feed_down = True
+        print(f"{_stamp()} feed error: {e}")
+    except Exception as e:                          # anything else: log it, say it once, keep going
+        traceback.print_exc()
+        if not state.error:
+            notify_fn("[checker error] still running and retrying every minute",
+                      [f"{type(e).__name__}: {e}", "", "Signals are NOT being checked until this clears."], "error")
+            state.error = True
+        print(f"{_stamp()} error: {type(e).__name__}: {e}")
+    return None
+
+
+def run_loop(until_text=None, notify_fn=None, sleep=time.sleep, max_ticks=None):
+    """The unattended loop. Holds the single-instance lock, announces its start (or a restart), warns
+    about the token, and never exits on an error - only at --until or Ctrl-C."""
+    global _LOCK
+    notify_fn = notify_fn or notify
+    _LOCK = acquire_single_instance()
+    if _LOCK is None:
+        print(f"{_stamp()} another runner is already polling; exiting so alerts are not duplicated.")
+        return 0
+    until = parse_hhmm(until_text) if until_text else None
+    gap = load_config()["source"]["poll_seconds"]
+    state = LoopState()
+    client_ref = [None]
+    now = datetime.now()
+    print(f"{_stamp()} polling every {gap}s" + (f" until {until_text}" if until else "") + ". Ctrl-C to stop.")
+
+    first = health.mark_started(now.date())
+    expiry = health.token_expiry(health.token_from_env_file())
+    token_line = (f"Dhan token valid until {expiry:%d-%b %H:%M}" if expiry and expiry > now
+                  else "Dhan token EXPIRED or unreadable - regenerate it in .env" if expiry
+                  else "Dhan token expiry unreadable")
+    notify_fn("[checker started]" if first else "[checker restarted]",
+              [f"{now:%a %d-%b %H:%M}" + (f", running until {until_text}" if until else ""), "Watching:"]
+              + watching_lines() + ["", token_line], "info")
+
+    ticks = 0
+    try:
+        while True:
+            now = datetime.now()
+            if until and now.time() >= until:
+                print(f"{_stamp()} reached --until {until_text}; stopping.")
+                return 0
+            check_token(state, now, until, notify_fn)
+            out = tick_safely(state, client_ref, notify_fn, now)
+            if out and (out["signals"] or out["closed"]):
+                print(f"{out['at']}: {len(out['signals'])} signal(s), {out['opened']} opened, "
+                      f"{out['blocked']} blocked, {len(out['closed'])} closed")
+            ticks += 1
+            if max_ticks is not None and ticks >= max_ticks:
+                return 0
+            sleep(gap)
+    except KeyboardInterrupt:
+        print(f"{_stamp()} stopped.")
+        return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--once", action="store_true")
@@ -171,36 +291,10 @@ def main(argv=None):
         status()
         return 0
 
-    client = get_dhan_client()
     if args.loop:
-        global _LOCK
-        _LOCK = acquire_single_instance()
-        if _LOCK is None:
-            print(f"{_stamp()} another runner is already polling; exiting so alerts are not duplicated.")
-            return 0
-        until = parse_hhmm(args.until) if args.until else None
-        gap = load_config()["source"]["poll_seconds"]
-        told = False
-        print(f"{_stamp()} polling every {gap}s" + (f" until {args.until}" if until else "") + ". Ctrl-C to stop.")
-        while True:
-            if until and datetime.now().time() >= until:
-                print(f"{_stamp()} reached --until {args.until}; stopping.")
-                return 0
-            try:
-                out = tick(client)
-                told = False
-                if out["signals"] or out["closed"]:
-                    print(f"{out['at']}: {len(out['signals'])} signal(s), {out['opened']} opened, "
-                          f"{out['blocked']} blocked, {len(out['closed'])} closed")
-            except DhanApiError as e:
-                if not told:                       # tell once per outage, not every poll
-                    notify("[feed down] Dhan API failure", [str(e), "", "Signals are NOT being checked."], "error")
-                    told = True
-                print(f"{_stamp()} feed error:", e)
-            except KeyboardInterrupt:
-                print("stopped.")
-                return 0
-            time.sleep(gap)
+        return run_loop(args.until)
+
+    client = get_dhan_client()
 
     out = tick(client)
     print(f"{out['at']}: {len(out['signals'])} signal(s), {out['opened']} opened, "

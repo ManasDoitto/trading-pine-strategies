@@ -276,6 +276,94 @@ class SignalFidelityTest(unittest.TestCase):
         self.assertEqual(calls, [("495214", "MCX_COMM", "FUTCOM")])                  # the SILVER future
 
 
+class ResilienceTest(unittest.TestCase):
+    """The unattended checker must survive errors, say each problem once, and warn about the token."""
+
+    def jwt(self, exp):
+        import base64
+        enc = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
+        return f"{enc({'alg': 'HS512'})}.{enc({'exp': int(exp.timestamp()), 'iat': int(exp.timestamp()) - 86400})}.sig"
+
+    def test_token_expiry_read_locally(self):
+        from trading_exec import health
+        exp = datetime(2026, 9, 18, 10, 21)
+        self.assertEqual(health.token_expiry(self.jwt(exp)), exp)
+        self.assertIsNone(health.token_expiry("not-a-jwt"))
+
+    def test_token_status(self):
+        from datetime import time as dtime
+        from trading_exec import health
+        now, close = datetime(2026, 9, 18, 9, 0), dtime(23, 59)
+        self.assertEqual(health.token_status(datetime(2026, 9, 18, 8, 0), now, close), "expired")
+        self.assertEqual(health.token_status(datetime(2026, 9, 18, 9, 40), now, close), "expires_within_hour")
+        self.assertEqual(health.token_status(datetime(2026, 9, 18, 10, 21), now, close), "expires_before_close")
+        self.assertEqual(health.token_status(datetime(2026, 9, 19, 8, 30), now, close), "ok")
+        self.assertEqual(health.token_status(None, now, close), "unknown")
+
+    def run_ticks(self, outcomes):
+        from trading_exec import health, runner
+        from trading_agents.core.market_data import DhanApiError
+        sent, state, ref = [], runner.LoopState(), [None]
+        results = iter(outcomes)
+
+        def fake_tick(client, now):
+            r = next(results)
+            if isinstance(r, Exception):
+                raise r
+            return r
+
+        with mock.patch.object(health, "token_from_env_file", lambda: "TOKEN-A"), \
+             mock.patch.object(health, "fresh_client", lambda: object()):
+            for _ in outcomes:
+                runner.tick_safely(state, ref, lambda t, l, s="info": sent.append(t), tick_fn=fake_tick)
+        return sent
+
+    def test_any_error_is_survived_and_announced_once(self):
+        ok = dict(signals=[], closed=[])
+        sent = self.run_ticks([ValueError("boom"), KeyError("x"), ok, ok])
+        self.assertEqual(sent, ["[checker error] still running and retrying every minute",
+                                "[recovered] signal checking resumed"])
+
+    def test_feed_down_announced_once_then_recovery(self):
+        from trading_agents.core.market_data import DhanApiError
+        ok = dict(signals=[], closed=[])
+        sent = self.run_ticks([DhanApiError("DH-901"), DhanApiError("DH-901"), ok])
+        self.assertEqual(sent, ["[feed down] Dhan API failure", "[recovered] signal checking resumed"])
+
+    def test_new_token_in_env_rebuilds_the_client(self):
+        from trading_exec import health, runner
+        tokens = iter(["TOKEN-A", "TOKEN-A", "TOKEN-B"])
+        built, sent, state, ref = [], [], runner.LoopState(), [None]
+        with mock.patch.object(health, "token_from_env_file", lambda: next(tokens)), \
+             mock.patch.object(health, "fresh_client", lambda: built.append(1) or object()):
+            for _ in range(3):
+                runner.tick_safely(state, ref, lambda t, l, s="info": sent.append(t),
+                                   tick_fn=lambda c, n: dict(signals=[], closed=[]))
+        self.assertEqual(len(built), 2)                                 # first start + the new token
+        self.assertEqual(sent, ["[token refreshed] picked up the new Dhan token"])
+
+    def test_token_warning_sent_once_per_condition(self):
+        from datetime import time as dtime
+        from trading_exec import health, runner
+        exp = datetime(2026, 9, 18, 10, 21)
+        sent, state = [], runner.LoopState()
+        with mock.patch.object(health, "token_from_env_file", lambda: self.jwt(exp)):
+            for minute in (0, 1, 2):
+                runner.check_token(state, datetime(2026, 9, 18, 9, minute), dtime(23, 59),
+                                   lambda t, l, s="info": sent.append(t))
+            runner.check_token(state, datetime(2026, 9, 18, 9, 30), dtime(23, 59),
+                               lambda t, l, s="info": sent.append(t))
+        self.assertEqual(sent, ["[token warning] Dhan token expires before today's close",
+                                "[token expiring] Dhan token expires within the hour"])
+
+    def test_first_start_vs_restart(self):
+        from trading_exec import health
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertTrue(health.mark_started(date(2026, 9, 18), Path(tmp)))
+            self.assertFalse(health.mark_started(date(2026, 9, 18), Path(tmp)))
+            self.assertTrue(health.mark_started(date(2026, 9, 19), Path(tmp)))
+
+
 class UnattendedRunnerTest(unittest.TestCase):
     def test_parse_hhmm(self):
         from datetime import time as dtime
