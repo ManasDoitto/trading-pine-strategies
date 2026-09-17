@@ -2,6 +2,9 @@
 
 A signal is identified by (strategy, instrument, side, bar_time), so the same bar can never
 produce two records no matter how often the poller runs or how often the process restarts.
+
+`instrument` is what gets traded (its options are bought); `signal_instrument` is the contract the
+strategy ran on. They differ for silver: the signal is computed on SILVER, the option is SILVERM.
 """
 import json
 from dataclasses import asdict, dataclass, field
@@ -15,18 +18,23 @@ STORE = "signals.jsonl"
 @dataclass
 class Signal:
     strategy: str
-    instrument: str
+    instrument: str           # traded underlying (whose options are bought)
     side: str                 # LONG or SHORT
     bar_time: str             # ISO time of the signal bar (the bar that closed)
-    entry_hint: float         # the strategy's entry estimate (signal-bar close)
-    sl: float                 # underlying stop, in underlying points
-    target: float             # underlying target
+    entry_hint: float         # the strategy's entry estimate (signal-bar close), in signal-series points
+    sl: float                 # stop, in signal-series points
+    target: float             # target, in signal-series points
     risk_pts: float
     rr: float
     source: str = "python"
     received_at: str = field(default_factory=lambda: datetime.now().replace(microsecond=0).isoformat())
     status: str = "NEW"
     note: str = ""
+    signal_instrument: str = ""       # contract the strategy ran on; "" means the same as `instrument`
+    signal_security_id: str = ""
+    signal_segment: str = ""
+    signal_series_type: str = ""      # FUTCOM or INDEX
+    signal_label: str = ""            # e.g. SILVER-04Dec2026-FUT
 
     @property
     def key(self):

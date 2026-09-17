@@ -37,6 +37,8 @@ def resolve(client, instrument, right, as_of_dt, underlying_price=None, force_ne
         out["reasons"].append(f"nearest expiry is {nearest_dte}d out, floor is {icfg['min_dte']}d")
         return out
 
+    if underlying_price is None:
+        underlying_price = underlying_ltp(client, instrument, expiry)
     chain = options.chain_snapshot(client, instrument, expiry, as_of_dt,
                                    agents_config()["premarket"], underlying_price)
     leg = (chain.get("atm") or {}).get(right.lower()) or {}
@@ -75,6 +77,22 @@ def resolve(client, instrument, right, as_of_dt, underlying_price=None, force_ne
         out["reasons"].append("lot size unknown")
     out["usable"] = not out["reasons"]
     return out
+
+
+def underlying_ltp(client, instrument, expiry):
+    """Live price of the contract THIS option expiry is written on.
+
+    Never pass the signal's own price here: near rollover (crude Oct options while the chart is on
+    the Sep future) or across contracts (a SILVER signal bought as SILVERM options) it is a different
+    contract, and chain_snapshot would re-centre the ATM strike on the wrong level."""
+    ref = instruments.reference_series(instrument, expiry)
+    if ref is None:
+        return None
+    try:
+        r = client.ticker_data({ref["segment"]: [int(ref["security_id"])]})
+        return float(r["data"]["data"][ref["segment"]][str(ref["security_id"])]["last_price"])
+    except Exception:
+        return None
 
 
 def premium_targets(atm, signal):

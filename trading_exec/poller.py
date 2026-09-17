@@ -1,7 +1,18 @@
-"""The signal source: poll Dhan 5m bars and emit a Signal from the most recently CLOSED bar.
+"""The signal source: poll Dhan 5m bars and emit a Signal only when the strategy would actually ENTER.
 
-No TradingView involved. This runs the same v4.0 port the session-close reviews use
-(trading_agents/core/signals.py), so signals here and in the journal agree by construction.
+Two things make these signals match the strategy on your chart rather than a raw pattern scan:
+
+- Entries come from simulate(), so a signal fires only when the strategy is flat (the Pine's `flat`
+  condition) and not locked out for the day (silver's 350-pt daily loss limit). Measured on
+  2026-09-17 over 30 days of Dhan bars, a raw bar scan would have alerted far more often than the
+  strategy trades: crude 45 vs 20, silver 96 vs 20, silver mini 91 vs 31.
+- Bars come from the FRONT-MONTH future of the signal instrument - what a continuous chart
+  (CRUDEOIL1!, SILVER1!) shows - not whichever future the nearest option expiry is written on,
+  which diverges from the chart around rollover.
+
+The signal instrument can differ from the traded one: silver signals are computed on SILVER, the
+contract the strategy was tested on, and bought through SILVERM options, the liquid silver chain.
+The two futures agreed on only 45% of signals over the same 30 days, so this matters.
 """
 from datetime import datetime, timedelta
 
@@ -10,65 +21,74 @@ from trading_agents.core import signals as v40
 from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.market_data import intraday_bars
 
-from .config import enabled_instruments, load_config
+from .config import enabled_instruments, instrument_cfg, load_config
 from .signals import Signal, known_keys
 
 
-def closed_bars(client, instrument, now, history_days, interval):
+def signal_series(signal_instrument):
+    """The series a continuous chart would show: the index, or the front-month future."""
+    cfg = agents_config()["instruments"][signal_instrument]
+    if "underlying_security_id" in cfg:
+        return instruments.reference_series(signal_instrument)
+    return instruments.underlying_future(signal_instrument)
+
+
+def closed_bars(client, series, now, history_days, interval):
     """Bars whose candle has fully closed by `now`; the forming bar is dropped."""
-    expiries = instruments.option_expiries(instrument, now.date())
-    ref = instruments.reference_series(instrument, expiries[0] if expiries else None)
-    if ref is None:
-        return None, None
-    bars = intraday_bars(client, ref["security_id"], ref["segment"], ref["instrument"],
+    bars = intraday_bars(client, series["security_id"], series["segment"], series["instrument"],
                          now.date() - timedelta(days=history_days), now.date(), interval=interval)
     if bars.empty:
-        return ref, bars
-    closed = bars[bars["time"] + timedelta(minutes=interval) <= now]
-    return ref, closed.reset_index(drop=True)
+        return bars
+    return bars[bars["time"] + timedelta(minutes=interval) <= now].reset_index(drop=True)
 
 
-def signal_from_bars(bars, instrument, strategy_cfg):
-    """A Signal if the last closed bar fired an entry, else None."""
-    if len(bars) < v40.WARMUP_BARS + 50:
+def entry_on_last_bar(df, strategy_cfg):
+    """(pending_entry, last_close) if the strategy decided to enter on the most recent closed bar.
+
+    simulate() leaves `pending` set only when that bar's signal arrived while flat and not
+    day-locked; the Pine then fills it at the next bar's open. Anything else - no signal, a signal
+    while already in a trade, or a signal after the daily lock - returns None."""
+    if len(df) < v40.WARMUP_BARS + 50:
         return None
-    df = v40.v40_frame(bars, strategy_cfg)
-    last = df.iloc[-1]
-    if not (last["ok_l"] or last["ok_s"]):
+    _trades, _position, pending = v40.simulate(df, strategy_cfg)
+    if not pending or pending["signal_time"] != df["time"].iat[-1]:
         return None
-    side = "LONG" if last["ok_l"] else "SHORT"
-    sign = 1 if side == "LONG" else -1
-    risk = float(last["risk_l"] if side == "LONG" else last["risk_s"])
-    close = float(last["close"])
-    return Signal(
-        strategy=strategy_cfg["name"],
-        instrument=instrument,
-        side=side,
-        bar_time=last["time"].to_pydatetime().isoformat(),
-        entry_hint=round(close, 2),
-        sl=round(close - sign * risk, 2),
-        target=round(close + sign * strategy_cfg["rr"] * risk, 2),
-        risk_pts=round(risk, 2),
-        rr=strategy_cfg["rr"],
-    )
+    return pending, float(df["close"].iat[-1])
 
 
 def poll_once(client, now=None, seen=None):
-    """New, non-duplicate signals across the enabled instruments."""
+    """New, non-duplicate entry signals across the enabled traded instruments."""
     cfg = load_config()["source"]
     now = now or datetime.now()
     seen = known_keys() if seen is None else seen
     strategies = agents_config().get("strategy", {})
     out = []
-    for instrument in enabled_instruments():
-        strategy_cfg = strategies.get(instrument)
+    for traded in enabled_instruments():
+        source = instrument_cfg(traded).get("signal_from", traded)
+        strategy_cfg = strategies.get(source)
         if not strategy_cfg:
             continue
-        _ref, bars = closed_bars(client, instrument, now, cfg["history_days"], cfg["interval_minutes"])
-        if bars is None or bars.empty:
+        series = signal_series(source)
+        if series is None:
             continue
-        sig = signal_from_bars(bars, instrument, strategy_cfg)
-        if sig and sig.key not in seen:
+        bars = closed_bars(client, series, now, cfg["history_days"], cfg["interval_minutes"])
+        if bars.empty:
+            continue
+        hit = entry_on_last_bar(v40.v40_frame(bars, strategy_cfg), strategy_cfg)
+        if not hit:
+            continue
+        pending, close = hit
+        signal_time = pending["signal_time"]
+        sig = Signal(
+            strategy=strategy_cfg["name"], instrument=traded, side=pending["side"],
+            bar_time=(signal_time.to_pydatetime() if hasattr(signal_time, "to_pydatetime") else signal_time).isoformat(),
+            entry_hint=round(close, 2), sl=round(pending["sl"], 2), target=round(pending["tp"], 2),
+            risk_pts=round(pending["risk_pts"], 2), rr=strategy_cfg["rr"],
+            signal_instrument=source, signal_security_id=str(series["security_id"]),
+            signal_segment=series["segment"], signal_series_type=series["instrument"],
+            signal_label=series["label"],
+        )
+        if sig.key not in seen:
             seen.add(sig.key)
             out.append(sig)
     return out

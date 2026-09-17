@@ -38,8 +38,12 @@ lots = 2
 min_dte = 2                         # crude ATM theta was ~27% of premium/day at DTE 1
 max_spread_pct = 15.0
 
+# Silver: the signal is computed on SILVER (the contract the best silver strategy was tested on, with its
+# 350-pt daily limit), and bought through SILVERM options (the liquid silver chain; big-SILVER ATM had
+# OI 8 and a 168% spread). Over 30 days the two futures agreed on only 45% of signals.
 [instruments.SILVERM]
 enabled = true
+signal_from = "SILVER"
 lots = 2
 min_dte = 2
 max_spread_pct = 15.0

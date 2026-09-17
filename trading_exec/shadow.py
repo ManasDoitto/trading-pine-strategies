@@ -67,6 +67,12 @@ def open_trade(signal, atm, premium_targets, now=None, observational=False):
         expiry=str(atm["expiry"]), dte_at_entry=atm["dte"],
         opened_at=now.replace(microsecond=0).isoformat(), bar_time=signal.bar_time,
         underlying_entry=atm.get("underlying_price"), sl=signal.sl, target=signal.target,
+        signal_instrument=getattr(signal, "signal_instrument", "") or signal.instrument,
+        signal_security_id=getattr(signal, "signal_security_id", ""),
+        signal_segment=getattr(signal, "signal_segment", ""),
+        signal_series_type=getattr(signal, "signal_series_type", ""),
+        signal_label=getattr(signal, "signal_label", ""),
+        signal_entry=signal.entry_hint,
         risk_pts=signal.risk_pts, rr=signal.rr,
         lots=atm["lots"], qty_units=qty,
         entry_premium=entry, entry_bid=atm.get("bid"), entry_ask=atm.get("ask"),
@@ -82,11 +88,17 @@ def open_trade(signal, atm, premium_targets, now=None, observational=False):
 
 
 def _underlying_bars(client, trade, now):
-    ref = instruments.reference_series(trade["instrument"], date.fromisoformat(trade["expiry"]))
-    if ref is None:
-        return None
+    """Exits track the SAME series the signal was computed on, since the stop and target are in its
+    points: the SILVER future for a SILVERM option, the front-month crude future through rollover."""
     start = datetime.fromisoformat(trade["bar_time"]).date()
-    bars = intraday_bars(client, ref["security_id"], ref["segment"], ref["instrument"], start, now.date(), interval=5)
+    if trade.get("signal_security_id"):
+        sid, seg, kind = trade["signal_security_id"], trade["signal_segment"], trade["signal_series_type"]
+    else:                                   # records from before signal series were stored
+        ref = instruments.reference_series(trade["instrument"], date.fromisoformat(trade["expiry"]))
+        if ref is None:
+            return None
+        sid, seg, kind = ref["security_id"], ref["segment"], ref["instrument"]
+    bars = intraday_bars(client, sid, seg, kind, start, now.date(), interval=5)
     return bars[bars["time"] > datetime.fromisoformat(trade["bar_time"])]
 
 

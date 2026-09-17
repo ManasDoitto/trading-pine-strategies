@@ -64,7 +64,7 @@ def _fmt(x, nd=2):
 
 def handle_signal(client, sig, now):
     """Resolve the option, run guards, and either record a shadow trade or a blocked signal."""
-    a = atm_mod.resolve(client, sig.instrument, sig.option_right, now, underlying_price=sig.entry_hint)
+    a = atm_mod.resolve(client, sig.instrument, sig.option_right, now)
     prem = atm_mod.premium_targets(a, sig)
     all_trades = shadow.load()
     ctx = dict(now=now,
@@ -74,7 +74,7 @@ def handle_signal(client, sig, now):
     blocks = guards.check(sig, a, ctx)
 
     head = f"{sig.instrument} {sig.side} signal ({sig.strategy})"
-    base = [f"bar {sig.bar_time}  underlying {_fmt(sig.entry_hint)}",
+    base = [f"bar {sig.bar_time}  {sig.signal_label or 'underlying'} {_fmt(sig.entry_hint)}",
             f"stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}"]
 
     if blocks:
@@ -83,8 +83,7 @@ def handle_signal(client, sig, now):
         # chain. Whenever the nearest expiry is below the floor, record it observationally so the
         # month can price the rule itself.
         if a.get("nearest_below_floor"):
-            near = atm_mod.resolve(client, sig.instrument, sig.option_right, now,
-                                   underlying_price=sig.entry_hint, force_nearest=True)
+            near = atm_mod.resolve(client, sig.instrument, sig.option_right, now, force_nearest=True)
             if near.get("usable"):
                 observed = shadow.open_trade(sig, near, atm_mod.premium_targets(near, sig), now,
                                              observational=True)

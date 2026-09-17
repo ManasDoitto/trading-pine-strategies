@@ -196,6 +196,86 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(report.compare_exits([dict(net_inr=1.0)])["comparable"], 0)
 
 
+class SignalFidelityTest(unittest.TestCase):
+    """Signals must be what the strategy would actually trade (measured 2026-09-17: a raw bar scan
+    alerted 56-79% more often than the strategy enters)."""
+
+    P = dict(name="t", sha_len1=10, sha_len2=10, sw_len=10, sw_buf=0.1, min_sl=1.5, max_sl=3.0, rr=4.0,
+             session=["00:00", "23:59"])
+
+    def frame(self, n, longs, params=None):
+        import math
+        from trading_agents.core import signals as v40
+        from trading_agents.tests.test_premarket import bars_from
+        closes = [100 + 10 * math.sin(i / 40) + 0.02 * i for i in range(n)]
+        df = v40.v40_frame(bars_from(closes), params or self.P)
+        df["ok_l"] = df.index.isin(longs)
+        df["ok_s"] = False
+        return df
+
+    def test_entry_when_flat(self):
+        from trading_exec.poller import entry_on_last_bar
+        hit = entry_on_last_bar(self.frame(400, longs=[399]), self.P)
+        self.assertIsNotNone(hit)
+        pending, close = hit
+        self.assertEqual(pending["side"], "LONG")
+        self.assertAlmostEqual(pending["tp"] - close, 4.0 * pending["risk_pts"])
+
+    def test_no_signal_while_already_in_a_trade(self):
+        from trading_exec.poller import entry_on_last_bar
+        # bar 398 enters (fills at 399's open); bar 399 qualifies too, but the strategy is not flat
+        self.assertIsNone(entry_on_last_bar(self.frame(400, longs=[398, 399]), self.P))
+
+    def test_no_signal_without_an_entry_on_the_last_bar(self):
+        from trading_exec.poller import entry_on_last_bar
+        self.assertIsNone(entry_on_last_bar(self.frame(400, longs=[]), self.P))
+
+    def test_follows_simulate_including_the_daily_lock(self):
+        from trading_exec import poller
+        df = self.frame(400, longs=[399])
+        last = df["time"].iat[-1]
+        with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, None)):       # e.g. day-locked
+            self.assertIsNone(poller.entry_on_last_bar(df, self.P))
+        stale = dict(side="LONG", signal_time=df["time"].iat[-3], risk_pts=1.0, sl=1.0, tp=5.0)
+        with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, stale)):
+            self.assertIsNone(poller.entry_on_last_bar(df, self.P))
+        fresh = dict(stale, signal_time=last)
+        with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, fresh)):
+            self.assertIs(poller.entry_on_last_bar(df, self.P)[0], fresh)
+
+    def test_silver_signals_come_from_silver(self):
+        from trading_exec.config import instrument_cfg
+        from trading_agents.core.config import load_config as agents_config
+        self.assertEqual(instrument_cfg("SILVERM").get("signal_from"), "SILVER")
+        self.assertEqual(agents_config()["strategy"]["SILVER"]["day_loss_limit_pts"], 350)
+
+    def test_option_priced_off_its_own_future_not_the_signal(self):
+        from trading_exec import atm as atm_mod
+
+        class Client:
+            def ticker_data(self, securities):
+                (seg, ids), = securities.items()
+                return {"data": {"data": {seg: {str(ids[0]): {"last_price": 233750.0}}}}}
+
+        ref = dict(security_id="483080", segment="MCX_COMM", instrument="FUTCOM", expiry=date(2026, 11, 30),
+                   label="SILVERM-30Nov2026-FUT")
+        with mock.patch.object(atm_mod.instruments, "reference_series", lambda u, e: ref):
+            self.assertEqual(atm_mod.underlying_ltp(Client(), "SILVERM", date(2026, 9, 24)), 233750.0)
+
+    def test_shadow_exits_track_the_signal_series(self):
+        calls = []
+
+        def fake_bars(client, sid, seg, kind, start, end, interval=5):
+            calls.append((sid, seg, kind))
+            return bars([(1, 1, 1, 1)], start="2026-09-16T11:40:00")
+
+        trade = dict(bar_time="2026-09-16T11:35:00", instrument="SILVERM", expiry="2026-09-24",
+                     signal_security_id="495214", signal_segment="MCX_COMM", signal_series_type="FUTCOM")
+        with mock.patch.object(shadow, "intraday_bars", fake_bars):
+            shadow._underlying_bars(None, trade, datetime(2026, 9, 16, 12, 0))
+        self.assertEqual(calls, [("495214", "MCX_COMM", "FUTCOM")])                  # the SILVER future
+
+
 class UnattendedRunnerTest(unittest.TestCase):
     def test_parse_hhmm(self):
         from datetime import time as dtime
