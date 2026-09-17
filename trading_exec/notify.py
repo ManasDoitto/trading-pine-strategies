@@ -123,6 +123,9 @@ def _telegram(head, card):
     import requests
     r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
                       json={"chat_id": chat, "text": text, "parse_mode": "HTML",
+                            # explicit: these must always make a sound. How LOUD is a phone setting -
+                            # Telegram's API has no volume - so the alert is never sent silently.
+                            "disable_notification": False,
                             "disable_web_page_preview": True}, timeout=15)
     return "sent" if r.ok else f"failed: HTTP {r.status_code} {r.text[:120]}"
 
