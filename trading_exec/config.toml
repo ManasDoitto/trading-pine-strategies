@@ -21,6 +21,31 @@ cost_per_lot_inr = 45.0             # per leg, per lot: brokerage + taxes estima
 premium_stop_pct = 30.0             # the R4 comparison exit, tracked alongside the real exit
 poll_seconds = 120                  # how often open shadow positions are marked
 
+# Watches the REAL account (any instrument Dhan reports, not just the three above) and alerts on
+# Telegram. Read-only: it never places or closes anything. Each alert fires once per position per day.
+[trade_watch]
+enabled = true
+poll_seconds = 20                   # premium on a 0-DTE contract can fall 25% inside a minute
+warn_pct = 15.0                     # first heads-up on a losing position
+cut_pct = 25.0                      # "cut it" - the trader's own line, tighter than the journal's R4 30%
+profit_alert_inr = 0                # 0 = use the average win from the newest journal facts
+profit_multiple = 1.0               # alert once unrealised >= this x that average win
+averaging_down_alert = true         # R1: quantity added while the average entry is falling
+closed_summary = true
+
+# "still down this much after this long" - trades that die slowly rather than fast.
+[[trade_watch.hold_rules]]
+after_min = 30
+loss_pct = 10.0
+
+[[trade_watch.hold_rules]]
+after_min = 60
+loss_pct = 15.0
+
+[[trade_watch.hold_rules]]
+after_min = 120
+loss_pct = 5.0
+
 [guards]
 max_signals_per_day = 6             # across all instruments
 max_open_positions = 2
@@ -51,8 +76,13 @@ max_spread_pct = 15.0
 # BankNifty v0.4 runs on the front-month FUTURE (NSE:BANKNIFTY1!) - it needs volume and VWAP - and is
 # bought as BANKNIFTY index options. It alerts [setup armed] when its stop entry arms, then
 # [shadow entry] when the trigger is hit. Its trades are flat by 15:20.
+#
+# PAUSED 2026-09-18: the Python port is unverified. Replayed on Dhan futures from 1 Jul to 17 Sep it
+# found 1 trade (15-Jul SHORT, -96.8 pts) where the strategy notes expect about 2.5 a month. Until a
+# TradingView Strategy Tester trade list settles that, no BankNifty alerts. Set enabled = true to
+# resume - everything else stays wired, and the pre-market and session-close facts still model it.
 [instruments.BANKNIFTY]
-enabled = true
+enabled = false
 signal_series = "future"
 lots = 2
 min_dte = 2
