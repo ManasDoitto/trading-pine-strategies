@@ -147,5 +147,50 @@ class IndicatorTest(unittest.TestCase):
         self.assertEqual(set(out), {"trades", "position", "live", "events"})
 
 
+class V04StateTest(unittest.TestCase):
+    """What the pre-market brief reads: regime, gates, and only warmed-up trades."""
+
+    def bars(self, days=6):
+        rows = []
+        for d in range(days):
+            start = datetime(2026, 9, 7 + d, 9, 15)
+            for k in range(75):
+                c = 55000 + 300 * math.sin((d * 75 + k) / 17) + 2 * k
+                rows.append(dict(time=start + timedelta(minutes=5 * k), open=c - 5, high=c + 20,
+                                 low=c - 20, close=c, volume=1000 + 10 * k))
+        return pd.DataFrame(rows)
+
+    def test_too_little_history_is_reported_not_guessed(self):
+        s = v04.v04_state(self.bars(days=2), P)
+        self.assertFalse(s["available"])
+        self.assertIn("needs 250", s["note"])
+
+    def test_state_reports_regime_gates_and_what_it_needs(self):
+        s = v04.v04_state(self.bars(), P)
+        self.assertTrue(s["available"])
+        self.assertEqual(s["engine"], "v04")
+        self.assertIn(s["alignment"], ("long-aligned", "short-aligned", "coiled", "mixed"))
+        self.assertEqual(s["gates"]["atr_min_pts"], P["atr_min_pts"])
+        self.assertEqual(s["gates"]["htf_adx_min"], P["htf_adx_min"])
+        self.assertIsNone(s["pending_entry"])                  # v0.4 arms a stop, never fills at the open
+        self.assertIn("pullback", s["needs"])
+
+    def test_shut_gates_are_named_in_needs(self):
+        s = v04.v04_state(self.bars(), dict(P, atr_min_pts=1e9, htf_adx_min=1e9))
+        self.assertFalse(s["gates"]["atr_ok"])
+        self.assertFalse(s["gates"]["adx_ok"])
+        self.assertIn("ATR below the floor", s["needs"])
+        self.assertIn("15m ADX below the gate", s["needs"])
+
+    def test_trades_before_the_warmup_are_excluded(self):
+        b = self.bars()
+        full = v04.simulate(v04.v04_frame(b, P), P)
+        warm = v04.simulate(v04.v04_frame(b, P), P, start=v04.WARMUP_BARS)
+        early = [t for t in full["trades"] if t["entry_bar"] < v04.WARMUP_BARS]
+        self.assertEqual(len(warm["trades"]), len(full["trades"]) - len(early))
+        state = v04.v04_state(b, P)
+        self.assertEqual(state["sim_window"]["trades"], len(warm["trades"]))
+
+
 if __name__ == "__main__":
     unittest.main()

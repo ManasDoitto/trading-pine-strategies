@@ -22,6 +22,7 @@ from datetime import date, datetime, time, timedelta
 import numpy as np
 
 from ..core import instruments, levels, options, signals
+from ..core import signals_v04
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
 from ..core.market_data import intraday_bars
@@ -54,11 +55,15 @@ def rule_bias(und, strat):
     side = "above" if c >= piv else "below"
     if strat.get("available"):
         a = strat["alignment"]
+        v04 = strat.get("engine") == "v04"
+        why = ("EMA9>EMA21 on the future" if v04 else "SHA green, EMA9>EMA22",
+               "EMA9<EMA21 on the future" if v04 else "SHA red, EMA9<EMA22")
+        tag = "v0.4" if v04 else "v4.0"
         if a == "long-aligned" and c >= piv:
-            return "bullish", "v4.0 long-aligned (SHA green, EMA9>EMA22) and prior close above pivot"
+            return "bullish", f"{tag} long-aligned ({why[0]}) and prior close above pivot"
         if a == "short-aligned" and c <= piv:
-            return "bearish", "v4.0 short-aligned (SHA red, EMA9<EMA22) and prior close below pivot"
-        return "neutral", f"v4.0 {a}; prior close {side} pivot"
+            return "bearish", f"{tag} short-aligned ({why[1]}) and prior close below pivot"
+        return "neutral", f"{tag} {a}; prior close {side} pivot"
     if c > piv and pos >= 60:
         return "bullish", "prior close above pivot and in the upper part of its range"
     if c < piv and pos <= 40:
@@ -153,11 +158,23 @@ def instrument_facts(client, u, as_of, as_of_dt, cfg):
     prior = bars[bars["time"].dt.date < as_of]
     und = levels.level_summary(bars, as_of)
     scfg = cfg.get("strategy", {}).get(u)
-    if scfg and scfg.get("engine", "v40") != "v40":
-        scfg = None                         # the brief models v4.0 state only
-    strat = (signals.v40_state(prior, scfg) if scfg else
-             dict(modelled=False, available=False,
-                  note="BANKNIFTY v0.4 state is not included in this brief; its live signals come from the signal checker"))
+    engine = (scfg or {}).get("engine", "v40")
+    if not scfg:
+        strat = dict(modelled=False, available=False, note=f"no strategy configured for {u}")
+    elif engine == "v04":
+        # v0.4 reads volume and VWAP, which the BANKNIFTY index does not have: its state comes from
+        # the front-month future, the same series the live signal checker watches.
+        fut = instruments.front_future(u)
+        if fut is None:
+            strat = dict(modelled=True, available=False, name=scfg["name"],
+                         note=f"no front-month future listed for {u}")
+        else:
+            fbars = intraday_bars(client, fut["security_id"], fut["segment"], fut["instrument"],
+                                  as_of - timedelta(days=pcfg["history_days"]), as_of, interval=5)
+            strat = signals_v04.v04_state(fbars[fbars["time"].dt.date < as_of], scfg)
+            strat["series"] = fut["label"]
+    else:
+        strat = signals.v40_state(prior, scfg)
 
     ref_close = und["prev_day"]["close"] if und.get("available") else None
     chains = dict(nearest=options.chain_snapshot(client, u, exps[0], as_of_dt, pcfg, ref_close))
@@ -176,7 +193,7 @@ def instrument_facts(client, u, as_of, as_of_dt, cfg):
                               else "cheap" if ch["iv_rv_ratio"] < pcfg["iv_cheap_ratio"] else "fair")
 
     near = chains["nearest"]
-    if strat.get("available") and near.get("usable"):
+    if strat.get("available") and strat.get("if_flip_now") and near.get("usable"):
         for side, right in (("long", "ce"), ("short", "pe")):
             leg = near["atm"][right]
             d = abs(leg["delta"]) if leg and leg.get("delta") else None
@@ -256,7 +273,8 @@ def main(argv=None):
         near = f["options"]["nearest"]
         s = f["strategy"]
         print(f"  {u}: close {f['underlying'].get('prev_day', {}).get('close')} | ATR {f['underlying'].get('atr_regime')} "
-              f"| v4.0 {s.get('alignment', 'n/a')} | options {'usable' if near.get('usable') else 'UNUSABLE ' + str(near.get('flags'))} "
+              f"| {'v0.4' if s.get('engine') == 'v04' else 'v4.0'} {s.get('alignment', 'n/a')} "
+              f"| options {'usable' if near.get('usable') else 'UNUSABLE ' + str(near.get('flags'))} "
               f"| rule bias {f['rule_bias']}")
     return 0
 

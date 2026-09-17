@@ -253,3 +253,58 @@ def simulate(df, p, start=0):
         prev_size = size
 
     return dict(trades=trades, position=pos, live=live, events=events)
+
+
+def _view(t, last_close=None):
+    v = {k: t.get(k) for k in ("side", "arm_time", "entry_time", "entry", "sl", "tp", "risk_pts",
+                               "exit_time", "exit", "result", "pnl_pts")}
+    if last_close is not None and t.get("exit") is None and t.get("entry") is not None:
+        v["open_pts"] = (last_close - t["entry"]) * (1 if t["side"] == "LONG" else -1)
+    return {k: v[k] for k in v if v[k] is not None}
+
+
+def v04_state(bars, p):
+    """The same shape v40_state returns, for the pre-market brief.
+
+    Read pre-open, this is mostly context rather than a live position: v0.4 force-flats at 15:20 and
+    cancels its stop orders at 15:15, so nothing survives the night. What carries over is the regime,
+    the ATR and 15m ADX gates, and how the strategy did in the sessions just gone."""
+    if len(bars) < WARMUP_BARS:
+        return dict(modelled=True, available=False, name=p["name"],
+                    note=f"only {len(bars)} 5m bars of history; v0.4 needs {WARMUP_BARS}")
+    df = v04_frame(bars, p)
+    sim = simulate(df, p, start=WARMUP_BARS)      # EMA200 and the 15m ADX are junk before this
+    trades, last = sim["trades"], df.iloc[-1]
+
+    regime = "up" if last["regime_up"] and not last["regime_dn"] else "down" if last["regime_dn"] and not last["regime_up"] else "either"
+    alignment = ("long-aligned" if regime == "up" else "short-aligned" if regime == "down"
+                 else "coiled" if last["coil"] else "mixed")
+    armed = [o for o in sim["live"].values() if o]
+    gates = dict(atr14=float(last["atr14"]), atr_min_pts=p["atr_min_pts"], atr_ok=bool(last["atr_ok"]),
+                 adx15_prev=None if last["adx15_prev"] != last["adx15_prev"] else float(last["adx15_prev"]),
+                 htf_adx_min=p["htf_adx_min"], adx_ok=bool(last["adx_ok"]), coil=bool(last["coil"]))
+    blocking = [n for n, ok in (("ATR below the floor", gates["atr_ok"]),
+                                ("15m ADX below the gate", gates["adx_ok"])) if not ok]
+
+    last_day = last["time"].date()
+    days = sorted({t["entry_time"].date() for t in trades})[-5:]
+    recent = [t for t in trades if t["entry_time"].date() in days]
+    day_trades = [t for t in trades if t["entry_time"].date() == last_day]
+    return dict(
+        modelled=True, available=True, approximate=True, name=p["name"], rr=p["rr"], engine="v04",
+        last_bar=last["time"], close=float(last["close"]), ema9=float(last["ema9"]),
+        ema21=float(last["ema21"]), ema200=float(last["ema200"]), ema_trend=regime,
+        alignment=alignment, atr_5m=float(last["atr14"]), gates=gates,
+        position=_view(sim["position"], float(last["close"])) if sim["position"] else None,
+        pending_entry=None,                       # v0.4 never fills at the open; it arms a stop order
+        armed_orders=[_view(o) | dict(trigger=o["trig"]) for o in armed],
+        last_trade=_view(trades[-1]) if trades else None,
+        last_session=dict(date=last_day, trades=len(day_trades),
+                          net_pts=sum(t["pnl_pts"] for t in day_trades)),
+        recent_5_sessions=dict(trades=len(recent), wins=sum(t["pnl_pts"] > 0 for t in recent),
+                               net_pts=sum(t["pnl_pts"] for t in recent)),
+        needs=("a pullback that reclaims EMA9/21 with a wick, volume and VWAP on side, "
+               f"between {p['entry_window'][0]} and {p['entry_window'][1]}"
+               + (f"; blocked right now: {', '.join(blocking)}" if blocking else "")),
+        sim_window=dict(start=df["time"].iat[WARMUP_BARS], end=last["time"], trades=len(trades)),
+    )

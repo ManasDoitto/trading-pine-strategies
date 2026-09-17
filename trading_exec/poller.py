@@ -100,7 +100,7 @@ def v04_signals(client, traded, source, params, series, bars):
     df = v04.v04_frame(bars, params)
     if len(df) < v04.WARMUP_BARS:
         return []
-    sim = v04.simulate(df, params)
+    sim = v04.simulate(df, params, start=v04.WARMUP_BARS)   # never trade off unwarmed EMA200/ADX
     last = len(df) - 1
     common = dict(strategy=params["name"], instrument=traded, rr=params["rr"],
                   flat_at=params.get("flat_exit_at", ""), **_series_fields(source, series))

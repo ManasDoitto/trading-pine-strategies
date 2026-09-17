@@ -45,15 +45,22 @@ facts. The bias is a read of conditions, not a trade call.
 # Pre-market: <date> (<weekday>)
 
 ## Overview
-Table: Instrument | Bias | Prev close | ATR regime | v4.0 alignment | Options (usable?) | Nearest expiry (DTE)
+Table: Instrument | Bias | Prev close | ATR regime | Strategy alignment | Options (usable?) | Nearest expiry (DTE)
 Then 2-3 sentences tying it together for an option buyer.
 
 ## <INSTRUMENT>          <- one section per key in facts.instruments, heading exactly the key (e.g. "## CRUDEOIL")
 **Levels.** Prev day high / low / close, pivot P, R1, S1 (R2/S2 if useful), 5-day high/low.
 **Volatility.** ATR14 vs its 20-session average (atr_regime), prev-day range vs ATR, rv20_pct.
-**Strategy state.** For v4.0 (CRUDEOIL/SILVER/SILVERM): SHA colour, EMA trend, alignment, last flip,
-  the simulated position or last trade, and what the next long/short needs, using if_flip_now with its
-  risk_pts / approx_premium_risk_pts. Always say it's approximate. For BANKNIFTY, say v0.4 isn't modelled.
+**Strategy state.** Always say it is approximate (a Python port on Dhan bars).
+  - v4.0 (CRUDEOIL/SILVER/SILVERM): SHA colour, EMA trend, alignment, last flip, the simulated position
+    or last trade, and what the next long/short needs, using if_flip_now with its risk_pts /
+    approx_premium_risk_pts.
+  - v0.4 (BANKNIFTY, `strategy.engine == "v04"`): it runs on the future named in `strategy.series`, not
+    the index. Give the EMA regime and alignment, the `gates` block (ATR vs atr_min_pts, 15m ADX vs
+    htf_adx_min - say which gate is currently shut), `needs`, and the last trade or recent_5_sessions.
+    There is no if_flip_now: v0.4 arms a stop order instead of entering at the open, so describe
+    `armed_orders` if any, and otherwise say it is flat with nothing armed. Note that the port is
+    unverified against TradingView and that sim_window.trades is small.
 **Options for a buyer.** For each expiry in options (nearest, and next if present): DTE, ATM strike,
   CE/PE premium and IV, iv_vs_rv, straddle and straddle_pct_of_underlying, theta per day and
   theta_pct_of_premium, move_to_cover_1d_theta_pts, max CE/PE OI strikes, PCR. Apply rule 4 if unusable.
