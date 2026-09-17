@@ -1,6 +1,6 @@
 """Session-close facts for option buying. Per instrument:
 - what the session did (OHLC, gap, range vs ATR, where it closed against this morning's levels)
-- which v4.0 signals fired, and how the simulated trades ended
+- which strategy signals fired (v4.0, or v0.4 for BANKNIFTY), and how the simulated trades ended
 - what the ATM options did through the day (premium path, IV at the close vs this morning)
 - your own trades from the journal, and whether they lined up with the strategy's signals
 
@@ -17,7 +17,7 @@ import sys
 import traceback
 from datetime import date, datetime, time, timedelta
 
-from ..core import instruments, levels, options, signals
+from ..core import instruments, levels, options, signals, signals_v04
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
 from ..core.market_data import intraday_bars
@@ -64,11 +64,41 @@ def session_summary(day_bars, prior):
     return out
 
 
+def strategy_session_v04(bars, scfg, day):
+    """BankNifty v0.4 for `day`: the setups it armed, the ones that filled, and how they ended.
+
+    `signals` holds the FILLS, so it compares with the trader's entries the same way v4.0's does;
+    the setups that were merely offered are in `armed`."""
+    if len(bars) < signals_v04.WARMUP_BARS:
+        return dict(modelled=True, available=False, name=scfg["name"],
+                    note=f"only {len(bars)} 5m bars of history; v0.4 needs {signals_v04.WARMUP_BARS}")
+    df = signals_v04.v04_frame(bars, scfg)
+    sim = signals_v04.simulate(df, scfg, start=signals_v04.WARMUP_BARS)
+    today = [e for e in sim["events"] if e["time"].date() == day]
+    fired = [dict(time=e["time"], side=e["side"], close=e["entry"], risk_pts=e["risk_pts"],
+                  option_for_buyer="CE" if e["side"] == "LONG" else "PE")
+             for e in today if e["kind"] == "filled"]
+    armed = [dict(time=e["time"], side=e["side"], trigger=e["trig"], sl=e["sl"], tp=e["tp"],
+                  risk_pts=e["risk_pts"]) for e in today if e["kind"] == "armed"]
+    day_trades = [signals_v04._view(t) for t in sim["trades"] if t["entry_time"].date() == day]
+    pos = sim["position"]
+    return dict(
+        modelled=True, available=True, approximate=True, engine="v04", name=scfg["name"], rr=scfg["rr"],
+        signals=fired, armed=armed, armed_expired=sum(1 for e in today if e["kind"] == "expired"),
+        flips=len(armed),
+        trades=day_trades, trades_net_pts=sum(t.get("pnl_pts", 0) for t in day_trades),
+        wins=sum(1 for t in day_trades if t.get("pnl_pts", 0) > 0),
+        open_at_close=signals_v04._view(pos, float(df["close"].iloc[-1])) if pos else None,
+        pending_at_close=None,
+        note="v0.4 arms stop orders: `armed` are the setups offered, `signals` the ones price triggered. "
+             "It force-flats at 15:20, so nothing is normally open at the close.",
+    )
+
+
 def strategy_session(bars, scfg, day):
     """v4.0 signals and simulated trades belonging to `day`."""
     if not scfg:
-        return dict(modelled=False, available=False,
-                    note="BANKNIFTY v0.4 signals are not included in this review; the signal checker runs them")
+        return dict(modelled=False, available=False, note="no strategy configured for this instrument")
     if len(bars) < signals.WARMUP_BARS + 50:
         return dict(modelled=True, available=False, note=f"only {len(bars)} 5m bars of history")
     df = signals.v40_frame(bars, scfg)
@@ -121,7 +151,8 @@ def user_session_trades(journal, day, underlying):
 
 
 def alignment(entries, fired, window_minutes):
-    """Did your entries line up with a v4.0 signal (same direction, within the window)?"""
+    """Did your entries line up with a strategy signal (same direction, within the window)?
+    For v0.4, `fired` holds the setups that actually triggered, not the ones merely armed."""
     if not entries:
         return dict(entries=0, note="no entries today")
     out, matched = [], 0
@@ -156,9 +187,19 @@ def instrument_facts(client, u, day, cfg, premarket, journal):
         sess = session_summary(day_bars, prior if prior.get("available") else None)
 
     scfg = scfg_all.get(u)
-    if scfg and scfg.get("engine", "v40") != "v40":
-        scfg = None                         # this review models v4.0 signals only
-    strat = strategy_session(bars[bars["time"].dt.date <= day], scfg, day)
+    if scfg and scfg.get("engine", "v40") == "v04":
+        # v0.4 needs volume and VWAP: it is graded on the front-month future, like the live checker.
+        fut = instruments.front_future(u, day)
+        if fut is None:
+            strat = dict(modelled=True, available=False, name=scfg["name"],
+                         note=f"no front-month future listed for {u} on {day}")
+        else:
+            fbars = intraday_bars(client, fut["security_id"], fut["segment"], fut["instrument"],
+                                  day - timedelta(days=pcfg["history_days"]), day, interval=5)
+            strat = strategy_session_v04(fbars[fbars["time"].dt.date <= day], scfg, day)
+            strat["series"] = fut["label"]
+    else:
+        strat = strategy_session(bars[bars["time"].dt.date <= day], scfg, day)
     user = user_session_trades(journal, day, u)
     align = alignment(user.get("entries_today", []), strat.get("signals", []), pcfg["signal_match_minutes"])
 
@@ -218,10 +259,12 @@ def build(client, day, session="ALL", only=None):
         caveats=[
             "Session OHLC is built from 5m bars of the futures contract underlying the nearest option expiry "
             "(the index for BANKNIFTY); MCX's official settlement close can differ from the last traded price.",
-            "v4.0 signals and trades are a Python port on Dhan bars -- approximate, and they ignore whether the "
-            "real strategy was already in a position before this session. BANKNIFTY v0.4 is not modelled.",
+            "Strategy signals and trades are a Python port on Dhan bars -- approximate, and they ignore whether "
+            "the real strategy was already in a position before this session. BANKNIFTY is graded with v0.4 on the "
+            "front-month future (named in strategy.series), which is unverified against TradingView; the others use v4.0.",
             "Option premium paths are the ATM strike chosen this morning; they are not your own fills.",
-            "Alignment only checks direction and timing against v4.0 signals; it is not a judgement of the trade.",
+            "Alignment only checks direction and timing against the strategy's entries (for v0.4, the setups that "
+            "actually triggered); it is not a judgement of the trade.",
         ],
     ))
 
@@ -244,7 +287,8 @@ def main(argv=None):
             continue
         s, st = f["session"], f["strategy"]
         print(f"  {u}: O {s['open']} H {s['high']} L {s['low']} C {s['close']} ({s.get('change_pct')}%), "
-              f"range {s.get('range_vs_atr')}x ATR | v4.0 signals {len(st.get('signals', []))} "
+              f"range {s.get('range_vs_atr')}x ATR | {'v0.4' if st.get('engine') == 'v04' else 'v4.0'} "
+              f"signals {len(st.get('signals', []))} "
               f"trades {len(st.get('trades', []))} net {round(st.get('trades_net_pts', 0), 1)} pts | "
               f"your entries {f['alignment'].get('entries', 0)} (matched {f['alignment'].get('matched_a_signal', 0)})")
     return 0

@@ -1,9 +1,12 @@
 import unittest
+from unittest import mock
 from datetime import date, datetime, timedelta
 
 import pandas as pd
 
-from trading_agents.facts.session_close import alignment, session_summary
+from trading_agents.core import signals_v04
+from trading_agents.core.config import load_config
+from trading_agents.facts.session_close import alignment, session_summary, strategy_session_v04
 from trading_agents.validate import scorecard
 
 
@@ -61,6 +64,82 @@ class AlignmentTest(unittest.TestCase):
 
     def test_no_entries(self):
         self.assertEqual(alignment([], self.FIRED, 15)["entries"], 0)
+
+
+class StrategySessionV04Test(unittest.TestCase):
+    """BankNifty's session block: armed setups and fills are reported separately."""
+
+    P = load_config()["strategy"]["BANKNIFTY"]
+    DAY = date(2026, 9, 15)
+
+    def synthetic(self, days=6):
+        import math
+        rows = []
+        for d in range(days):
+            start = datetime(2026, 9, 10 + d, 9, 15)
+            for k in range(75):
+                c = 55000 + 300 * math.sin((d * 75 + k) / 17) + 2 * k
+                rows.append(dict(time=start + timedelta(minutes=5 * k), open=c - 5, high=c + 20,
+                                 low=c - 20, close=c, volume=1000 + 10 * k))
+        return pd.DataFrame(rows)
+
+    def test_short_history_says_so_instead_of_guessing(self):
+        out = strategy_session_v04(self.synthetic(days=1), self.P, self.DAY)
+        self.assertFalse(out["available"])
+        self.assertIn("v0.4 needs", out["note"])
+
+    def frame(self, n=300):
+        t0 = datetime(2026, 9, 15, 9, 15)
+        return pd.DataFrame(dict(time=[t0 + timedelta(minutes=5 * i) for i in range(n)],
+                                 open=1.0, high=1.0, low=1.0, close=1.0, volume=1.0))
+
+    def canned(self, sim):
+        """The synthetic sine series arms nothing, so the events are supplied directly: this test is
+        about how strategy_session_v04 maps them, not about the strategy."""
+        bars = self.frame()
+        with mock.patch.object(signals_v04, "v04_frame", lambda b, p: bars),              mock.patch.object(signals_v04, "simulate", lambda d, p, start=0: sim):
+            return strategy_session_v04(bars, self.P, self.DAY)
+
+    def events(self):
+        d = datetime(2026, 9, 15, 10, 0)
+        trade = dict(side="LONG", arm_time=d, entry_time=d + timedelta(minutes=10), entry=56010.0,
+                     sl=55900.0, tp=56285.0, risk_pts=110.0, exit_time=d + timedelta(minutes=40),
+                     exit=56285.0, result="TARGET", pnl_pts=275.0, entry_bar=252, exit_bar=258)
+        return dict(trades=[trade], position=None, live=dict(L=None, S=None), events=[
+            dict(kind="armed", bar=250, time=d, side="LONG", arm_bar=250, arm_time=d, trig=56010.0,
+                 sl=55900.0, tp=56285.0, risk_pts=110.0),
+            dict(kind="filled", bar=252, time=d + timedelta(minutes=10), **trade),
+            dict(kind="armed", bar=260, time=d + timedelta(minutes=50), side="SHORT", arm_bar=260,
+                 arm_time=d + timedelta(minutes=50), trig=55800.0, sl=55900.0, tp=55550.0, risk_pts=100.0),
+            dict(kind="expired", bar=269, time=d + timedelta(minutes=95), side="SHORT", arm_bar=260,
+                 arm_time=d + timedelta(minutes=50), trig=55800.0, sl=55900.0, tp=55550.0, risk_pts=100.0),
+        ])
+
+    def test_armed_and_filled_are_reported_apart(self):
+        out = self.canned(self.events())
+        self.assertEqual(len(out["armed"]), 2)                      # two setups offered
+        self.assertEqual(len(out["signals"]), 1)                    # one actually triggered
+        self.assertEqual(out["armed_expired"], 1)                   # the other timed out
+        self.assertEqual(out["flips"], 2)
+        self.assertEqual(out["armed"][0]["trigger"], 56010.0)
+        self.assertEqual((out["trades_net_pts"], out["wins"]), (275.0, 1))
+        self.assertIsNone(out["open_at_close"])                     # v0.4 force-flats at 15:20
+        self.assertEqual(out["signals"][0]["option_for_buyer"], "CE")
+
+    def test_a_short_fill_maps_to_a_put(self):
+        sim = self.events()
+        for e in sim["events"]:
+            e["side"] = "SHORT"
+        sim["trades"][0]["side"] = "SHORT"
+        out = self.canned(sim)
+        self.assertEqual(out["signals"][0]["option_for_buyer"], "PE")
+
+    def test_signals_are_shaped_for_the_alignment_check(self):
+        out = self.canned(self.events())
+        entry = dict(time=out["signals"][0]["time"], side="LONG", symbol="BANKNIFTY-56100-CE")
+        self.assertEqual(alignment([entry], out["signals"], 15).get("matched_a_signal"), 1)
+        against = dict(time=out["signals"][0]["time"], side="SHORT", symbol="BANKNIFTY-56100-PE")
+        self.assertEqual(alignment([against], out["signals"], 15).get("matched_a_signal"), 0)
 
 
 class ScorecardTest(unittest.TestCase):

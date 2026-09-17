@@ -60,8 +60,10 @@ overall, with the number of graded sessions. If the scorecard has notes (e.g. no
 state them. Be blunt when the call was wrong.
 
 ## Your trades vs the strategy
-Across instruments: how many entries matched a v4.0 signal, how many didn't, and any entry that was
-taken against a nearby opposite signal. Then today's violations with their INR impact, and the rolling
+Across instruments: how many entries matched a strategy signal, how many didn't, and any entry that was
+taken against a nearby opposite signal. For BANKNIFTY (`strategy.engine == "v04"`) the strategy ran on the
+future in `strategy.series`: report `armed` (setups offered) separately from `signals` (the ones price
+triggered), plus `armed_expired`, and say the port is unverified against TradingView. Then today's violations with their INR impact, and the rolling
 "no rule break" vs "with rule break" split from context. If there were no trades, say so and keep the
 rolling split.
 
