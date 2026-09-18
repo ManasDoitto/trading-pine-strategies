@@ -181,6 +181,128 @@ def pos(symbol="CRUDEOIL 17 SEP 2026 9600 PUT", side="LONG", avg_entry=69.0, ltp
     return p
 
 
+class RuleHistoryTest(unittest.TestCase):
+    """How many times a rule has fired before, and what it cost - from the newest journal facts."""
+
+    ALL_TIME = dict(violations_by_rule=dict(R7=8, R3=2),
+                    violation_cost=dict(R7=dict(episodes=8, net_inr=-42150.0), R3=dict(episodes=2, net_inr=-500.0)))
+
+    def test_a_rule_that_has_fired_returns_count_and_cost(self):
+        self.assertEqual(trade_watch.rule_history("R7", self.ALL_TIME), dict(count=8, net_inr=-42150.0))
+
+    def test_a_rule_that_has_never_fired_returns_none(self):
+        self.assertIsNone(trade_watch.rule_history("R4", self.ALL_TIME))
+
+    def test_no_journal_history_yet_returns_none(self):
+        self.assertIsNone(trade_watch.rule_history("R7", None))
+
+
+class StrategyReadTest(unittest.TestCase):
+    """Does this trade match the strategy, and what would its own risk formula set as stop/target."""
+
+    def patched(self, bars, state):
+        from trading_exec import poller
+        return [mock.patch.object(poller, "signal_series", lambda source, tcfg=None: dict(security_id="1")),
+                mock.patch.object(poller, "closed_bars", lambda *a, **k: bars),
+                mock.patch("trading_agents.core.signals.v40_state", lambda b, p: state)]
+
+    def test_matches_a_live_open_position(self):
+        state = dict(available=True, name="CRUDE v4.0 (x)", alignment="short-aligned",
+                    position=dict(side="SHORT", sl=9862.47, tp=9610.13, risk_pts=50.47), pending_entry=None,
+                    if_flip_now=dict(long={}, short={}))
+        with contextlib.ExitStack() as stack:
+            for p in self.patched(bars([(1, 1, 1, 1)]), state):
+                stack.enter_context(p)
+            r = trade_watch.strategy_read(None, "CRUDEOIL", "PE", datetime(2026, 9, 17, 12, 0))
+        self.assertEqual(r["match"], "MATCHES a live strategy signal")
+        self.assertEqual((r["levels"]["sl"], r["levels"]["tp"]), (9862.47, 9610.13))
+        self.assertIn("live simulated position", r["levels"]["src"])
+
+    def test_matches_the_trend_but_no_live_signal_uses_hypothetical_levels(self):
+        state = dict(available=True, name="CRUDE v4.0 (x)", alignment="long-aligned", position=None, pending_entry=None,
+                    if_flip_now=dict(long=dict(sl=9780.0, tp=9990.0, risk_pts=35.0), short={}))
+        with contextlib.ExitStack() as stack:
+            for p in self.patched(bars([(1, 1, 1, 1)]), state):
+                stack.enter_context(p)
+            r = trade_watch.strategy_read(None, "CRUDEOIL", "CE", datetime(2026, 9, 17, 12, 0))
+        self.assertEqual(r["match"], "matches the trend (no live signal right now)")
+        self.assertIn("hypothetical", r["levels"]["src"])
+        self.assertEqual(r["levels"]["sl"], 9780.0)
+
+    def test_against_the_trend_is_flagged_plainly(self):
+        state = dict(available=True, name="CRUDE v4.0 (x)", alignment="short-aligned", position=None, pending_entry=None,
+                    if_flip_now=dict(long=dict(sl=9780.0, tp=9990.0, risk_pts=35.0), short={}))
+        with contextlib.ExitStack() as stack:
+            for p in self.patched(bars([(1, 1, 1, 1)]), state):
+                stack.enter_context(p)
+            r = trade_watch.strategy_read(None, "CRUDEOIL", "CE", datetime(2026, 9, 17, 12, 0))
+        self.assertEqual(r["match"], "AGAINST the strategy's current trend")
+
+    def test_no_strategy_modelled_returns_none(self):
+        self.assertIsNone(trade_watch.strategy_read(None, "NOTATRADEDINSTRUMENT", "CE", datetime.now()))
+
+    def test_v04_uses_an_armed_order_when_no_open_position(self):
+        state = dict(available=True, name="BankNifty v0.4 (x)", alignment="short-aligned", position=None,
+                    armed_orders=[dict(side="SHORT", sl=56900.0, tp=56550.0, risk_pts=100.0, trigger=56800.0)])
+        with contextlib.ExitStack() as stack:
+            for p in [mock.patch("trading_exec.poller.signal_series", lambda source, tcfg=None: dict(security_id="1")),
+                     mock.patch("trading_exec.poller.closed_bars", lambda *a, **k: bars([(1, 1, 1, 1)])),
+                     mock.patch("trading_agents.core.signals_v04.v04_state", lambda b, p: state),
+                     mock.patch("trading_exec.config.instrument_cfg", lambda u: dict(signal_series="future")),
+                     mock.patch.object(trade_watch, "agents_config",
+                                       lambda: dict(strategy={"BANKNIFTY": dict(engine="v04")}))]:
+                stack.enter_context(p)
+            r = trade_watch.strategy_read(None, "BANKNIFTY", "PE", datetime(2026, 9, 17, 12, 0))
+        self.assertEqual(r["match"], "MATCHES a live strategy signal")
+        self.assertIn("armed order", r["levels"]["src"])
+        self.assertEqual(r["levels"]["sl"], 56900.0)
+
+
+class QualityCardTest(unittest.TestCase):
+    """The full [trade opened] card: strategy match, its stop/target, and rule history attached."""
+
+    def build(self, p_over=None, read=None, flags_hist=None, history_rows=None):
+        all_time = dict(violations_by_rule=dict(R7=8), violation_cost=dict(R7=dict(net_inr=-42150.0)))
+        patches = [
+            mock.patch.object(trade_watch, "average_win_inr", lambda u: (4000.0, "test average")),
+            mock.patch.object(trade_watch, "latest_journal_all_time", lambda: all_time if history_rows is not False else None),
+            mock.patch.object(trade_watch, "underlying_spot", lambda c, u, e: 9760.0),
+            mock.patch.object(trade_watch, "strategy_read", lambda c, u, r, n: read),
+        ]
+        with contextlib.ExitStack() as stack:
+            for pat in patches:
+                stack.enter_context(pat)
+            return trade_watch.quality_card(None, pos(**(p_over or {})), datetime(2026, 9, 17, 12, 0))
+
+    def test_no_strategy_read_says_so(self):
+        lines, _ = self.build(read=None)
+        self.assertIn("strategy: no live read available right now", lines)
+
+    def test_a_live_matching_signal_shows_its_real_levels(self):
+        read = dict(name="CRUDE v4.0 (x)", alignment="short-aligned", side="SHORT",
+                    match="MATCHES a live strategy signal",
+                    levels=dict(sl=9862.47, tp=9610.13, risk_pts=50.47, rr=4.0, src="its own live simulated position"))
+        lines, _ = self.build(read=read)
+        self.assertTrue(any("short-aligned" in l and "MATCHES a live strategy signal" in l for l in lines))
+        self.assertTrue(any("SL 9,862.47" in l and "9,610.13" in l for l in lines))
+
+    def test_an_r7_flag_carries_its_own_history(self):
+        # strike 9200 vs spot 9760 with right="PE": far ITM, not OTM -- use a genuinely deep-OTM strike
+        lines, flags = self.build(p_over=dict(strike=7000.0), read=None)
+        hit = [l for l in lines if l.startswith("! ") and "R7" in l]
+        self.assertTrue(hit, lines)
+        self.assertIn("you've done this 8x before, net -42,150 INR", hit[0])
+
+    def test_history_section_lists_worst_rules_first(self):
+        lines, _ = self.build(read=None)
+        self.assertIn("your history, all-time (worst first):", lines)
+        self.assertIn("  R7: 8x, net -42,150 INR", lines)
+
+    def test_no_journal_history_yet_omits_the_section(self):
+        lines, _ = self.build(read=None, history_rows=False)
+        self.assertFalse(any("your history" in l for l in lines))
+
+
 class TradeWatchTest(unittest.TestCase):
     """The real-account watcher: a card on entry, then cut / hold / profit / averaging alerts."""
 

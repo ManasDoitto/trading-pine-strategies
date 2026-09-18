@@ -5,9 +5,13 @@ not only the four the strategies follow, and never a shadow trade. It is read-on
 messages, it never places, modifies or closes anything.
 
 What it sends, each once per position per day:
-  [trade opened]   a quality card the moment a new position appears - moneyness vs the R7 strike
-                   limit, DTE vs R3, theta burden, and the exact premium levels where the cut
-                   alert and the profit alert will fire, so the plan exists before the trade moves
+  [trade opened]   a quality card the moment a new position appears: does it match the strategy
+                   (a live signal, the trend, or against it), the strategy's own stop and target
+                   for this direction (in points and approx premium), moneyness vs the R7 strike
+                   limit, DTE vs R3, the exact premium levels where the cut and profit alerts fire,
+                   and for anything flagged wrong, how many times before and what it cost - from
+                   your own closed-trade history - so the plan and the track record both exist
+                   before the trade moves
   [cut it]         premium down `cut_pct` from the average entry (the trader's own 25% line)
   [losing]         an earlier heads-up at `warn_pct`
   [held too long]  the hold ladder: still down X% after N minutes, for trades that die slowly
@@ -40,6 +44,7 @@ from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.option_symbols import underlying_of
 from trading_agents.facts.journal import live_positions
 
+from . import atm as atm_mod
 from .config import data_dir, load_config
 from .notify import notify
 from .shadow import _atomic_write_json
@@ -80,17 +85,27 @@ def bought_options(positions):
 
 
 # ------------------------------------------------------------------ the trader's own numbers
+def latest_journal_all_time():
+    """The `all_time` block of the newest journal facts file, or None if none exist yet."""
+    files = sorted((data_dir().parent / "journal_data" / "facts").glob("*_journal.json")) \
+        if (data_dir().parent / "journal_data" / "facts").exists() else []
+    if not files:
+        return None
+    try:
+        return json.loads(files[-1].read_text(encoding="utf-8"))["all_time"]
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
 def average_win_inr(underlying):
     """The trader's own average winning trade, from the newest journal facts: per underlying when
     that underlying has a history, else the account-wide episode average."""
     cfg = _cfg()
     if cfg.get("profit_alert_inr"):
         return float(cfg["profit_alert_inr"]), "config"
-    files = sorted((data_dir().parent / "journal_data" / "facts").glob("*_journal.json")) \
-        if (data_dir().parent / "journal_data" / "facts").exists() else []
-    if files:
+    all_time = latest_journal_all_time()
+    if all_time:
         try:
-            all_time = json.loads(files[-1].read_text(encoding="utf-8"))["all_time"]
             by_und = (all_time.get("round_trips_by_underlying") or {}).get(underlying) or {}
             if by_und.get("avg_win") and (by_und.get("n") or 0) >= 5:
                 return float(by_und["avg_win"]), f"{underlying} average win"
@@ -99,6 +114,89 @@ def average_win_inr(underlying):
         except (KeyError, ValueError, TypeError):
             pass
     return BENCHMARK_FALLBACK_INR, "fallback"
+
+
+def rule_history(rule, all_time):
+    """How many times this rule has fired (all-time, closed episodes) and what it net cost.
+    None if there's no journal history yet or this rule has never fired."""
+    if not all_time:
+        return None
+    n = (all_time.get("violations_by_rule") or {}).get(rule)
+    cost = (all_time.get("violation_cost") or {}).get(rule) or {}
+    if not n:
+        return None
+    return dict(count=n, net_inr=cost.get("net_inr"))
+
+
+def strategy_read(client, und, right, now):
+    """What the matching strategy (if any) says about this direction right now: does the trader's
+    side agree with it, and what SL/target would the strategy itself set - a REAL live position's or
+    armed order's levels if one exists in this direction, else the hypothetical levels its own risk
+    formula would set for this direction right now. Returns None if no strategy is modelled for `und`."""
+    from . import poller
+    from .config import instrument_cfg
+
+    strategies = agents_config().get("strategy", {})
+    try:
+        tcfg = instrument_cfg(und)
+    except KeyError:
+        tcfg = {}
+    source = tcfg.get("signal_from", und)
+    params = strategies.get(source)
+    if not params:
+        return None
+    series = poller.signal_series(source, tcfg)
+    if series is None:
+        return None
+    src_cfg = load_config()["source"]
+    bars = poller.closed_bars(client, series, now, src_cfg["history_days"], src_cfg["interval_minutes"])
+    if bars.empty:
+        return None
+    side = "LONG" if right == "CE" else "SHORT"
+
+    if params.get("engine") == "v04":
+        from trading_agents.core import signals_v04 as v04
+        st = v04.v04_state(bars, params)
+        if not st.get("available"):
+            return None
+        pos = st.get("position")
+        armed = next((o for o in st.get("armed_orders") or [] if o["side"] == side), None)
+        if pos and pos.get("side") == side:
+            levels = dict(sl=pos["sl"], tp=pos["tp"], risk_pts=pos.get("risk_pts"), rr=st.get("rr"),
+                          src="its own live position")
+        elif armed:
+            levels = dict(sl=armed["sl"], tp=armed["tp"], risk_pts=armed.get("risk_pts"), rr=st.get("rr"),
+                          src=f"its own armed order (triggers at {armed['trigger']:g})")
+        else:
+            levels = None      # v0.4 arms orders off specific swing structure; nothing generic to offer
+    else:
+        from trading_agents.core import signals as v40
+        st = v40.v40_state(bars, params)
+        if not st.get("available"):
+            return None
+        pos, pending = st.get("position"), st.get("pending_entry")
+        if pos and pos.get("side") == side:
+            levels = dict(sl=pos["sl"], tp=pos["tp"], risk_pts=pos.get("risk_pts"), rr=params["rr"],
+                          src="its own live simulated position")
+        elif pending and pending.get("side") == side:
+            levels = dict(sl=pending["sl"], tp=pending["tp"], risk_pts=pending.get("risk_pts"), rr=params["rr"],
+                          src="its own pending entry")
+        else:
+            hyp = st["if_flip_now"]["long" if side == "LONG" else "short"]
+            levels = dict(sl=hyp["sl"], tp=hyp["tp"], risk_pts=hyp["risk_pts"], rr=params["rr"],
+                          src="what it would set if it entered this direction right now (hypothetical)")
+
+    aligned = {"long-aligned": "LONG", "short-aligned": "SHORT"}.get(st["alignment"])
+    has_live_signal = levels is not None and levels["src"].startswith("its own")
+    if has_live_signal:
+        match = "MATCHES a live strategy signal"
+    elif aligned == side:
+        match = "matches the trend (no live signal right now)"
+    elif aligned in ("LONG", "SHORT"):
+        match = "AGAINST the strategy's current trend"
+    else:
+        match = "no clear read from the strategy right now"
+    return dict(name=st["name"], alignment=st["alignment"], side=side, match=match, levels=levels)
 
 
 def dte_of(expiry, today=None):
@@ -131,7 +229,11 @@ def underlying_spot(client, underlying, expiry):
 # ------------------------------------------------------------------ the quality card
 def quality_card(client, p, now=None):
     """Deterministic quality read on a position the trader just punched. Every line is computed
-    from Dhan data or the trader's own configured rules - nothing is estimated by a model."""
+    from Dhan data or the trader's own configured rules - nothing is estimated by a model.
+
+    Four things this answers, in order: does this trade match the strategy; what its own risk
+    formula says the stop should be; what a good exit looks like; and, for anything flagged wrong,
+    how many times before and what it actually cost - from your own closed-trade history."""
     now = now or datetime.now()
     cfg = _cfg()
     und = underlying_of(p["symbol"]) or ""
@@ -140,19 +242,20 @@ def quality_card(client, p, now=None):
     entry, qty = p["avg_entry"], p["qty_units"]
     cut_pct, warn_pct = cfg.get("cut_pct", 25.0), cfg.get("warn_pct", 15.0)
     bench, bench_src = average_win_inr(und)
+    all_time = latest_journal_all_time()
 
     lines = [f"{p['symbol']}", f"{_fmt(p['lots'], 2)} lots / {_fmt(qty, 0)} units at {_fmt(entry)}"
                                f"  =  {_fmt(entry * qty, 0)} INR at risk"]
-    flags = []
+    flags = []          # list of (rule_or_None, text)
 
     dte = dte_of(p.get("expiry"), now.date())
     if dte is not None:
         r3 = rules.get("r3_expiry_days")
         lines.append(f"expiry {str(p.get('expiry'))[:10]}  ({dte} DTE)")
         if dte == 0:
-            flags.append("0 DTE - decay is at its steepest and there is no tomorrow to be right in")
+            flags.append((None, "0 DTE - decay is at its steepest and there is no tomorrow to be right in"))
         elif r3 is not None and dte <= r3:
-            flags.append(f"{dte} DTE is inside the R3 floor of {r3} days")
+            flags.append(("R3", f"{dte} DTE is inside the R3 floor of {r3} days"))
 
     spot = underlying_spot(client, und, date.fromisoformat(str(p["expiry"])[:10])) \
         if und in scope and p.get("expiry") else None
@@ -164,7 +267,36 @@ def quality_card(client, p, now=None):
             where = "ITM" if n_otm < 0 else ("ATM" if n_otm < 0.5 else f"{n_otm:g} strikes OTM")
             lines.append(f"{und} at {_fmt(spot)}  ->  strike {_fmt(float(p['strike']), 0)} is {where}")
             if limit is not None and n_otm > limit:
-                flags.append(f"{n_otm:g} strikes OTM is past your R7 limit of {limit} for {und}")
+                flags.append(("R7", f"{n_otm:g} strikes OTM is past your R7 limit of {limit} for {und}"))
+
+    # 1. does this trade match the strategy; 2/3. its own stop and target for this direction
+    try:
+        read = strategy_read(client, und, p["right"], now)
+    except Exception:
+        read = None
+    if read:
+        lines += ["", f"strategy: {read['name'].split(' (')[0]}",
+                  f"  {read['alignment']}  ->  {read['match']}"]
+        lv = read["levels"]
+        if lv:
+            risk, rr = lv.get("risk_pts"), lv.get("rr")
+            lines.append(f"  its stop/target for this direction ({lv['src']}): "
+                        f"SL {_fmt(lv['sl'])}  target {_fmt(lv['tp'])}"
+                        + (f"  ({_fmt(risk)} pts, R:R {rr:g})" if risk and rr else ""))
+            if risk and p.get("strike"):
+                a = None
+                try:
+                    a = atm_mod.resolve(client, und, p["right"], now)
+                except Exception:
+                    pass
+                delta = abs((a or {}).get("delta") or 0)
+                if delta:
+                    risk_prem, reward_prem = risk * delta, (risk * rr * delta if rr else None)
+                    lines.append(f"  approx in premium (delta {delta:.2f} at the current ATM): "
+                                f"stop  ~{_fmt(max(entry - risk_prem, 0))}"
+                                + (f"   target ~{_fmt(entry + reward_prem)}" if reward_prem else ""))
+    elif und:
+        lines += ["", "strategy: no live read available right now"]
 
     cut_at = entry * (1 - cut_pct / 100)
     lines += [
@@ -173,9 +305,26 @@ def quality_card(client, p, now=None):
         f"profit alert at {_fmt(entry + bench / qty)}  (+{_fmt(bench, 0)} INR, your {bench_src})",
         f"first warning at {_fmt(entry * (1 - warn_pct / 100))}  (-{warn_pct:g}%)",
     ]
+
+    # 4. anything flagged wrong right now, with its own history attached
     if flags:
-        lines += [""] + [f"! {f}" for f in flags]
-    return lines, flags
+        lines.append("")
+        for rule, text in flags:
+            hist = rule_history(rule, all_time) if rule else None
+            lines.append(f"! {text}" + (f"  -- you've done this {hist['count']}x before, "
+                                        f"net {_fmt(hist['net_inr'], 0)} INR" if hist else ""))
+
+    # your rule history in general, worst cost first, so the pattern is visible on every trade
+    if all_time and (all_time.get("violations_by_rule") or {}):
+        rows = [(r, n, rule_history(r, all_time)) for r, n in all_time["violations_by_rule"].items()]
+        rows = sorted((r for r in rows if r[2] and r[2].get("net_inr") is not None), key=lambda r: r[2]["net_inr"])
+        if rows:
+            lines += ["", "your history, all-time (worst first):"]
+            for rule, n, hist in rows[:5]:
+                lines.append(f"  {rule}: {n}x, net {_fmt(hist['net_inr'], 0)} INR")
+
+    flag_texts = [t for _, t in flags]
+    return lines, flag_texts
 
 
 # ------------------------------------------------------------------ alert rules on an open position
