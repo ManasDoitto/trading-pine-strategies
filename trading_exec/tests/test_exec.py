@@ -288,12 +288,13 @@ class QualityCardTest(unittest.TestCase):
         self.assertFalse(any(l.startswith("now ") for l in lines))
 
     def test_sl_and_target_are_always_present_even_with_no_strategy_read(self):
-        # no strategy modelled/no live levels for this direction - must still give a concrete SL/target
+        # no strategy modelled/no live levels for this direction - must still give a concrete SL/target:
+        # 5% premium stop, R:R 2 target, off the current premium (pos() defaults ltp=avg_entry=69.0)
         lines, _ = self.build(read=None)
         hit = [l for l in lines if l.strip().startswith("SL ")]
         self.assertTrue(hit, lines)
-        self.assertIn("your own rules", hit[0])
-        self.assertIn("cut", hit[0])
+        self.assertIn("no strategy modelled", hit[0])
+        self.assertIn("SL 65.55  target 75.90", hit[0])
 
     def test_sl_and_target_present_when_read_exists_but_has_no_levels(self):
         read = dict(name="CRUDE v4.0 (x)", alignment="short-aligned", side="LONG",
@@ -301,7 +302,15 @@ class QualityCardTest(unittest.TestCase):
         lines, _ = self.build(read=read)
         hit = [l for l in lines if l.strip().startswith("SL ")]
         self.assertTrue(hit, lines)
-        self.assertIn("your own rules", hit[0])
+        self.assertIn("no strategy modelled", hit[0])
+
+    def test_no_strategy_fallback_uses_the_live_premium_not_the_entry(self):
+        # entry 69.0 but the position has since moved to ltp 100.0 - the fallback should price off
+        # where the trade is NOW, not where it started
+        lines, _ = self.build(p_over=dict(ltp=100.0, avg_entry=69.0, unrealized_inr=12400.0), read=None)
+        hit = [l for l in lines if l.strip().startswith("SL ")][0]
+        self.assertIn("SL 95.00  target 110.00", hit)
+        self.assertIn("current premium 100.00", hit)
 
     def test_a_live_matching_signal_shows_its_real_levels(self):
         read = dict(name="CRUDE v4.0 (x)", alignment="short-aligned", side="SHORT",

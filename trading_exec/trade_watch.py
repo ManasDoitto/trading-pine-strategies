@@ -55,6 +55,11 @@ from .shadow import _atomic_write_json
 
 STORE = "trade_watch_state.json"
 BENCHMARK_FALLBACK_INR = 4000.0
+# For an instrument no strategy models: a 5% premium stop, target at 2x that risk (a standard
+# "risk 1 to make 2" default) - off the CURRENT premium, not the entry, since this is an as-of-now
+# read, not a fixed alert threshold.
+NO_STRATEGY_SL_PCT = 5.0
+NO_STRATEGY_RR = 2.0
 
 
 def _path():
@@ -311,9 +316,13 @@ def quality_card(client, p, now=None):
                             + (f"   target ~{_fmt(entry + reward_prem)}" if reward_prem else ""))
     else:
         # no strategy stop/target for this direction right now - still give a concrete SL/target,
-        # from the trader's own configured rules rather than leaving the question unanswered
-        lines.append(f"  SL {_fmt(cut_at)}  target {_fmt(target_at)}"
-                    f"  (your own rules: -{cut_pct:g}% cut / your {bench_src})")
+        # off the current premium, rather than leaving the question unanswered
+        base = ltp if ltp is not None else entry
+        ns_sl = base * (1 - NO_STRATEGY_SL_PCT / 100)
+        ns_tp = base * (1 + NO_STRATEGY_SL_PCT / 100 * NO_STRATEGY_RR)
+        lines.append(f"  SL {_fmt(ns_sl)}  target {_fmt(ns_tp)}"
+                    f"  (no strategy modelled: -{NO_STRATEGY_SL_PCT:g}% premium stop, R:R {NO_STRATEGY_RR:g},"
+                    f" off the current premium {_fmt(base)})")
 
     lines += [
         "",
