@@ -21,6 +21,10 @@ What it sends, each once per position per day:
   [take profit]    unrealised profit above the trader's own average win on that underlying
   [closed]         a short result card when the position disappears
 
+It also checks for incoming Telegram commands every poll (see telegram_bot.py): /analyze,
+/status, /premarket, /session-close, /help - only from the trader's own chat, read-only, no
+separate process or schedule.
+
 Hold time is measured from when this watcher FIRST SAW the position, so a position that predates
 the process is a lower bound, and the card says so.
 
@@ -438,16 +442,40 @@ def check(client, now=None, positions=None):
     return sent
 
 
-def status(client=None, positions=None):
+def analyze_open_positions(client, now=None):
+    """The full quality_card, freshly sent for every currently open real position - not gated by
+    "already alerted today" the way check()'s entry card is. Used by /analyze on the bot and by
+    manual on-demand asks; check() still owns the once-per-day automatic alerts."""
+    now = now or datetime.now()
+    rows = bought_options(live_positions(client))
+    if not rows:
+        notify("[live analysis]", ["no open bought-option positions"], "info")
+        return []
+    sent = []
+    for p in rows:
+        try:
+            lines, flags = quality_card(client, p, now)
+        except Exception as e:
+            lines, flags = [p["symbol"], f"quality card unavailable: {type(e).__name__}"], []
+        notify(f"[live analysis] {p['symbol']}", lines, "warning" if flags else "info")
+        sent.append(p["symbol"])
+    return sent
+
+
+def status_lines(client=None, positions=None):
+    """Same content status() prints, as a list of lines - reused by the bot's /status command."""
     rows = bought_options(positions if positions is not None else live_positions(client))
     if not rows:
-        print("no open bought-option positions")
-        return
+        return ["no open bought-option positions"]
     cut_pct = _cfg().get("cut_pct", 25.0)
-    for p in rows:
-        pct = (p["ltp"] / p["avg_entry"] - 1) * 100
-        print(f"  {p['symbol']}  entry {_fmt(p['avg_entry'])}  now {_fmt(p['ltp'])}  ({pct:+.1f}%)  "
-              f"unrealised {_fmt(p['unrealized_inr'], 0)} INR  cut at {_fmt(p['avg_entry'] * (1 - cut_pct / 100))}")
+    return [f"  {p['symbol']}  entry {_fmt(p['avg_entry'])}  now {_fmt(p['ltp'])}  "
+           f"({(p['ltp'] / p['avg_entry'] - 1) * 100:+.1f}%)  unrealised {_fmt(p['unrealized_inr'], 0)} INR"
+           f"  cut at {_fmt(p['avg_entry'] * (1 - cut_pct / 100))}" for p in rows]
+
+
+def status(client=None, positions=None):
+    for line in status_lines(client, positions):
+        print(line)
 
 
 def run_loop(until_text=None, sleep=None, max_ticks=None):
@@ -455,7 +483,7 @@ def run_loop(until_text=None, sleep=None, max_ticks=None):
     an alert is missed, and it says so once rather than every poll."""
     import time as _time
 
-    from . import health
+    from . import health, telegram_bot
     from .runner import parse_hhmm
 
     if not health.assert_ist(notify):
@@ -489,6 +517,9 @@ def run_loop(until_text=None, sleep=None, max_ticks=None):
                     down = False
                 if out:
                     print(f"{now:%H:%M:%S} {out}")
+                handled = telegram_bot.poll_and_handle(client)
+                if handled:
+                    print(f"{now:%H:%M:%S} bot command(s): {handled}")
             except Exception as e:
                 if not down:
                     notify("[watcher error] not watching your positions right now",

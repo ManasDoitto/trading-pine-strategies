@@ -200,26 +200,33 @@ def tick(client, now=None):
     return out
 
 
-def status(now=None, client=None):
+def status_lines(now=None, client=None):
+    """Same content status() prints, as a list of lines - reused by the bot's /status command."""
     now = now or datetime.now()
     trades = shadow.load()
     op = shadow.open_trades(trades)
     todays = signals.on_date(signals.load_all(), now.date())
-    print(f"SHADOW BOOK (simulated, not your account): {len(op)} open")
+    lines = [f"SHADOW BOOK (simulated, not your account): {len(op)} open"]
     for t in op:
-        print(f"  {t['symbol']} {t['side']} entry {_fmt(t['entry_premium'])} last {_fmt(t.get('last_premium'))}"
-              f" | underlying stop {_fmt(t['sl'])} target {_fmt(t['target'])}")
-    print(f"signals today: {len(todays)} ({sum(s.status == 'BLOCKED' for s in todays)} blocked)")
+        lines.append(f"  {t['symbol']} {t['side']} entry {_fmt(t['entry_premium'])} last {_fmt(t.get('last_premium'))}"
+                     f" | underlying stop {_fmt(t['sl'])} target {_fmt(t['target'])}")
+    lines.append(f"signals today: {len(todays)} ({sum(s.status == 'BLOCKED' for s in todays)} blocked)")
     watching = shadow.open_watches()
-    print(f"blocked signals being followed: {len(watching)}")
+    lines.append(f"blocked signals being followed: {len(watching)}")
     for w in watching:
-        print(f"  {w['instrument']} {w['side']} from {_fmt(w.get('entry_fill') or w['signal_entry'])}"
-              f" | stop {_fmt(w['sl'])} target {_fmt(w['target'])} | {w['blocked_by']}")
-    print(f"realised today (shadow): {_fmt(shadow.realised_today_inr(now.date(), trades), 0)} INR")
-    print(f"closed all-time: {sum(t['status'] == 'CLOSED' for t in trades)}")
+        lines.append(f"  {w['instrument']} {w['side']} from {_fmt(w.get('entry_fill') or w['signal_entry'])}"
+                     f" | stop {_fmt(w['sl'])} target {_fmt(w['target'])} | {w['blocked_by']}")
+    lines.append(f"realised today (shadow): {_fmt(shadow.realised_today_inr(now.date(), trades), 0)} INR")
+    lines.append(f"closed all-time: {sum(t['status'] == 'CLOSED' for t in trades)}")
     if client is not None:
-        print("real open positions:")
-        trade_watch.status(client)
+        lines.append("real open positions:")
+        lines += trade_watch.status_lines(client)
+    return lines
+
+
+def status(now=None, client=None):
+    for line in status_lines(now, client):
+        print(line)
 
 
 class LoopState:

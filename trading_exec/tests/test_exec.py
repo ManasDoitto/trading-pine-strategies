@@ -303,6 +303,89 @@ class QualityCardTest(unittest.TestCase):
         self.assertFalse(any("your history" in l for l in lines))
 
 
+class TelegramBotTest(unittest.TestCase):
+    """Commands read FROM Telegram: only the owner's chat, never the pending backlog on first run,
+    every command failure contained so it can't take the position-watcher loop down with it."""
+
+    def setUp(self):
+        from trading_exec import telegram_bot
+        self.bot = telegram_bot
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir_patch = mock.patch.object(telegram_bot, "data_dir", lambda *a: Path(self.tmp.name))
+        self.dir_patch.start()
+        self.sent = []
+        self.notify_patch = mock.patch.object(
+            telegram_bot, "notify", lambda title, lines, sev="info": self.sent.append((title, tuple(lines), sev)))
+        self.notify_patch.start()
+        self.env_patch = mock.patch.object(telegram_bot, "env",
+                                           lambda k: "AUTH_CHAT" if k == "TELEGRAM_CHAT_ID" else "tok:real")
+        self.env_patch.start()
+
+    def tearDown(self):
+        for p in (self.dir_patch, self.notify_patch, self.env_patch):
+            p.stop()
+        self.tmp.cleanup()
+
+    def update(self, uid, chat_id, text):
+        return dict(update_id=uid, message=dict(chat=dict(id=chat_id), text=text))
+
+    def test_first_run_marks_the_backlog_read_without_acting_on_it(self):
+        with mock.patch.object(self.bot, "get_updates",
+                               lambda offset=None: [self.update(1, "AUTH_CHAT", "/status")]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual(handled, [])
+        self.assertEqual(self.sent, [])
+        state = self.bot._load_state()
+        self.assertEqual(state["offset"], 2)                # backlog is marked read, not replayed
+
+    def test_a_command_from_the_owner_runs_after_first_run(self):
+        self.bot._save_state({"offset": 1})                 # simulate first-run already happened
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "/help")]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual(handled, ["/help"])
+        self.assertEqual(self.sent[0][0], "[bot] commands")
+
+    def test_a_message_from_any_other_chat_is_silently_ignored(self):
+        self.bot._save_state({"offset": 1})
+        with mock.patch.object(self.bot, "get_updates",
+                               lambda offset=None: [self.update(1, "SOMEONE_ELSE", "/analyze")]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual((handled, self.sent), ([], []))
+
+    def test_unknown_command_gets_a_help_pointer(self):
+        self.bot._save_state({"offset": 1})
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "/bogus")]):
+            self.bot.poll_and_handle(None)
+        self.assertEqual(self.sent[0][0], "[bot] unknown command /bogus")
+
+    def test_plain_text_with_no_slash_is_ignored_not_treated_as_unknown(self):
+        self.bot._save_state({"offset": 1})
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "hi")]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual((handled, self.sent), ([], []))
+
+    def test_a_failing_command_is_caught_and_reported_not_raised(self):
+        self.bot._save_state({"offset": 1})
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "/status")]), \
+             mock.patch.dict(self.bot.COMMANDS, {"/status": lambda c: (_ for _ in ()).throw(RuntimeError("boom"))}):
+            handled = self.bot.poll_and_handle(None)                     # must not raise
+        self.assertEqual(handled, ["/status"])
+        self.assertEqual(self.sent[0][0], "[bot] /status failed")
+
+    def test_no_pending_updates_does_not_touch_the_state_file(self):
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: []):
+            self.bot.poll_and_handle(None)
+        self.assertEqual(self.bot._load_state(), {})                      # still "first run"
+
+    def test_get_updates_never_raises_on_a_network_failure(self):
+        with mock.patch.object(self.bot.requests, "get", side_effect=RuntimeError("no network")):
+            self.assertEqual(self.bot.get_updates(), [])
+
+    def test_get_updates_skipped_without_a_real_token(self):
+        with mock.patch.object(self.bot, "env", lambda k: "123456:placeholder" if k == "TELEGRAM_BOT_TOKEN" else None):
+            self.assertEqual(self.bot.get_updates(), [])
+
+
 class TradeWatchTest(unittest.TestCase):
     """The real-account watcher: a card on entry, then cut / hold / profit / averaging alerts."""
 
