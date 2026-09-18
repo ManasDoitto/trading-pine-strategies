@@ -290,6 +290,17 @@ class LivePositionTest(unittest.TestCase):
                            "buyAvg": 500.0}, None, lot_size=30)
         self.assertEqual((v["qty_units"], v["lots"], v["unrealized_inr"]), (30, 1, None))
 
+    def test_dhan_call_put_normalized_to_ce_pe(self):
+        # regression: Dhan's positions API reports drvOptionType as "CALL"/"PUT", not this repo's
+        # "CE"/"PE" - missed once (2026-09-18), which made trade_watch.bought_options() silently
+        # drop every real position, so the watcher never alerted on a live, profitable trade.
+        from trading_agents.facts.journal import position_view
+        call = position_view({"tradingSymbol": "SILVERM-24Sep2026-240000-CE", "netQty": 10, "multiplier": 1,
+                              "buyAvg": 4800.0, "drvOptionType": "CALL"}, 5164.0, lot_size=5)
+        put = position_view({"tradingSymbol": "CRUDEOIL-17Sep2026-9600-PE", "netQty": 200, "multiplier": 100,
+                             "buyAvg": 60.0, "drvOptionType": "PUT"}, 70.0, lot_size=100)
+        self.assertEqual((call["right"], put["right"]), ("CE", "PE"))
+
 
 class Black76Test(unittest.TestCase):
     # Hull, Options Futures & Other Derivatives: F=20, K=20, T=4m, r=9%, vol=25% -> c ~ 1.12

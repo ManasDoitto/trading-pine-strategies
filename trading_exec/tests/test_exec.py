@@ -243,6 +243,15 @@ class TradeWatchTest(unittest.TestCase):
         self.assertEqual(self.levels(trade_watch.check(None, positions=[])), ["closed"])
         self.assertEqual(trade_watch.check(None, positions=[]), [])
 
+    def test_a_real_dhan_position_through_position_view_is_not_silently_dropped(self):
+        # end-to-end regression (2026-09-18): position_view() used to pass Dhan's raw "CALL"/"PUT"
+        # straight through as `right`, and bought_options() filters on "CE"/"PE" - so every real
+        # position was silently invisible to the watcher despite check() running with no error.
+        from trading_agents.facts.journal import position_view
+        real = position_view({"tradingSymbol": "SILVERM-24Sep2026-240000-CE", "netQty": 10, "multiplier": 1,
+                              "buyAvg": 4800.0, "drvOptionType": "CALL"}, 5164.0, lot_size=5)
+        self.assertEqual(self.levels(trade_watch.check(None, positions=[real])), ["opened"])
+
     def test_short_positions_and_missing_ltp_are_ignored(self):
         rows = [pos(side="SHORT", ltp=10.0), pos(ltp=None)]
         self.assertEqual(trade_watch.check(None, positions=rows), [])

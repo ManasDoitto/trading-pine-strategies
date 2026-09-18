@@ -24,6 +24,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 
 from ..core import charts, instruments, rules, trades
+from ..core.option_symbols import right_of
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
 from ..core.market_data import DhanApiError, PriceLookup, intraday_bars
@@ -128,7 +129,10 @@ def position_view(p, ltp, lot_size=None):
         avg_entry=round(avg, 2), ltp=ltp,
         pnl_pts=None if pts is None else round(pts, 2),
         unrealized_inr=None if pts is None else round(pts * abs(units), 2),
-        product=p.get("productType"), expiry=p.get("drvExpiryDate"), right=p.get("drvOptionType"),
+        # Dhan's positions API reports "CALL"/"PUT" here, not this repo's "CE"/"PE" convention -
+        # normalize it, or every downstream CE/PE filter (trade_watch's bought_options()) silently
+        # drops every real position.
+        product=p.get("productType"), expiry=p.get("drvExpiryDate"), right=right_of(p.get("drvOptionType")),
         strike=p.get("drvStrikePrice"),
         carried_forward_units=float(p.get("carryForwardBuyQty") or 0) * mult,
     )

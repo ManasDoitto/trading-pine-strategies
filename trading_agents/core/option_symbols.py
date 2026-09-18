@@ -24,7 +24,8 @@ class OptionContract:
         return f"{self.underlying} {self.expiry:%d%b%y}".upper() + f" {self.strike:g} {self.right}"
 
 
-def _right(s):
+def right_of(s):
+    """Normalizes Dhan's own "CALL"/"PUT" (positions/trade-book) and this repo's "CE"/"PE" to "CE"/"PE"."""
     s = (s or "").upper()
     if s in ("CALL", "CE"):
         return "CE"
@@ -45,7 +46,7 @@ def parse_custom_symbol(symbol, ref_date):
     expiry = date(ref_date.year, month, day)
     if expiry < ref_date:
         expiry = date(ref_date.year + 1, month, day)
-    return OptionContract(m["u"], expiry, float(m["k"]), _right(m["r"]))
+    return OptionContract(m["u"], expiry, float(m["k"]), right_of(m["r"]))
 
 
 def parse_trading_symbol(symbol):
@@ -81,7 +82,7 @@ def from_fill(raw, trade_time=None):
     symbol = raw.get("customSymbol") or raw.get("tradingSymbol") or ""
     ts = parse_trading_symbol(raw.get("tradingSymbol")) or parse_trading_symbol(symbol)
     # the trade book sends drvOptionType "NA": take the right from the symbol suffix instead
-    right = _right(raw.get("drvOptionType")) or (ts.right if ts else None)
+    right = right_of(raw.get("drvOptionType")) or (ts.right if ts else None)
     exp = raw.get("drvExpiryDate")
     strike = raw.get("drvStrikePrice")
     if right and exp and exp != "NA" and strike:
