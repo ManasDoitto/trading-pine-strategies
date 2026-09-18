@@ -13,9 +13,11 @@ Two strategy engines:
                    checking the future's live price against the armed trigger each poll
   It runs on the front-month FUTURE (NSE:BANKNIFTY1!) because its core filter needs volume and VWAP.
 
-Bars come from the front-month future of the signal instrument - what a continuous chart shows. The
-signal instrument can differ from the traded one: silver signals run on SILVER and are bought as SILVERM
-options (the two futures agreed on only 45% of signals over 30 days).
+Bars come from the front-month future of the signal instrument - what a continuous chart shows. A
+traded instrument CAN point its signal at a different one (see `signal_from` in trading_exec/config.toml)
+but as of 2026-09-18 none does: SILVERM used to signal off SILVER, but the two futures only agreed on
+41-45% of signals (measured twice) and SILVERM's own price action scored better on the data available,
+so SILVERM now signals off itself.
 """
 from datetime import datetime, timedelta
 

@@ -136,7 +136,13 @@ day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
 
 [strategy.SILVERM]
-name = "Silver v4.0 wide-ATR logic applied to SILVERM (tested on SILVER1!, proxy only)"
+# Switched 2026-09-18 from computing signals on SILVER (only 41-45% agreement with SILVERM's own
+# price action, measured twice) to SILVERM's own bars directly. Same v4.0 wide-ATR + breaker params
+# as SILVER; over the last ~3mo of SILVERM's own history (its full Dhan bar history) this scored
+# BETTER than the old SILVER-sourced signal, not just less mismatched: PF 1.41 vs 1.03, net +21,558
+# vs +984 pts, 71 vs 56 trades. Still a short sample (71 trades) vs SILVER's 32-month tuning history
+# -- treat as provisional, not yet as proven as the original SILVER number.
+name = "Silver v4.0 wide-ATR + fixed 350-pt daily limit, on SILVERM's own price action"
 sha_len1 = 10
 sha_len2 = 10
 sw_len = 10
@@ -144,6 +150,7 @@ sw_buf = 0.1
 min_sl = 2.5
 max_sl = 5.0
 rr = 3.0
+day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
 
 # BankNifty v0.4 (working_strategies/BankNifty/1), default inputs copied from the Pine. It runs on the

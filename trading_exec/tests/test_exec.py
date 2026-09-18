@@ -339,11 +339,14 @@ class SignalFidelityTest(unittest.TestCase):
         with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, fresh)):
             self.assertIs(poller.entry_on_last_bar(df, self.P)[0], fresh)
 
-    def test_silver_signals_come_from_silver(self):
+    def test_silverm_signals_come_from_its_own_price_action(self):
+        # switched 2026-09-18: SILVER-sourced signals only agreed with SILVERM's own price action
+        # 41-45% of the time (measured twice), and SILVERM's own action scored better on the data
+        # available - so no more cross-contract signal_from for silver.
         from trading_exec.config import instrument_cfg
         from trading_agents.core.config import load_config as agents_config
-        self.assertEqual(instrument_cfg("SILVERM").get("signal_from"), "SILVER")
-        self.assertEqual(agents_config()["strategy"]["SILVER"]["day_loss_limit_pts"], 350)
+        self.assertIsNone(instrument_cfg("SILVERM").get("signal_from"))
+        self.assertEqual(agents_config()["strategy"]["SILVERM"]["day_loss_limit_pts"], 350)
 
     def test_option_priced_off_its_own_future_not_the_signal(self):
         from trading_exec import atm as atm_mod

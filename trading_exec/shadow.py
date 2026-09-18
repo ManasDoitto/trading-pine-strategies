@@ -104,7 +104,8 @@ def open_trade(signal, atm, premium_targets, now=None, observational=False):
 
 def _underlying_bars(client, trade, now):
     """Exits track the SAME series the signal was computed on, since the stop and target are in its
-    points: the SILVER future for a SILVERM option, the front-month crude future through rollover."""
+    points: the front-month future through rollover, or a different contract entirely if the traded
+    instrument's signal_from points elsewhere (no instrument currently does, as of 2026-09-18)."""
     start = datetime.fromisoformat(trade["bar_time"]).date()
     if trade.get("signal_security_id"):
         sid, seg, kind = trade["signal_security_id"], trade["signal_segment"], trade["signal_series_type"]

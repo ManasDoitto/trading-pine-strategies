@@ -83,8 +83,8 @@ def underlying_ltp(client, instrument, expiry):
     """Live price of the contract THIS option expiry is written on.
 
     Never pass the signal's own price here: near rollover (crude Oct options while the chart is on
-    the Sep future) or across contracts (a SILVER signal bought as SILVERM options) it is a different
-    contract, and chain_snapshot would re-centre the ATM strike on the wrong level."""
+    the Sep future) or if a future instrument's signal_from ever points at a different contract, it
+    is a different contract, and chain_snapshot would re-centre the ATM strike on the wrong level."""
     ref = instruments.reference_series(instrument, expiry)
     if ref is None:
         return None

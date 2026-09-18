@@ -4,7 +4,9 @@ A signal is identified by (strategy, instrument, side, bar_time), so the same ba
 produce two records no matter how often the poller runs or how often the process restarts.
 
 `instrument` is what gets traded (its options are bought); `signal_instrument` is the contract the
-strategy ran on. They differ for silver: the signal is computed on SILVER, the option is SILVERM.
+strategy ran on. They can differ (see `signal_from` in trading_exec/config.toml) but as of
+2026-09-18 no instrument uses that - SILVERM used to signal off SILVER, switched to signaling off
+its own price action after the two only agreed 41-45% of the time.
 """
 import json
 from dataclasses import asdict, dataclass, field
