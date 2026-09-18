@@ -283,35 +283,42 @@ def quality_card(client, p, now=None):
         read = strategy_read(client, und, p["right"], now)
     except Exception:
         read = None
+    cut_at = entry * (1 - cut_pct / 100)
+    target_at = entry + bench / qty
+    lv = (read or {}).get("levels")
+
     if read:
         lines += ["", f"strategy: {read['name'].split(' (')[0]}",
                   f"  {read['alignment']}  ->  {read['match']}"]
-        lv = read["levels"]
-        if lv:
-            risk, rr = lv.get("risk_pts"), lv.get("rr")
-            lines.append(f"  its stop/target for this direction ({lv['src']}): "
-                        f"SL {_fmt(lv['sl'])}  target {_fmt(lv['tp'])}"
-                        + (f"  ({_fmt(risk)} pts, R:R {rr:g})" if risk and rr else ""))
-            if risk and p.get("strike"):
-                a = None
-                try:
-                    a = atm_mod.resolve(client, und, p["right"], now)
-                except Exception:
-                    pass
-                delta = abs((a or {}).get("delta") or 0)
-                if delta:
-                    risk_prem, reward_prem = risk * delta, (risk * rr * delta if rr else None)
-                    lines.append(f"  approx in premium (delta {delta:.2f} at the current ATM): "
-                                f"stop  ~{_fmt(max(entry - risk_prem, 0))}"
-                                + (f"   target ~{_fmt(entry + reward_prem)}" if reward_prem else ""))
     elif und:
         lines += ["", "strategy: no live read available right now"]
 
-    cut_at = entry * (1 - cut_pct / 100)
+    if lv:
+        risk, rr = lv.get("risk_pts"), lv.get("rr")
+        lines.append(f"  SL {_fmt(lv['sl'])}  target {_fmt(lv['tp'])}  ({lv['src']})"
+                    + (f"  ({_fmt(risk)} pts, R:R {rr:g})" if risk and rr else ""))
+        if risk and p.get("strike"):
+            a = None
+            try:
+                a = atm_mod.resolve(client, und, p["right"], now)
+            except Exception:
+                pass
+            delta = abs((a or {}).get("delta") or 0)
+            if delta:
+                risk_prem, reward_prem = risk * delta, (risk * rr * delta if rr else None)
+                lines.append(f"  approx in premium (delta {delta:.2f} at the current ATM): "
+                            f"stop  ~{_fmt(max(entry - risk_prem, 0))}"
+                            + (f"   target ~{_fmt(entry + reward_prem)}" if reward_prem else ""))
+    else:
+        # no strategy stop/target for this direction right now - still give a concrete SL/target,
+        # from the trader's own configured rules rather than leaving the question unanswered
+        lines.append(f"  SL {_fmt(cut_at)}  target {_fmt(target_at)}"
+                    f"  (your own rules: -{cut_pct:g}% cut / your {bench_src})")
+
     lines += [
         "",
         f"cut alert at {_fmt(cut_at)}  (-{cut_pct:g}%, {_fmt((cut_at - entry) * qty, 0)} INR)",
-        f"profit alert at {_fmt(entry + bench / qty)}  (+{_fmt(bench, 0)} INR, your {bench_src})",
+        f"profit alert at {_fmt(target_at)}  (+{_fmt(bench, 0)} INR, your {bench_src})",
         f"first warning at {_fmt(entry * (1 - warn_pct / 100))}  (-{warn_pct:g}%)",
     ]
 
