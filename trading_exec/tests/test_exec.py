@@ -278,6 +278,15 @@ class QualityCardTest(unittest.TestCase):
         lines, _ = self.build(read=None)
         self.assertIn("strategy: no live read available right now", lines)
 
+    def test_current_price_and_unrealised_pnl_are_shown(self):
+        # pos() defaults: avg_entry=69.0, ltp=69.0 -> flat; use an explicit move so this is meaningful
+        lines, _ = self.build(p_over=dict(ltp=78.0, avg_entry=69.0, unrealized_inr=3600.0), read=None)
+        self.assertIn("now 78.00  (+13.0%)  unrealised 3,600 INR", lines)
+
+    def test_no_ltp_yet_omits_the_line_rather_than_showing_garbage(self):
+        lines, _ = self.build(p_over=dict(ltp=None, unrealized_inr=None), read=None)
+        self.assertFalse(any(l.startswith("now ") for l in lines))
+
     def test_a_live_matching_signal_shows_its_real_levels(self):
         read = dict(name="CRUDE v4.0 (x)", alignment="short-aligned", side="SHORT",
                     match="MATCHES a live strategy signal",

@@ -248,8 +248,13 @@ def quality_card(client, p, now=None):
     bench, bench_src = average_win_inr(und)
     all_time = latest_journal_all_time()
 
+    ltp, pnl_inr = p.get("ltp"), p.get("unrealized_inr")
+    pct = (ltp / entry - 1) * 100 if ltp and entry else None
     lines = [f"{p['symbol']}", f"{_fmt(p['lots'], 2)} lots / {_fmt(qty, 0)} units at {_fmt(entry)}"
                                f"  =  {_fmt(entry * qty, 0)} INR at risk"]
+    if ltp is not None:
+        lines.append(f"now {_fmt(ltp)}" + (f"  ({pct:+.1f}%)" if pct is not None else "")
+                    + (f"  unrealised {_fmt(pnl_inr, 0)} INR" if pnl_inr is not None else ""))
     flags = []          # list of (rule_or_None, text)
 
     dte = dte_of(p.get("expiry"), now.date())
