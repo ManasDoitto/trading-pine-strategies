@@ -48,3 +48,20 @@ Source: `strategy_audit_2026_09/v4.0_mcx_naturalgas_gold_silver_results.md`.
   family, so it wasn't re-run here. Would need BankNifty v0.4's full
   quality-filter stack (wick + volume + VWAP + EMA-hold) to be viable,
   not just the touch condition alone.
+- **Tested 19 Sep 2026 on MCX:SILVERM1! 5m (Silver Mini, point value 5),
+  quick screen only (recent quarter Jun 29-Sep 18 2026), points = INR/5:**
+  "trend-following + wait for pullback sweep" instead of entering on every
+  SHA flip. Built as a new TradingView script "Silver v10 Trend-Pullback
+  (SILVERM)" with an entry-mode switch. Regime = SHA colour + EMA9/22
+  alignment; setup = pullback sweeps the reference EMA, entry on a later
+  bar that closes back through it and past the prior bar's extreme; wide-ATR
+  stop, RR3, 350-pt daily limit unchanged. Control (Flip only, baseline
+  logic): 65 trades, PF 1.57, +26,754 pts, DD 14,095. Pullback-sweep only
+  (EMA9): 60 trades, PF 0.61, -26,036 pts, DD 31,307. Flip+pullback (EMA9):
+  PF 0.55, -31,153 pts. Best variant found (Flip+pullback, EMA22 reference,
+  max 1 entry per SHA run): 77 trades, PF 1.12, +7,501 pts, DD 16,193, still
+  far below control. Pullback-only with EMA22 + 1 entry/run reached PF 0.95;
+  longer regime age (10 bars) and same-candle reclaim were both worse. No
+  full-history replay audit was run because nothing beat the control. Fifth
+  rejected pullback/continuation design in this family; the flip bar itself
+  carries the edge.

@@ -1,0 +1,16 @@
+Silver Mini (MCX:SILVERM1! 5m, pv=5) -- baseline flip-only logic, full replay audit, started 2026-09-19.
+Script: "Silver v10 Trend-Pullback (SILVERM)" study XcYb5G, entryMode="Flip only" (baseline v4.0 wide-ATR + 350pt daily limit).
+Compare against SILVER1! baseline: PF 1.35, +160,845 pts, max window DD 24,551, 32.3mo/12 windows.
+Format: UTC timestamp | raw AUD row | note. AUD values are in POINTS (INR / pv=5).
+If a checkpoint shows a different aud_from than the first row, the run was reset: resume from last checkpoint, log it.
+2026-09-19 10:10 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1711993500000|nD=56|pv=5|78,26,12226.3,-10744.9,2632,11613829.1,1662.7,-2218.1 | (checkpoint 0: fresh start, replay floor Apr 1 2024, aud_from Jan 11 2024)
+2026-09-19 10:32 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1721233200000|nD=133|pv=5|175,53,37870.2,-37118.1,6239,56369207.2,3004.9,-3234 | (checkpoint 1: thru Jul 17 2024)
+2026-09-19 10:53 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1730278500000|nD=206|pv=5|248,83,73885.7,-53855.4,6239,130566356.4,20030.3,-3234 | (checkpoint 2: thru Oct 30 2024)
+2026-09-19 11:14 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1739202900000|nD=279|pv=5|328,102,92281.2,-77379.3,7434.3,160675332.8,22336.2,-3234 | (checkpoint 3: thru Feb 10 2025)
+2026-09-19 11:35 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1748410500000|nD=355|pv=5|426,133,128924.8,-106699.8,8765.6,224463117.9,23879.2,-3234 | (checkpoint 4: thru May 28 2025)
+2026-09-19 11:56 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1757412000000|nD=428|pv=5|499,153,150867.6,-129618.1,10174.6,260012643.8,31424.1,-3234 | (checkpoint 5: thru Sep 09 2025)
+2026-09-19 12:17 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1766472600000|nD=502|pv=5|582,182,221125.7,-179956.8,11887.5,575052023.9,49479.6,-3234 | (checkpoint 6: thru Dec 23 2025)
+2026-09-19 12:38 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1775639400000|nD=576|pv=5|652,204,419073.1,-358978.3,75627,5397427044.6,135721.8,-3234 | (checkpoint 7: thru Apr 08 2026)
+2026-09-19 12:59 UTC | AUD|SILVERM1!|5|from=1704931200000|last=1784532000000|nD=649|pv=5|730,224,505339.9,-451720.9,91422.5,6050175352.4,135721.8,-3234 | (checkpoint 8: thru Jul 20 2026)
+2026-09-19 UTC | REPLAY REACHED LIVE EDGE between checks; table reset to live-mode window: AUD|SILVERM1!|5|from=1782950400000|last=1789754100000|nD=57|pv=5|61,23,63961,-44015.5,13335,267512250.1,22664.2,-5828.8 (Jul 2 - Sep 18 2026, valid non-replay run). Final continuous row for Jul 20-Sep 18 was NOT captured.
+FINAL COMBINATION: checkpoint 8 (Jan11 2024-Jul20 2026: n=730,w=224,sW=505339.9,sL=-451720.9,dd=91422.5,pk=135721.8,mn=-3234) + live tail (Jul2-Sep18 2026: n=61,w=23,sW=63961,sL=-44015.5,dd=13335,pk=22664.2,mn=-5828.8). Overlap Jul 2-Jul 20 (~18 days, ~0.6mo) double-counted. Combined (audit_agg offset method): n=791,w=247,win%=31.2,sW=569300.9,sL=-495736.4,net=+73564.5,PF=1.148,maxDD=91422.5 (unchanged, peak 135721.8 in Q1 2026). Est. overlap bias: tail nets +19,946 over 57 days, ~18/57 of it double-counted => roughly +6,300 pts, so net ~ +67,000-73,600, PF ~1.13-1.15.

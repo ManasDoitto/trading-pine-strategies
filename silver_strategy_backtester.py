@@ -82,6 +82,35 @@ def identify_valid_ranges(df):
 
     return df
 
+def identify_1h_order_blocks(df_1h):
+    df = df_1h.copy()
+    df['bull_ob_top'] = np.nan
+    df['bull_ob_bottom'] = np.nan
+    df['bear_ob_top'] = np.nan
+    df['bear_ob_bottom'] = np.nan
+    
+    for i in range(1, len(df)):
+        _open, _high, _low, _close = df.loc[i, 'open'], df.loc[i, 'high'], df.loc[i, 'low'], df.loc[i, 'close']
+        prev_open, prev_high, prev_low, prev_close = df.loc[i-1, 'open'], df.loc[i-1, 'high'], df.loc[i-1, 'low'], df.loc[i-1, 'close']
+        
+        # Bullish OB: prev bar bearish, current bar strongly bullish (displacement)
+        if _close > _open and (_close - _open) > (prev_high - prev_low) * 0.5 and prev_close < prev_open:
+            df.loc[i, 'bull_ob_top'] = prev_open
+            df.loc[i, 'bull_ob_bottom'] = prev_close
+            
+        # Bearish OB: prev bar bullish, current bar strongly bearish (displacement)
+        if _close < _open and (_open - _close) > (prev_high - prev_low) * 0.5 and prev_close > prev_open:
+            df.loc[i, 'bear_ob_top'] = prev_close
+            df.loc[i, 'bear_ob_bottom'] = prev_open
+            
+    # Forward fill the OBs
+    df['bull_ob_top'] = df['bull_ob_top'].ffill()
+    df['bull_ob_bottom'] = df['bull_ob_bottom'].ffill()
+    df['bear_ob_top'] = df['bear_ob_top'].ffill()
+    df['bear_ob_bottom'] = df['bear_ob_bottom'].ffill()
+    
+    return df
+
 def prepare_data(df_1m, verbose=True):
     if verbose: print("Resampling Timeframes...")
     df_1h = resample_data(df_1m, '60min')
@@ -100,6 +129,10 @@ def prepare_data(df_1m, verbose=True):
     daily_stats['prev_high'] = daily_stats['high'].shift(1)
     daily_stats['prev_low'] = daily_stats['low'].shift(1)
     df_1m = df_1m.merge(daily_stats[['prev_high', 'prev_low']], left_on='date', right_index=True, how='left')
+    
+    # Map 1H Order Blocks to 1m data
+    df_1h_obs = identify_1h_order_blocks(df_1h)
+    df_1m = pd.merge_asof(df_1m, df_1h_obs[['timestamp', 'bull_ob_top', 'bull_ob_bottom', 'bear_ob_top', 'bear_ob_bottom']], on='timestamp', direction='backward')
     
     # Extract confirmed events
     events_1h = df_1h.dropna(subset=['validated_at'])[['validated_at', 'is_valid_high', 'is_valid_low', 'swing_high_price', 'swing_low_price']]
@@ -144,6 +177,10 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
         close = row.close
         prev_session_high = row.prev_high
         prev_session_low = row.prev_low
+        bull_ob_top = row.bull_ob_top
+        bull_ob_bottom = row.bull_ob_bottom
+        bear_ob_top = row.bear_ob_top
+        bear_ob_bottom = row.bear_ob_bottom
         
         # --- Update HTF States ---
         # 1H State
@@ -239,14 +276,22 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
                     pending_order = None
 
         # --- Setup Detection ---
+        # 1. Sweep Phase (must hit session hi/lo AND be inside OB)
         if pd.notna(prev_session_high) and high > prev_session_high:
-            active_sweep = 1
-            sweep_extreme = max(high, sweep_extreme) if sweep_extreme else high
-            sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
+            # Check if high is inside bear OB
+            in_bear_ob = pd.notna(bear_ob_top) and high >= bear_ob_bottom and low <= bear_ob_top
+            if in_bear_ob:
+                active_sweep = 1
+                sweep_extreme = max(high, sweep_extreme) if sweep_extreme else high
+                sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
+                
         if pd.notna(prev_session_low) and low < prev_session_low:
-            active_sweep = -1
-            sweep_extreme = min(low, sweep_extreme) if sweep_extreme else low
-            sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
+            # Check if low is inside bull OB
+            in_bull_ob = pd.notna(bull_ob_top) and low <= bull_ob_top and high >= bull_ob_bottom
+            if in_bull_ob:
+                active_sweep = -1
+                sweep_extreme = min(low, sweep_extreme) if sweep_extreme else low
+                sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
             
         # Expire sweep if too much time passed
         if sweep_active_until and current_time > sweep_active_until:
@@ -254,17 +299,17 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
             sweep_extreme = None
 
         # Look for TC if we have an active sweep and no pending order
-        if active_sweep == 1 and tc_occurred == -1 and not pending_order:
+        time_is_valid = (17, 0) <= (current_time.hour, current_time.minute) <= (22, 30)
+        
+        if active_sweep == 1 and tc_occurred == -1 and not pending_order and time_is_valid:
             # Swept high, now 5m trend changed bearish.
             if sweep_extreme > tc_price:
-                fib_entry = tc_price + (sweep_extreme - tc_price) * fib_level
+                # Deep Discount Limit Entry
+                fib_entry = tc_price + (sweep_extreme - tc_price) * 0.618
                 sl_level = sweep_extreme + sl_buffer
                 
-                if tp_target_type == 'structure':
-                    tp_target = last_15m_low if last_15m_low else tc_price - (sweep_extreme - tc_price) * 2
-                else:
-                    risk_amount = sl_level - fib_entry
-                    tp_target = fib_entry - (risk_amount * tp_target_type)
+                risk_amount = sl_level - fib_entry
+                tp_target = fib_entry - (risk_amount * tp_target_type)
                 
                 pending_order = {
                     'dir': -1,
@@ -274,17 +319,15 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
                 }
                 active_sweep = 0 
                 
-        elif active_sweep == -1 and tc_occurred == 1 and not pending_order:
+        elif active_sweep == -1 and tc_occurred == 1 and not pending_order and time_is_valid:
             # Swept low, now 5m trend changed bullish.
             if tc_price > sweep_extreme:
-                fib_entry = tc_price - (tc_price - sweep_extreme) * fib_level
+                # Deep Discount Limit Entry
+                fib_entry = tc_price - (tc_price - sweep_extreme) * 0.618
                 sl_level = sweep_extreme - sl_buffer
                 
-                if tp_target_type == 'structure':
-                    tp_target = last_15m_high if last_15m_high else tc_price + (tc_price - sweep_extreme) * 2
-                else:
-                    risk_amount = fib_entry - sl_level
-                    tp_target = fib_entry + (risk_amount * tp_target_type)
+                risk_amount = fib_entry - sl_level
+                tp_target = fib_entry + (risk_amount * tp_target_type)
                 
                 pending_order = {
                     'dir': 1,
@@ -323,22 +366,67 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
 if __name__ == "__main__":
     from fetch_mcx_historical_batches import fetch_mcx_historical_in_batches, get_dhan_client
     from datetime import datetime, timedelta
+    import os
     
-    print("Fetching Silver Mini 1m data...")
+    print("Initializing Dhan Client...")
     dhan = get_dhan_client()
     
-    # Using active SILVERM NOV FUT
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=30)
+    test_sec_id = "483080" # SILVERM NOV FUT
+    end_date_full = datetime.now()
+    start_date_full = end_date_full - timedelta(days=900)
     
-    try:
-        test_sec_id = "483080" # SILVERM NOV FUT
-        df_1m = fetch_mcx_historical_in_batches(dhan, test_sec_id, start_date, end_date, batch_days=30, instrument_type="FUTCOM")
+    total_periods = 12
+    days_per_period = 900 // total_periods
+    
+    print(f"Dividing 30 months (900 days) into {total_periods} periods of {days_per_period} days each.")
+    
+    all_trades = []
+    
+    for period in range(total_periods):
+        period_start = start_date_full + timedelta(days=period * days_per_period)
+        period_end = period_start + timedelta(days=days_per_period)
+        if period == total_periods - 1:
+            period_end = end_date_full # Ensure we cover exactly up to now
+            
+        print(f"\n--- Executing Period {period + 1}/{total_periods} ---")
+        print(f"Fetching data from {period_start.strftime('%Y-%m-%d')} to {period_end.strftime('%Y-%m-%d')}...")
         
-        if not df_1m.empty:
-            df_1m, df_1h, df_15m, df_5m, events_1h, events_15m, events_5m = prepare_data(df_1m)
-            df_trades = run_simulation(df_1m, events_1h, events_15m, events_5m)
-        else:
-            print("No data fetched. Check security ID or API credentials.")
-    except Exception as e:
-        print(f"Error fetching data: {e}")
+        try:
+            df_1m = fetch_mcx_historical_in_batches(dhan, test_sec_id, period_start, period_end, batch_days=90, instrument_type="FUTCOM")
+            
+            if not df_1m.empty:
+                df_1m, df_1h, df_15m, df_5m, events_1h, events_15m, events_5m = prepare_data(df_1m, verbose=False)
+                df_trades = run_simulation(df_1m, events_1h, events_15m, events_5m, tp_target_type=2.4, verbose=False)
+                
+                if not df_trades.empty:
+                    # Convert trades to dicts to append to all_trades
+                    trades_list = df_trades.to_dict('records')
+                    all_trades.extend(trades_list)
+                    print(f"Period {period + 1} complete. Found {len(trades_list)} trades.")
+                else:
+                    print(f"Period {period + 1} complete. No trades found.")
+                
+                # SAVE CHECKPOINT after each period
+                if all_trades:
+                    checkpoint_df = pd.DataFrame(all_trades)
+                    checkpoint_path = f"silver_period_{period+1}_checkpoint.csv"
+                    checkpoint_df.to_csv(checkpoint_path, index=False)
+                    print(f"Savepoint created: {checkpoint_path}")
+                    
+                    # Update cumulative dashboard
+                    wins = len(checkpoint_df[checkpoint_df['result'] == 'win'])
+                    total = len(checkpoint_df)
+                    wr = (wins/total)*100 if total > 0 else 0
+                    with open("silver_30_month_dashboard.md", "w") as f:
+                        f.write(f"# Silver 30-Month Backtest Checkpoint\n")
+                        f.write(f"Completed Periods: {period + 1}/{total_periods}\n")
+                        f.write(f"Total Trades: {total}\n")
+                        f.write(f"Win Rate: {wr:.2f}%\n")
+                        f.write(f"Total R Generated: {checkpoint_df['r_multiple'].sum():.2f} R\n")
+            else:
+                print(f"No data fetched for Period {period + 1}.")
+                
+        except Exception as e:
+            print(f"Error executing Period {period + 1}: {e}")
+            
+    print("\n--- All Periods Complete ---")

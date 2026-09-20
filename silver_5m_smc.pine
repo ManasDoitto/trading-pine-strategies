@@ -1,0 +1,276 @@
+//@version=6
+strategy("Silver 5m SMC v2 – POI + Deep Discount", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1, initial_capital=100000, margin_long=0, margin_short=0, currency=currency.NONE, commission_type=strategy.commission.cash_per_order, commission_value=0, slippage=2, calc_on_every_tick=false)
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+
+htfBiasLen     = input.int(200,  "HTF EMA Length (1H)",     group="HTF Bias")
+pivotLen       = input.int(3,    "Pivot Lookback (Bars)",    minval=1, group="Structure")
+fibEntry       = input.float(0.618, "Entry Fib Level",       minval=0.1, maxval=0.99, step=0.01, group="Entry")
+rewardMultiple = input.float(3.0,  "Reward:Risk",            minval=1.0, step=0.1, group="Entry")
+maxTradesDay   = input.int(2,    "Max Trades/Day",           minval=1, maxval=10, group="Risk")
+useSession     = input.bool(true, "Session Filter",          group="Session")
+sessionStart   = input.int(17,   "Start Hour IST",           minval=0, maxval=23, group="Session")
+sessionEndHour = input.int(22,   "End Hour IST",             minval=0, maxval=23, group="Session")
+sessionEndMin  = input.int(30,   "End Minute IST",           minval=0, maxval=59, group="Session")
+obLookback     = input.int(10,   "1H OB Lookback (bars)",   minval=3, maxval=50, group="POI Filter")
+showOB         = input.bool(true, "Show 1H Order Blocks",    group="POI Filter")
+
+// ============================================================================
+// HTF BIAS — 1H 200 EMA
+// ============================================================================
+
+htfEma = request.security(syminfo.tickerid, "60", ta.ema(close, htfBiasLen), lookahead=barmerge.lookahead_off)
+
+bool biasBull = close > htfEma
+bool biasBear = close < htfEma
+
+plot(htfEma, "1H EMA", color=color.new(color.orange, 30), linewidth=2)
+
+// ============================================================================
+// SESSION & TRADES COUNTER
+// ============================================================================
+
+int currentHour = hour(time, "Asia/Kolkata")
+int currentMin  = minute(time, "Asia/Kolkata")
+bool afterStart = currentHour > sessionStart or (currentHour == sessionStart and currentMin >= 0)
+bool beforeEnd  = currentHour < sessionEndHour or (currentHour == sessionEndHour and currentMin <= sessionEndMin)
+bool inSession  = not useSession or (afterStart and beforeEnd)
+
+var int dailyTrades = 0
+if ta.change(time("D")) != 0
+    dailyTrades := 0
+
+bool canTrade = inSession and dailyTrades < maxTradesDay
+
+// ============================================================================
+// 1H ORDER BLOCK DETECTION (POI FILTER)
+// Bullish OB  = last bearish 1H candle before a bullish displacement
+// Bearish OB  = last bullish 1H candle before a bearish displacement
+// ============================================================================
+
+// Fetch 1H candle data cleanly
+h1_open  = request.security(syminfo.tickerid, "60", open,  lookahead=barmerge.lookahead_off)
+h1_high  = request.security(syminfo.tickerid, "60", high,  lookahead=barmerge.lookahead_off)
+h1_low   = request.security(syminfo.tickerid, "60", low,   lookahead=barmerge.lookahead_off)
+h1_close = request.security(syminfo.tickerid, "60", close, lookahead=barmerge.lookahead_off)
+
+// Detect 1H bullish OB: a bearish 1H candle followed by a strong bullish move upward
+// The OB zone = the body of that last bearish candle (high to low)
+var float bullOB_top    = na
+var float bullOB_bottom = na
+var float bearOB_top    = na
+var float bearOB_bottom = na
+
+// Check if a new 1H bar started
+bool new1HBar = ta.change(time("60")) != 0
+
+if new1HBar
+    // Look for Bullish OB: prev bar was bearish, current bar is strongly bullish (displacement)
+    bool h1_disp_bull = h1_close > h1_open and (h1_close - h1_open) > (h1_high[1] - h1_low[1]) * 0.5
+    bool h1_prev_bear = h1_close[1] < h1_open[1]
+    if h1_disp_bull and h1_prev_bear
+        bullOB_top    := h1_open[1]   // top of bearish candle body (open is higher for bearish)
+        bullOB_bottom := h1_close[1]  // bottom of bearish candle body
+
+    // Look for Bearish OB: prev bar was bullish, current bar is strongly bearish (displacement)
+    bool h1_disp_bear = h1_close < h1_open and (h1_open - h1_close) > (h1_high[1] - h1_low[1]) * 0.5
+    bool h1_prev_bull = h1_close[1] > h1_open[1]
+    if h1_disp_bear and h1_prev_bull
+        bearOB_top    := h1_close[1]  // top of bullish candle body (close is higher for bullish)
+        bearOB_bottom := h1_open[1]   // bottom of bullish candle body
+
+// Current price inside a valid 1H Order Block?
+bool inBullOB = not na(bullOB_top) and low  <= bullOB_top and high >= bullOB_bottom
+bool inBearOB = not na(bearOB_top) and high >= bearOB_bottom and low <= bearOB_top
+
+// Draw OB zones
+var box bullOBBox = na
+var box bearOBBox = na
+
+if showOB and not na(bullOB_top) and new1HBar
+    if not na(bullOBBox)
+        box.delete(bullOBBox)
+    bullOBBox := box.new(bar_index, bullOB_top, bar_index + 50, bullOB_bottom,
+         border_color=color.new(color.lime, 40), bgcolor=color.new(color.lime, 85))
+
+if showOB and not na(bearOB_top) and new1HBar
+    if not na(bearOBBox)
+        box.delete(bearOBBox)
+    bearOBBox := box.new(bar_index, bearOB_top, bar_index + 50, bearOB_bottom,
+         border_color=color.new(color.red, 40), bgcolor=color.new(color.red, 85))
+
+// ============================================================================
+// 5m STRUCTURE (Fractal Swings)
+// ============================================================================
+
+pivH = ta.pivothigh(high, pivotLen, pivotLen)
+pivL = ta.pivotlow(low,  pivotLen, pivotLen)
+
+var float lastPivotHigh = na
+var float lastPivotLow  = na
+
+if not na(pivH)
+    lastPivotHigh := pivH
+if not na(pivL)
+    lastPivotLow := pivL
+
+// ============================================================================
+// LIQUIDITY SWEEP (IDM Sweep) + POI GATE
+// ============================================================================
+
+// Sweep: wick beyond pivot but closes back inside — AND price must be in a valid 1H OB
+bool bullSweep = not na(lastPivotLow)  and low  < lastPivotLow  and close >= lastPivotLow  and inBullOB
+bool bearSweep = not na(lastPivotHigh) and high > lastPivotHigh and close <= lastPivotHigh and inBearOB
+
+var float activeBullSweepLow  = na   // extreme of the sweep wick (SL reference)
+var float activeBullLegTop    = na   // top of the displacement leg after sweep (for fib)
+var float activeBearSweepHigh = na
+var float activeBearLegBottom = na
+
+var bool pendingBull = false
+var bool pendingBear = false
+
+// Reset pending signals if bias or session flips
+if not inSession or not biasBull
+    pendingBull := false
+if not inSession or not biasBear
+    pendingBear := false
+
+// Register sweep — will wait for next FVG candle to define the leg
+if bullSweep and biasBull and strategy.position_size == 0 and canTrade
+    activeBullSweepLow  := low
+    activeBullLegTop    := na  // reset; will be set on displacement candle
+    pendingBull := true
+    pendingBear := false
+
+if bearSweep and biasBear and strategy.position_size == 0 and canTrade
+    activeBearSweepHigh  := high
+    activeBearLegBottom  := na
+    pendingBear := true
+    pendingBull := false
+
+// ============================================================================
+// DISPLACEMENT & FVG DETECTION
+// ============================================================================
+
+bool bullFVG = low > high[2] and close > open and close > high[1]   // 3-bar gap up
+bool bearFVG = high < low[2] and close < open and close < low[1]    // 3-bar gap down
+
+// ============================================================================
+// DEEP DISCOUNT LIMIT ORDER ENTRY (61.8% retracement)
+// Entry = Fib retracement of the displacement leg after the sweep
+// SL    = just beyond the sweep extreme
+// TP    = Reward:Risk multiple from entry
+// ============================================================================
+
+var float entryPx = na
+var float slPx    = na
+var float tpPx    = na
+var float limitEntry = na
+
+// Pending Bull: FVG fires → compute displacement leg → place limit at 61.8% retrace
+if pendingBull and bullFVG and strategy.position_size == 0 and canTrade
+    float legBottom = activeBullSweepLow   // leg starts at sweep low
+    float legTop    = close                // leg top = FVG close (momentum high)
+    float legSize   = legTop - legBottom
+    if legSize > 0
+        limitEntry  := legTop - legSize * fibEntry   // buy at retrace into discount
+        float sl    = activeBullSweepLow - 2         // just below the sweep wick
+        float risk  = limitEntry - sl
+        if risk > 0
+            float tp = limitEntry + (risk * rewardMultiple)
+            entryPx  := limitEntry
+            slPx     := sl
+            tpPx     := tp
+            strategy.entry("Long", strategy.long, limit=limitEntry)
+            strategy.exit("L Exit", "Long", stop=sl, limit=tp)
+            dailyTrades += 1
+            pendingBull := false
+
+// Pending Bear: FVG fires → compute displacement leg → place limit at 61.8% retrace
+if pendingBear and bearFVG and strategy.position_size == 0 and canTrade
+    float legTop    = activeBearSweepHigh  // leg starts at sweep high
+    float legBottom = close                // leg bottom = FVG close (momentum low)
+    float legSize   = legTop - legBottom
+    if legSize > 0
+        limitEntry  := legBottom + legSize * fibEntry  // sell at retrace into premium
+        float sl    = activeBearSweepHigh + 2          // just above the sweep wick
+        float risk  = sl - limitEntry
+        if risk > 0
+            float tp = limitEntry - (risk * rewardMultiple)
+            entryPx  := limitEntry
+            slPx     := sl
+            tpPx     := tp
+            strategy.entry("Short", strategy.short, limit=limitEntry)
+            strategy.exit("S Exit", "Short", stop=sl, limit=tp)
+            dailyTrades += 1
+            pendingBear := false
+
+// When in a trade, clear pending flags
+if strategy.position_size != 0
+    pendingBull := false
+    pendingBear := false
+
+// ============================================================================
+// VISUALS
+// ============================================================================
+
+plotshape(bullSweep and canTrade, "Bull Sweep ✓ POI", shape.triangleup,   location.belowbar, color.new(color.lime, 0),    size=size.small)
+plotshape(bearSweep and canTrade, "Bear Sweep ✓ POI", shape.triangledown, location.abovebar, color.new(color.fuchsia, 0), size=size.small)
+
+plot(strategy.position_size != 0 ? entryPx : na, "Entry",  color=color.new(color.blue,  0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? slPx    : na, "Stop",   color=color.new(color.red,   0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tpPx    : na, "Target", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=2)
+
+// Show pending limit price
+plot(pendingBull or pendingBear ? limitEntry : na, "Pending Limit", color=color.new(color.yellow, 20), style=plot.style_circles, linewidth=1)
+
+// ============================================================================
+// AUDIT BLOCK FOR STRATEGY COMPARISON DASHBOARD
+// ============================================================================
+var int aud_from = na
+if bar_index == 400
+    aud_from := (math.floor(time / 86400000.0) + 1) * 86400000
+var float aud_n = 0.0
+var float aud_w = 0.0
+var float aud_sw = 0.0
+var float aud_sl = 0.0
+var float aud_eq = 0.0
+var float aud_pk = 0.0
+var float aud_mn = 0.0
+var float aud_dd = 0.0
+var float aud_d2 = 0.0
+var float aud_dayP = 0.0
+var int aud_nD = 0
+var int aud_dayStart = 0
+aud_newDay = ta.change(time("D")) != 0
+if aud_newDay
+    if not na(aud_from) and aud_dayStart >= aud_from
+        aud_nD += 1
+        aud_d2 += aud_dayP * aud_dayP
+    aud_dayP := 0.0
+    aud_dayStart := time
+aud_nc = strategy.closedtrades - nz(strategy.closedtrades[1])
+if aud_nc > 0
+    for aud_k = 0 to aud_nc - 1
+        aud_i = strategy.closedtrades - 1 - aud_k
+        if not na(aud_from) and strategy.closedtrades.entry_time(aud_i) >= aud_from
+            aud_sz = math.abs(strategy.closedtrades.size(aud_i))
+            aud_p = strategy.closedtrades.profit(aud_i) / syminfo.pointvalue / (aud_sz > 0 ? aud_sz : 1)
+            aud_n += 1
+            if aud_p > 0
+                aud_w += 1
+                aud_sw += aud_p
+            else
+                aud_sl += aud_p
+            aud_eq += aud_p
+            aud_pk := math.max(aud_pk, aud_eq)
+            aud_mn := math.min(aud_mn, aud_eq)
+            aud_dd := math.max(aud_dd, aud_pk - aud_eq)
+            aud_dayP += aud_p
+if barstate.islastconfirmedhistory or barstate.islast
+    var table aud_t = table.new(position.bottom_center, 1, 1, bgcolor=color.new(color.black, 10))
+    aud_incl = not na(aud_from) and aud_dayStart >= aud_from
+    table.cell(aud_t, 0, 0, "AUD|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(aud_from) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(aud_nD + (aud_incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue) + "|" + str.tostring(aud_n) + "," + str.tostring(aud_w) + "," + str.tostring(aud_sw, "#.#") + "," + str.tostring(aud_sl, "#.#") + "," + str.tostring(aud_dd, "#.#") + "," + str.tostring(aud_d2 + (aud_incl ? aud_dayP * aud_dayP : 0), "#.#") + "," + str.tostring(aud_pk, "#.#") + "," + str.tostring(aud_mn, "#.#"), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)
