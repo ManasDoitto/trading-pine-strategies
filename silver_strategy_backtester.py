@@ -82,35 +82,6 @@ def identify_valid_ranges(df):
 
     return df
 
-def identify_1h_order_blocks(df_1h):
-    df = df_1h.copy()
-    df['bull_ob_top'] = np.nan
-    df['bull_ob_bottom'] = np.nan
-    df['bear_ob_top'] = np.nan
-    df['bear_ob_bottom'] = np.nan
-    
-    for i in range(1, len(df)):
-        _open, _high, _low, _close = df.loc[i, 'open'], df.loc[i, 'high'], df.loc[i, 'low'], df.loc[i, 'close']
-        prev_open, prev_high, prev_low, prev_close = df.loc[i-1, 'open'], df.loc[i-1, 'high'], df.loc[i-1, 'low'], df.loc[i-1, 'close']
-        
-        # Bullish OB: prev bar bearish, current bar strongly bullish (displacement)
-        if _close > _open and (_close - _open) > (prev_high - prev_low) * 0.5 and prev_close < prev_open:
-            df.loc[i, 'bull_ob_top'] = prev_open
-            df.loc[i, 'bull_ob_bottom'] = prev_close
-            
-        # Bearish OB: prev bar bullish, current bar strongly bearish (displacement)
-        if _close < _open and (_open - _close) > (prev_high - prev_low) * 0.5 and prev_close > prev_open:
-            df.loc[i, 'bear_ob_top'] = prev_close
-            df.loc[i, 'bear_ob_bottom'] = prev_open
-            
-    # Forward fill the OBs
-    df['bull_ob_top'] = df['bull_ob_top'].ffill()
-    df['bull_ob_bottom'] = df['bull_ob_bottom'].ffill()
-    df['bear_ob_top'] = df['bear_ob_top'].ffill()
-    df['bear_ob_bottom'] = df['bear_ob_bottom'].ffill()
-    
-    return df
-
 def prepare_data(df_1m, verbose=True):
     if verbose: print("Resampling Timeframes...")
     df_1h = resample_data(df_1m, '60min')
@@ -122,6 +93,9 @@ def prepare_data(df_1m, verbose=True):
     df_15m = identify_valid_ranges(df_15m)
     df_5m = identify_valid_ranges(df_5m)
     
+    # Calculate 1H 200 EMA
+    df_1h['htf_ema'] = df_1h['close'].ewm(span=200, adjust=False).mean()
+    
     # Map previous session high/low
     df_1m = df_1m.copy()
     df_1m['date'] = df_1m['timestamp'].dt.date
@@ -130,9 +104,8 @@ def prepare_data(df_1m, verbose=True):
     daily_stats['prev_low'] = daily_stats['low'].shift(1)
     df_1m = df_1m.merge(daily_stats[['prev_high', 'prev_low']], left_on='date', right_index=True, how='left')
     
-    # Map 1H Order Blocks to 1m data
-    df_1h_obs = identify_1h_order_blocks(df_1h)
-    df_1m = pd.merge_asof(df_1m, df_1h_obs[['timestamp', 'bull_ob_top', 'bull_ob_bottom', 'bear_ob_top', 'bear_ob_bottom']], on='timestamp', direction='backward')
+    # Map 1H EMA to 1m data
+    df_1m = pd.merge_asof(df_1m, df_1h[['timestamp', 'htf_ema']], on='timestamp', direction='backward')
     
     # Extract confirmed events
     events_1h = df_1h.dropna(subset=['validated_at'])[['validated_at', 'is_valid_high', 'is_valid_low', 'swing_high_price', 'swing_low_price']]
@@ -147,12 +120,11 @@ def prepare_data(df_1m, verbose=True):
     return df_1m, df_1h, df_15m, df_5m, events_1h, events_15m, events_5m
 
 
-def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep_duration_hours=4, sl_buffer=0, tp_target_type=3, verbose=True):
+def run_simulation(df_1m, events_1h, events_15m, events_5m, max_trades_per_day=2, tp_target_type=3.6, sl_buffer=0, verbose=True):
     trades = []
     
     # State tracking
     active_trade = None # dict
-    pending_order = None # dict
     
     last_1h_trend = 0 # 1=bull, -1=bear
     last_15m_high = None
@@ -162,7 +134,10 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
     
     active_sweep = 0 # 1=swept high (looking short), -1=swept low (looking long)
     sweep_extreme = None
-    sweep_active_until = None
+    
+    # Daily limits
+    daily_trades = 0
+    current_date = None
     
     # Iterators for events
     idx_1h = 0
@@ -177,11 +152,14 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
         close = row.close
         prev_session_high = row.prev_high
         prev_session_low = row.prev_low
-        bull_ob_top = row.bull_ob_top
-        bull_ob_bottom = row.bull_ob_bottom
-        bear_ob_top = row.bear_ob_top
-        bear_ob_bottom = row.bear_ob_bottom
+        htf_ema = row.htf_ema
         
+        # Reset daily trades
+        date_str = current_time.date()
+        if current_date != date_str:
+            current_date = date_str
+            daily_trades = 0
+
         # --- Update HTF States ---
         # 1H State
         while idx_1h < len(events_1h) and events_1h.iloc[idx_1h]['validated_at'] <= current_time:
@@ -211,6 +189,23 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
                 tc_occurred = 1
                 tc_price = ev['swing_low_price']
             idx_5m += 1
+
+        # --- Session Management ---
+        entry_window = (17, 0) <= (current_time.hour, current_time.minute) <= (23, 0)
+        hold_window = (17, 0) <= (current_time.hour, current_time.minute) <= (23, 30)
+            
+        # Force close active trades if outside hold window
+        if active_trade and not hold_window:
+            active_trade['exit_price'] = close
+            active_trade['exit_time'] = current_time
+            if active_trade['dir'] == 1:
+                active_trade['pnl'] = close - active_trade['entry_price']
+            else:
+                active_trade['pnl'] = active_trade['entry_price'] - close
+            active_trade['result'] = 'win' if active_trade['pnl'] > 0 else 'loss'
+            trades.append(active_trade)
+            active_trade = None
+            continue
 
         # --- Active Trade Management ---
         if active_trade:
@@ -247,94 +242,62 @@ def run_simulation(df_1m, events_1h, events_15m, events_5m, fib_level=0.5, sweep
                 
             continue # Don't look for new setups while in a trade
 
-        # --- Pending Order Management ---
-        if pending_order:
-            # Check for fill
-            if pending_order['dir'] == 1 and low <= pending_order['entry']:
-                active_trade = {
-                    'entry_time': current_time,
-                    'dir': 1,
-                    'entry_price': pending_order['entry'],
-                    'sl': pending_order['sl'],
-                    'tp': pending_order['tp']
-                }
-                pending_order = None
-            elif pending_order['dir'] == -1 and high >= pending_order['entry']:
-                active_trade = {
-                    'entry_time': current_time,
-                    'dir': -1,
-                    'entry_price': pending_order['entry'],
-                    'sl': pending_order['sl'],
-                    'tp': pending_order['tp']
-                }
-                pending_order = None
-            # Check invalidation (price hits SL before entry)
-            elif pending_order:
-                if pending_order['dir'] == 1 and low <= pending_order['sl']:
-                    pending_order = None
-                elif pending_order['dir'] == -1 and high >= pending_order['sl']:
-                    pending_order = None
+        # Only allow trades if daily limit not reached and within entry window
+        if not entry_window or daily_trades >= max_trades_per_day:
+            continue
 
         # --- Setup Detection ---
-        # 1. Sweep Phase (must hit session hi/lo AND be inside OB)
-        if pd.notna(prev_session_high) and high > prev_session_high:
-            # Check if high is inside bear OB
-            in_bear_ob = pd.notna(bear_ob_top) and high >= bear_ob_bottom and low <= bear_ob_top
-            if in_bear_ob:
-                active_sweep = 1
-                sweep_extreme = max(high, sweep_extreme) if sweep_extreme else high
-                sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
-                
-        if pd.notna(prev_session_low) and low < prev_session_low:
-            # Check if low is inside bull OB
-            in_bull_ob = pd.notna(bull_ob_top) and low <= bull_ob_top and high >= bull_ob_bottom
-            if in_bull_ob:
-                active_sweep = -1
-                sweep_extreme = min(low, sweep_extreme) if sweep_extreme else low
-                sweep_active_until = current_time + pd.Timedelta(hours=sweep_duration_hours)
-            
-        # Expire sweep if too much time passed
-        if sweep_active_until and current_time > sweep_active_until:
-            active_sweep = 0
-            sweep_extreme = None
-
-        # Look for TC if we have an active sweep and no pending order
-        time_is_valid = (17, 0) <= (current_time.hour, current_time.minute) <= (22, 30)
+        # 1. Sweep Phase (must hit session hi/lo AND have correct EMA bias)
+        # Bullish Bias = close > 1H 200 EMA
+        # Bearish Bias = close < 1H 200 EMA
+        bias_bull = pd.notna(htf_ema) and close > htf_ema
+        bias_bear = pd.notna(htf_ema) and close < htf_ema
         
-        if active_sweep == 1 and tc_occurred == -1 and not pending_order and time_is_valid:
+        if pd.notna(prev_session_high) and high > prev_session_high and bias_bear:
+            active_sweep = 1
+            sweep_extreme = max(high, sweep_extreme) if sweep_extreme else high
+                
+        if pd.notna(prev_session_low) and low < prev_session_low and bias_bull:
+            active_sweep = -1
+            sweep_extreme = min(low, sweep_extreme) if sweep_extreme else low
+            
+        # Look for TC if we have an active sweep
+        if active_sweep == 1 and tc_occurred == -1:
             # Swept high, now 5m trend changed bearish.
             if sweep_extreme > tc_price:
-                # Deep Discount Limit Entry
-                fib_entry = tc_price + (sweep_extreme - tc_price) * 0.618
+                # Market Entry
                 sl_level = sweep_extreme + sl_buffer
+                risk_amount = sl_level - close
+                tp_target = close - (risk_amount * tp_target_type)
                 
-                risk_amount = sl_level - fib_entry
-                tp_target = fib_entry - (risk_amount * tp_target_type)
-                
-                pending_order = {
-                    'dir': -1,
-                    'entry': fib_entry,
-                    'sl': sl_level,
-                    'tp': tp_target
-                }
+                if risk_amount > 0:
+                    active_trade = {
+                        'entry_time': current_time,
+                        'dir': -1,
+                        'entry_price': close,
+                        'sl': sl_level,
+                        'tp': tp_target
+                    }
+                    daily_trades += 1
                 active_sweep = 0 
                 
-        elif active_sweep == -1 and tc_occurred == 1 and not pending_order and time_is_valid:
+        elif active_sweep == -1 and tc_occurred == 1:
             # Swept low, now 5m trend changed bullish.
             if tc_price > sweep_extreme:
-                # Deep Discount Limit Entry
-                fib_entry = tc_price - (tc_price - sweep_extreme) * 0.618
+                # Market Entry
                 sl_level = sweep_extreme - sl_buffer
+                risk_amount = close - sl_level
+                tp_target = close + (risk_amount * tp_target_type)
                 
-                risk_amount = fib_entry - sl_level
-                tp_target = fib_entry + (risk_amount * tp_target_type)
-                
-                pending_order = {
-                    'dir': 1,
-                    'entry': fib_entry,
-                    'sl': sl_level,
-                    'tp': tp_target
-                }
+                if risk_amount > 0:
+                    active_trade = {
+                        'entry_time': current_time,
+                        'dir': 1,
+                        'entry_price': close,
+                        'sl': sl_level,
+                        'tp': tp_target
+                    }
+                    daily_trades += 1
                 active_sweep = 0
 
     if verbose: print(f"Simulation complete. Total trades taken: {len(trades)}")
@@ -396,7 +359,7 @@ if __name__ == "__main__":
             
             if not df_1m.empty:
                 df_1m, df_1h, df_15m, df_5m, events_1h, events_15m, events_5m = prepare_data(df_1m, verbose=False)
-                df_trades = run_simulation(df_1m, events_1h, events_15m, events_5m, tp_target_type=2.4, verbose=False)
+                df_trades = run_simulation(df_1m, events_1h, events_15m, events_5m, max_trades_per_day=2, tp_target_type=3.6, verbose=False)
                 
                 if not df_trades.empty:
                     # Convert trades to dicts to append to all_trades
