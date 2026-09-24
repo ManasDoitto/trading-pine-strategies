@@ -9,3 +9,4 @@ __pycache__/
 journal_data/
 # trading_exec output: signals, shadow trades, real account data
 exec_data/
+research_data/
