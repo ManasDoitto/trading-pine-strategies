@@ -24,11 +24,12 @@ def load(name):
     return df[["time", "open", "high", "low", "close", "volume"]]
 
 
-def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None):
+def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None):
     """Bracket strategy with next-bar-open fills, as production simulate() does, plus:
     gap_fills   a bar that OPENS beyond the stop/target exits at that open (TradingView), not at the level
     commission  fraction of price charged per side (0.0002 = the Pine scripts' 0.02%)
     time_stop_min  exit at the OPEN of the first bar once this many minutes have passed since the fill
+    max_per_day  stop taking new signals after this many per calendar day
     flat_at     "HH:MM": exit at the OPEN of the first bar at/after this time; no entry is filled at/after it
     Returns a list of trade dicts with `net` (points, after commission)."""
     rows = df.to_dict("records")
@@ -38,7 +39,7 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         hh, mm = flat_at.split(":")
         flat = int(hh) * 60 + int(mm)
     trades, pos, pending = [], None, None
-    day, day_real, locked = None, 0.0, False
+    day, day_real, locked, taken = None, 0.0, False, 0
 
     def close(px, t, why):
         nonlocal pos, day_real, locked
@@ -55,7 +56,7 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         r = rows[i]
         d, minute = r["time"].date(), r["time"].hour * 60 + r["time"].minute
         if d != day:
-            day, day_real, locked = d, 0.0, False
+            day, day_real, locked, taken = d, 0.0, False, 0
 
         if pending is not None:
             if flat is not None and minute >= flat:
@@ -87,7 +88,9 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                     elif locked:
                         close(r["close"], r["time"], "DAY LIMIT")
 
-        if pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"]):
+        if (pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"])
+                and (max_per_day is None or taken < max_per_day)):
+            taken += 1
             side = "LONG" if r["ok_l"] else "SHORT"
             risk = r["risk_l"] if side == "LONG" else r["risk_s"]
             sign = 1 if side == "LONG" else -1
