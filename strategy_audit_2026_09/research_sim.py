@@ -24,11 +24,13 @@ def load(name):
     return df[["time", "open", "high", "low", "close", "volume"]]
 
 
-def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None):
+def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None, be_at_r=None, trail_start_r=None, trail_dist_r=1.0):
     """Bracket strategy with next-bar-open fills, as production simulate() does, plus:
     gap_fills   a bar that OPENS beyond the stop/target exits at that open (TradingView), not at the level
     commission  fraction of price charged per side (0.0002 = the Pine scripts' 0.02%)
     time_stop_min  exit at the OPEN of the first bar once this many minutes have passed since the fill
+    be_at_r / trail_start_r / trail_dist_r  breakeven and trailing stop, in units of the original risk; a new stop
+                applies from the NEXT bar (no same-bar lookahead)
     max_per_day  stop taking new signals after this many per calendar day
     flat_at     "HH:MM": exit at the OPEN of the first bar at/after this time; no entry is filled at/after it
     Returns a list of trade dicts with `net` (points, after commission)."""
@@ -87,6 +89,16 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                         close(sl if hit_sl else tp, r["time"], "SL" if hit_sl else "TP")
                     elif locked:
                         close(r["close"], r["time"], "DAY LIMIT")
+                    if pos is not None:
+                        ext = r["high"] if long_ else r["low"]
+                        pos["ext"] = max(pos.get("ext", ext), ext) if long_ else min(pos.get("ext", ext), ext)
+                        gain = (pos["ext"] - pos["entry"]) * (1 if long_ else -1)
+                        rk = pos["risk_pts"]
+                        if be_at_r is not None and gain >= be_at_r * rk:
+                            pos["sl"] = max(pos["sl"], pos["entry"]) if long_ else min(pos["sl"], pos["entry"])
+                        if trail_start_r is not None and gain >= trail_start_r * rk:
+                            t = pos["ext"] - trail_dist_r * rk if long_ else pos["ext"] + trail_dist_r * rk
+                            pos["sl"] = max(pos["sl"], t) if long_ else min(pos["sl"], t)
 
         if (pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"])
                 and (max_per_day is None or taken < max_per_day)):
