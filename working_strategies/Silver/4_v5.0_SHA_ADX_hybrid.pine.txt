@@ -33,6 +33,7 @@ minSL    = input.float(2.5, "SL min distance (x ATR)", step=0.1, group="Risk")
 maxSL    = input.float(5.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
 rr       = input.float(4.0, "Target R:R (fixed)", step=0.1, group="Risk")
 dayLossLimit = input.float(300.0, "Daily loss limit (pts, 0=off)", step=10, group="Risk Management")
+atrMinPts = input.float(0.0, "ATR floor (pts, 0=off)", step=0.5, group="Risk")
 
 // ============ SHA CALCULATION ============
 o1 = ta.ema(open, shaLen1)
@@ -74,10 +75,11 @@ nearEma9S = not usePullback or close >= e9 - pbAtrMult * atr
 riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
 riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
 cap = maxSL * atr
+atrOK = atrMinPts == 0 or atr >= atrMinPts
 flat = strategy.position_size == 0
 
-okL = flat and inSess and flipUp and trendL and shaStable and volRegimeOK and atr >= riskL and riskL <= cap and not inForceFlat and nearEma9L
-okS = flat and inSess and flipDn and trendS and shaStable and volRegimeOK and atr >= riskS and riskS <= cap and not okL and not inForceFlat and nearEma9S
+okL = flat and inSess and flipUp and trendL and shaStable and volRegimeOK and adxOK and atrOK and riskL <= cap and not inForceFlat and nearEma9L
+okS = flat and inSess and flipDn and trendS and shaStable and volRegimeOK and adxOK and atrOK and riskS <= cap and not okL and not inForceFlat and nearEma9S
 
 // ============ DAILY LOSS CIRCUIT BREAKER (from Silver v4.0) ============
 newDay = ta.change(time("D")) != 0
