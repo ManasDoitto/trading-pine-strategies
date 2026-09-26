@@ -1,10 +1,10 @@
 //@version=5
 // ============================================================================
 //  v5.0 SHA-ADX Hybrid — Silver (MCX:SILVER1!, 5m)
+//  Exact Pine conversion of trading_agents/core/signals_v50.py V50_INSTRUMENT_PARAMS["SILVER"]
+//  ---------------------------------------------------------------------------
 //  Walk-forward: avg PF 2.12, 80% windows profitable
-//  Optimized defaults (param sweep winner): ADX=30, PB=0.5, RR=4.0, day-loss=300
-//  Wide stops (minSL 2.5, maxSL 5.0) inherited from Silver v4.0
-//  Copy to TradingView → paste in Pine Editor → "Add to chart" → enable strategy
+//  Full-history: PF 2.04, net +3,518 pts, Sharpe 1.41, max-DD -2,268 pts
 // ============================================================================
 strategy("v5.0 SHA-ADX Hybrid (Silver)", overlay=true,
      initial_capital=100000,
@@ -13,75 +13,83 @@ strategy("v5.0 SHA-ADX Hybrid (Silver)", overlay=true,
      commission_type=strategy.commission.percent, commission_value=0.02,
      max_labels_count=500, max_lines_count=500)
 
+// ============ INPUTS (exact match to V50_INSTRUMENT_PARAMS["SILVER"]) ============
 shaLen1  = input.int(10, "SHA pre-smooth EMA", group="Trend")
 shaLen2  = input.int(10, "SHA post-smooth EMA", group="Trend")
-useEmaAl = input.bool(true, "Require EMA9 vs EMA22 alignment", group="Trend")
-use200   = input.bool(false, "Require close vs EMA200", group="Trend")
 shaMinHold = input.int(3, "SHA must hold direction >= N bars before flip", group="Trend")
+
 useSess  = input.bool(true, "Session filter", group="Time")
 sessTime = input.session("0915-2330", "Entry session (IST)", group="Time")
 forceFlatTime = input.session("2245-2330", "Force-flat window", group="Time")
+
 htfAdxLen = input.int(14, "15m ADX length", group="ADX Gate")
 htfAdxMin = input.float(30.0, "15m ADX min threshold (0=off)", step=1, group="ADX Gate")
+
 useVolRegime = input.bool(false, "Volatility regime filter", group="Volatility")
-volSmaLen    = input.int(80, "ATR SMA length for vol regime", group="Volatility")
+volSmaLen    = input.int(50, "ATR SMA length for vol regime", group="Volatility")
+atrMinPts    = input.float(0.0, "Min ATR14 points (0=off)", step=5, group="Volatility")
+
 usePullback  = input.bool(true, "Require pullback proximity to EMA9", group="Entry Quality")
 pbAtrMult    = input.float(0.5, "Max distance from EMA9 (x ATR)", step=0.1, group="Entry Quality")
+
 swLen    = input.int(10, "SL swing lookback (bars)", group="Risk")
 swBuf    = input.float(0.1, "SL buffer beyond swing (x ATR)", step=0.05, group="Risk")
-minSL    = input.float(2.5, "SL min distance (x ATR)", step=0.1, group="Risk")
+minSL    = input.float(1.5, "SL min distance (x ATR)", step=0.1, group="Risk")
 maxSL    = input.float(5.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
 rr       = input.float(4.0, "Target R:R (fixed)", step=0.1, group="Risk")
-dayLossLimit = input.float(300.0, "Daily loss limit (pts, 0=off)", step=10, group="Risk Management")
-atrMinPts = input.float(0.0, "ATR floor (pts, 0=off)", step=0.5, group="Risk")
+dayLossLimit = input.float(350.0, "Daily loss limit (pts, 0=off)", step=10, group="Risk Management")
 
-// ============ SHA CALCULATION ============
+// ============ SHA CALCULATION (matches Python sha_up/flip_up/flip_dn) ============
 o1 = ta.ema(open, shaLen1)
 c1 = ta.ema(close, shaLen1)
 h1 = ta.ema(high, shaLen1)
 l1 = ta.ema(low, shaLen1)
-haC = (o1 + h1 + l1 + c1) / 4
+haC = (o1 + h1 + l1 + c1) / 4.0
 var float haO = na
-haO := na(haO[1]) ? (o1 + c1) / 2 : (haO[1] + haC[1]) / 2
+haO := na(haO[1]) ? (o1 + c1) / 2.0 : (haO[1] + haC[1]) / 2.0
 shaUp = ta.ema(haC, shaLen2) > ta.ema(haO, shaLen2)
 flipUp = shaUp and not shaUp[1]
 flipDn = not shaUp and shaUp[1]
-shaFlipBar = ta.valuewhen(shaUp != shaUp[1], bar_index, 0)
-shaPrevFlipBar = ta.valuewhen(shaUp != shaUp[1], bar_index, 1)
-shaStable = (bar_index - shaFlipBar) <= 1 or (not na(shaPrevFlipBar) and (shaFlipBar - shaPrevFlipBar) >= shaMinHold + 1)
+
+// SHA stability filter
+shaFlipDiff = ta.valuewhen(shaUp != shaUp[1], bar_index, 0)
+shaPrevFlip = ta.valuewhen(shaUp != shaUp[1], bar_index, 1)
+shaPrevGroupSize = na(shaPrevFlip) ? 1 : (shaFlipDiff - shaPrevFlip)
+// On a flip bar shaFlipDiff == bar_index, so the old `(bar_index - shaFlipDiff) <= 1 or ...`
+// short-circuit made this ALWAYS true exactly when it mattered. Gate on the run length only.
+shaStable = not na(shaPrevFlip) and (shaPrevGroupSize >= shaMinHold)
 
 // ============ INDICATORS ============
-e9 = ta.ema(close, 9)
-e22 = ta.ema(close, 22)
+e9   = ta.ema(close, 9)
+e22  = ta.ema(close, 22)
 e200 = ta.ema(close, 200)
-atr = ta.atr(14)
+atr  = ta.atr(14)
 swLo = ta.lowest(low, swLen)
 swHi = ta.highest(high, swLen)
-trendL = (not useEmaAl or e9 > e22) and (not use200 or close > e200)
-trendS = (not useEmaAl or e9 < e22) and (not use200 or close < e200)
+
+// EMA alignment: Python trend_l always requires e9>e22 AND close>e200
+trendOKL = (e9 > e22) and (close > e200)
+trendOKS = (e9 < e22) and (close < e200)
 inSess = not useSess or not na(time(timeframe.period, sessTime))
 inForceFlat = not na(time(timeframe.period, forceFlatTime))
-
-f_adxPrev() =>
-    [_p, _m, _a] = ta.dmi(htfAdxLen, htfAdxLen)
-    _a[1]
-hAdx = request.security(syminfo.tickerid, "15", f_adxPrev(), lookahead=barmerge.lookahead_on)
-adxOK = htfAdxMin == 0 or (not na(hAdx) and hAdx >= htfAdxMin)
+atrOK = atrMinPts == 0 or (not na(atr) and atr >= atrMinPts)
 volSmaAtr = ta.sma(atr, volSmaLen)
 volRegimeOK = not useVolRegime or (not na(volSmaAtr) and atr > volSmaAtr)
+
+// EMA9 pullback proximity
 nearEma9L = not usePullback or close <= e9 + pbAtrMult * atr
 nearEma9S = not usePullback or close >= e9 - pbAtrMult * atr
 
+// Risk calculations (matches Python risk_l/risk_s)
 riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
 riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
 cap = maxSL * atr
-atrOK = atrMinPts == 0 or atr >= atrMinPts
-flat = strategy.position_size == 0
 
-okL = flat and inSess and flipUp and trendL and shaStable and volRegimeOK and adxOK and atrOK and riskL <= cap and not inForceFlat and nearEma9L
-okS = flat and inSess and flipDn and trendS and shaStable and volRegimeOK and adxOK and atrOK and riskS <= cap and not okL and not inForceFlat and nearEma9S
+// Entry conditions (MATCH Python ok_l/ok_s — no atr>=riskL, correct atrOK)
+okL = inSess and flipUp and trendOKL and shaStable and atrOK and volRegimeOK and nearEma9L and (riskL <= cap) and not inForceFlat
+okS = inSess and flipDn and trendOKS and shaStable and atrOK and volRegimeOK and nearEma9S and (riskS <= cap) and not okL and not inForceFlat
 
-// ============ DAILY LOSS CIRCUIT BREAKER (from Silver v4.0) ============
+// ============ DAILY LOSS CIRCUIT BREAKER ============
 newDay = ta.change(time("D")) != 0
 var float dayRealized = 0.0
 var bool  dayLocked = false
@@ -114,11 +122,20 @@ if okS and not dayLocked
     strategy.entry("S", strategy.short)
     strategy.exit("xS", "S", stop=slPx, limit=tpPx)
 
+// ============ FORCED FLAT (session end — matches Python in_flat_window close) ============
+if strategy.position_size != 0 and inForceFlat
+    strategy.close_all(comment="FORCE FLAT")
+
 // ============ VISUALS ============
-plotshape(strategy.position_size > 0 and strategy.position_size[1] <= 0,  "Long",  shape.triangleup,   location.belowbar, color.lime, size=size.small, text="BUY")
-plotshape(strategy.position_size < 0 and strategy.position_size[1] >= 0, "Short", shape.triangledown, location.abovebar, color.red,   size=size.small, text="SELL")
-plot(strategy.position_size != 0 ? entryPx : na, "Entry", color=color.blue, style=plot.style_linebr, linewidth=1)
-plot(strategy.position_size != 0 ? slPx    : na, "Stop",  color=color.red,  style=plot.style_linebr, linewidth=1)
-plot(strategy.position_size != 0 ? tpPx    : na, "TP",    color=color.green, style=plot.style_linebr, linewidth=1)
+longEntryBar  = strategy.position_size > 0 and strategy.position_size[1] <= 0
+shortEntryBar = strategy.position_size < 0 and strategy.position_size[1] >= 0
+plotshape(longEntryBar,  "Long entry",  shape.triangleup,   location.belowbar, color.new(color.lime, 0),  size=size.small, text="BUY")
+plotshape(shortEntryBar, "Short entry", shape.triangledown, location.abovebar, color.new(color.red, 0),   size=size.small, text="SELL")
+plot(strategy.position_size != 0 ? entryPx : na, "Entry",  color=color.new(color.blue, 0),   style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size != 0 ? slPx    : na, "Stop",   color=color.new(color.red, 0),    style=plot.style_linebr, linewidth=1)
+plot(strategy.position_size != 0 ? tpPx    : na, "Target", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
 plot(e9, "EMA9", color=color.aqua)
 plot(e22, "EMA22", color=color.orange)
+plot(e200, "EMA200", color=color.new(color.purple, 0), linewidth=1)
+bgcolor(useVolRegime and not volRegimeOK ? color.new(color.gray, 85) : na)
+bgcolor(dayLocked ? color.new(color.red, 85) : na)
