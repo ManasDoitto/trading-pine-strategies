@@ -63,3 +63,11 @@ What IS supported, and is worth keeping:
 The forward test, already live with pre-registered rules (`silver-v41-forward-test`), boundary 2026-09-27. At ~27.5
 trades/month it reaches the 60-trade judging threshold in about 2.5 months. Until then, **stay on Silver #1** and do
 not size anything on the +307,265 figure.
+
+
+---
+## CORRECTION (added same day, see `silver_definitive_comparison_2026_09_26.md`)
+Reason 3 above ("as bought options ... #1 keeps 47% of its points and v4.1 keeps 36%") is WRONG. 36% was v5.1's figure,
+not v4.1's. Measured properly, bo(3) as options is +181,947 at a 1% spread (vs #1's +104,882) and +114,618 at 2% (vs
++46,014). The breakout variants translate to options better than #1. Reason 1 applied to bo(5) only, not bo(3) (see
+`breakout_three_variants_verdict_2026_09_26.md`). The verdict "no real edge found" was too strong.
