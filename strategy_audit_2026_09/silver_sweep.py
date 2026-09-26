@@ -102,5 +102,84 @@ def validate_fast(bars_name="MCX_SILVER1"):
     return ok
 
 
-if __name__ == "__main__":
+
+
+# ============================ SWEEP DRIVER (pre_registration_silver_sweep_2026_09_26.md) ============================
+SPACE = dict(
+    sha_len1=[5, 10, 15, 20], sha_len2=[5, 10, 15, 20], sha_min_hold=[1, 2, 3, 5, 8],
+    sw_len=[5, 10, 15, 20], sw_buf=[0.0, 0.1, 0.25],
+    min_sl=[1.0, 1.5, 2.0, 2.5, 3.0], max_sl=[3.0, 4.0, 5.0, 6.0, 8.0],
+    rr=[1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0],
+    adx_min=[0, 15, 20, 25, 30, 35, 40],
+    pb_atr_mult=[0.25, 0.5, 1.0, 1.5, 3.0],
+    atr_min_pts=[0, 20, 50],
+    use_vol_filter=[True, False], vol_sma_len=[30, 50, 80],
+    day_loss_limit=[0, 250, 350, 500, 1000],
+    sess_id=[0, 1, 2],
+)
+WINDOWS = [(pd.Timestamp(a), pd.Timestamp(b)) for a, b in (
+    ("2024-03-25", "2024-08-25"), ("2024-08-25", "2025-01-25"), ("2025-01-25", "2025-06-25"),
+    ("2025-06-25", "2025-11-25"), ("2025-11-25", "2026-04-25"), ("2026-04-25", "2026-09-25"))]
+SESSIONS = {0: (["09:15", "23:30"], ["22:45", "23:30"]),
+            1: (["09:15", "23:30"], ["23:25", "23:30"]),
+            2: (["17:00", "23:30"], ["23:25", "23:30"])}
+
+
+def draw(rng):
+    while True:
+        p = {k: rng.choice(v) for k, v in SPACE.items()}
+        if p["max_sl"] > p["min_sl"]:
+            break
+    p["session"], p["force_flat_window"] = SESSIONS[p["sess_id"]]
+    return p
+
+
+def evaluate(d, p, s0_cache):
+    """Per-config stats on FIXED CALENDAR windows, identical for every config (see WINDOWS).
+    Trade-count splits were rejected: they put the boundary at a different DATE for every config,
+    so configs were not being compared over the same market."""
+    f = frame(d, p)
+    key = (p["session"][0],)
+    if key not in s0_cache:
+        s0_cache[key] = max(int((f["time"] >= T0).idxmax()), rs.WARMUP)
+    tr = rs.simulate(f, dict(p, day_loss_limit_pts=p["day_loss_limit"]),
+                     start=s0_cache[key], flat_at=p["force_flat_window"][0], commission=0.0)
+    if len(tr) < 10:
+        return None
+    t = pd.DataFrame(tr)
+    t["exit_time"] = pd.to_datetime(t["exit_time"])
+    out = dict({k: p[k] for k in SPACE})
+    F = rs.stats(tr)
+    out.update(n=F["n"], pf=F["pf"], net=F["net"], max_dd=F["max_dd"], win=F["win_pct"],
+               pos_m=F["pos_months_pct"], best_m=F["best_month_share"])
+    for i, (a, b) in enumerate(WINDOWS, 1):
+        w = t[(t.exit_time >= a) & (t.exit_time < b)]
+        s = rs.stats(w.to_dict("records")) if len(w) else {}
+        out[f"w{i}_n"] = s.get("n", 0)
+        out[f"w{i}_pf"] = s.get("pf")
+        out[f"w{i}_net"] = s.get("net", 0.0)
+    return out
+
+
+def sweep(n_draws=1500, seed=20260926, out="silver_sweep_results.csv"):
     validate_fast()
+    rng = random.Random(seed)
+    d = base("MCX_SILVER1")
+    s0_cache, rows = {}, []
+    for i in range(n_draws):
+        r = evaluate(d, draw(rng), s0_cache)
+        if r:
+            rows.append(r)
+        if (i + 1) % 100 == 0:
+            print(f"  {i+1}/{n_draws} draws, {len(rows)} usable", flush=True)
+    R = pd.DataFrame(rows)
+    R.to_csv(ROOT / "research_data" / out, index=False)
+    print(f"DONE: {len(R)} configs -> research_data/{out}", flush=True)
+    return R
+
+
+if __name__ == "__main__":
+    if "--sweep" in sys.argv:
+        sweep()
+    else:
+        validate_fast()

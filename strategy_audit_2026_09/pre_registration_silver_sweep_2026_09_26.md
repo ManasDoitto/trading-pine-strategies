@@ -52,3 +52,29 @@ Fail any = not a pass. Nothing here goes to real money; a pass goes to the shado
 ## Prior
 0 of 514 tested strategies have passed these gates. Expect a config with a spectacular TRAIN PF and an unremarkable
 HOLDOUT PF; the informative output is control 1 and 2, not the winner's headline number.
+
+
+---
+## AMENDMENT (written 2026-09-26, BEFORE any sweep result was read; the first launch crashed on a NameError and
+## produced no output, and the relaunch was stopped after ~3 minutes, so nothing was seen)
+
+The user challenged the 60/20/20 trade-count split as potentially misleading. The challenge is correct, on two counts,
+and the design is changed rather than defended:
+
+1. **The boundary moved with the config.** Splitting at 60%/80% of each config's own trade list puts the TRAIN/HOLDOUT
+   boundary at a different CALENDAR DATE for every config - a 400-trade config and a 40-trade config were being scored
+   over different stretches of market and then compared to each other. Replaced with **six fixed calendar windows**,
+   identical for every config: 2024-03-25, 2024-08-25, 2025-01-25, 2025-06-25, 2025-11-25, 2026-04-25, 2026-09-25
+   (five months each).
+2. **Selecting on the first 60% selects for a dead regime.** Silver's profit is concentrated in Jan-Feb 2026, which sits
+   in window 5. A single early-train split therefore picks whatever suited the quiet 2024 stretch and then asks it to
+   prove itself in the volatile one. Selecting on the whole history overfits; selecting on the early part alone is
+   biased the other way. Neither single split answers the real question.
+
+**Replacement primary analysis: walk-forward.** For each window i in 2..6, select the config with the best cumulative
+PF over windows 1..i-1 (minimum 30 trades in that history), then record what that config did in window i, which it was
+not selected on. Aggregating those five out-of-sample window results measures the PROCEDURE "tune on the past, trade the
+winner" rather than the luck of one config. Reported alongside: the shipped config's result in the same windows, and
+the median config's, so the tuned pick has something to beat.
+
+Pass criteria are unchanged. The single 60/20/20 split is dropped entirely; per-window figures replace it.
