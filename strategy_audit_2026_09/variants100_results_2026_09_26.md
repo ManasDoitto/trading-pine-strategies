@@ -11,7 +11,7 @@ Split: TRAIN 2024-03-25 -> 2025-06-25, HOLDOUT 2025-06-25 -> 2026-09-25. Selecti
 |---|---|---|---|---|---|---|
 | **A: crude #1 (flip only, RR 4.0)** | 910 | **1.229** | **+5,672** | +6.2 | 1,898 | 8 / 13 |
 | B: crude #1 + breakout(5) | 1,859 | 1.076 | +4,074 | +2.2 | 1,924 | 6 / 13 |
-B beats A in **3 of 13** windows (W2 tie, W3, W8/W11 gains are outweighed by W1, W4, W6, W9, W10, W12, W13). TradingView agrees with the harness
+B beats A in exactly **3 of 13** windows (W3 +1,470 vs +787, W8 -14 vs -397, W11 +5,830 vs +2,608); A wins the other ten, W2 narrowly (+589 vs +565). TradingView agrees with the harness
 (785 / 1.263 / +5,614 vs 1,607 / 1.120 / +5,547): the breakout doubles trades and halves the edge per trade. The replay reused the loaded silver v4.1
 study with inputs set to crude #1's (minSL 1.5, maxSL 3.0, RR 4.0, no daily limit), and the forward-test inputs were restored afterwards.
 
