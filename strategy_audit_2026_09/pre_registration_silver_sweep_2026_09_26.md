@@ -78,3 +78,42 @@ winner" rather than the luck of one config. Reported alongside: the shipped conf
 the median config's, so the tuned pick has something to beat.
 
 Pass criteria are unchanged. The single 60/20/20 split is dropped entirely; per-window figures replace it.
+
+
+---
+## AMENDMENT 2 (written 2026-09-26, BEFORE any sweep result was read - the runs were stopped and restarted)
+
+The user set a frequency requirement, revised once: first ">= 20 trades/month for each script", then
+"including all 3 scripts if i get average 40 trades a month, that will be the sweet spot". The binding
+version is **>= 40 trades/month COMBINED across silver + crude + BankNifty over 30 months = >= 1,200 trades**.
+
+Measured trade-frequency ceilings on the v5.0 family, 30 months, gross points (probe before the sweep):
+
+| | as shipped | ADX off | ADX off + pullback off | everything loosened |
+|---|---|---|---|---|
+| SILVER1 | 112 (3.7/mo) PF 1.968 | 329 (11.0/mo) PF 1.438 | **834 (27.8/mo) PF 1.345, +111,456 pts** | 1,723 (57.4/mo) PF 1.192 |
+| CRUDEOIL1! | 155 (5.2/mo) PF 1.575 | 544 (18.1/mo) PF 1.166 | 606 (20.2/mo) PF 1.160 | 1,604 (53.5/mo) PF 1.124 |
+| BANKNIFTY1! | 56 (1.9/mo) PF 1.484 | 73 (2.4/mo) PF 1.441 | 80 (2.7/mo) PF 1.456 | **620 (20.7/mo) PF 0.944, -2,253 pts** |
+
+Two findings that set the design:
+1. **The EMA9 pullback proximity gate, not the ADX gate, is what starves this family of trades.** On silver, turning
+   the pullback off takes 11.0 -> 27.8 trades/month and nearly triples net points (+46,332 -> +111,456) for 0.09 of PF.
+2. **BankNifty cannot supply 20 trades/month profitably.** The only way to reach it is to strip every filter, and at
+   20.7/mo it is a net loser (PF 0.944). So the 40/mo target is enforced on the TRIPLE, not per instrument, and
+   BankNifty is expected to contribute the smallest share.
+
+## Revised design
+Sweep each instrument separately (1,000 draws each, same seed, same six calendar windows, same harness), with
+`pb_atr_mult` extended to {0.5 ... 99=off} and `adx_min` down to 0 so the high-frequency region is actually reachable.
+Per-config floor for eligibility: 90 trades (3/mo). BankNifty draws use NSE sessions.
+
+**Portfolio selection (fixed now):** choose one config per instrument, subject to combined trades >= 1,200 (40/mo),
+maximising the walk-forward criterion below. The three run as separate scripts on separate instruments, so their
+trades do not compete for one position (unlike the 2026-09-13 bnf v0.4+v13 single-script portfolio); combined trade
+count is a true sum. Shared margin is a real-money concern and is noted, not modelled.
+
+**Walk-forward remains the primary analysis** (amendment 1): select on windows 1..i-1, score on window i, aggregate
+the five out-of-sample results, compare against the shipped configs and the median config.
+
+Pass criteria unchanged, plus: **7. combined >= 40 trades/month.** A config that only reaches 40/mo by going net
+negative (as BankNifty does) is reported as failing, not as meeting the target.

@@ -105,32 +105,46 @@ def validate_fast(bars_name="MCX_SILVER1"):
 
 
 # ============================ SWEEP DRIVER (pre_registration_silver_sweep_2026_09_26.md) ============================
+# User target 2026-09-26: >= 40 trades/month COMBINED across the three scripts over 30 months = >= 1200 trades.
+# Enforced at portfolio level (see portfolio selection), not per instrument, because BankNifty cannot reach
+# 20/mo profitably on its own (measured: 20.7/mo only at PF 0.944).
+MIN_TRADES = 90                      # per-config floor, 3/mo; the 40/mo target is applied to the chosen triple
+COMBINED_TRADES_TARGET = 1200
+INSTRUMENTS = {
+    "SILVER":    dict(bars="MCX_SILVER1",   key="SILVER"),
+    "CRUDEOIL":  dict(bars="MCX_CRUDEOIL1", key="CRUDEOIL"),
+    "BANKNIFTY": dict(bars="NSE_BANKNIFTY1", key="BANKNIFTY"),
+}
 SPACE = dict(
-    sha_len1=[5, 10, 15, 20], sha_len2=[5, 10, 15, 20], sha_min_hold=[1, 2, 3, 5, 8],
-    sw_len=[5, 10, 15, 20], sw_buf=[0.0, 0.1, 0.25],
+    sha_len1=[5, 8, 10, 15], sha_len2=[5, 8, 10, 15], sha_min_hold=[1, 2, 3],
+    sw_len=[5, 8, 10, 15], sw_buf=[0.0, 0.1, 0.25],
     min_sl=[1.0, 1.5, 2.0, 2.5, 3.0], max_sl=[3.0, 4.0, 5.0, 6.0, 8.0],
     rr=[1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0],
-    adx_min=[0, 15, 20, 25, 30, 35, 40],
-    pb_atr_mult=[0.25, 0.5, 1.0, 1.5, 3.0],
-    atr_min_pts=[0, 20, 50],
+    adx_min=[0, 12, 15, 18, 20, 25],
+    pb_atr_mult=[0.5, 1.0, 1.5, 2.0, 3.0, 99],
+    atr_min_pts=[0, 20],
     use_vol_filter=[True, False], vol_sma_len=[30, 50, 80],
-    day_loss_limit=[0, 250, 350, 500, 1000],
+    day_loss_limit=[0, 350, 700, 1500],
     sess_id=[0, 1, 2],
 )
 WINDOWS = [(pd.Timestamp(a), pd.Timestamp(b)) for a, b in (
     ("2024-03-25", "2024-08-25"), ("2024-08-25", "2025-01-25"), ("2025-01-25", "2025-06-25"),
     ("2025-06-25", "2025-11-25"), ("2025-11-25", "2026-04-25"), ("2026-04-25", "2026-09-25"))]
-SESSIONS = {0: (["09:15", "23:30"], ["22:45", "23:30"]),
-            1: (["09:15", "23:30"], ["23:25", "23:30"]),
-            2: (["17:00", "23:30"], ["23:25", "23:30"])}
+SESSIONS_MCX = {0: (["09:15", "23:30"], ["22:45", "23:30"]),
+                1: (["09:15", "23:30"], ["23:25", "23:30"]),
+                2: (["17:00", "23:30"], ["23:25", "23:30"])}
+SESSIONS_NSE = {0: (["09:30", "15:00"], ["14:30", "15:00"]),
+                1: (["09:30", "15:00"], ["15:00", "15:30"]),
+                2: (["09:15", "15:00"], ["15:15", "15:30"])}
+SESSIONS = SESSIONS_MCX
 
 
-def draw(rng):
+def draw(rng, sessions=None):
     while True:
         p = {k: rng.choice(v) for k, v in SPACE.items()}
         if p["max_sl"] > p["min_sl"]:
             break
-    p["session"], p["force_flat_window"] = SESSIONS[p["sess_id"]]
+    p["session"], p["force_flat_window"] = (sessions or SESSIONS)[p["sess_id"]]
     return p
 
 
@@ -161,25 +175,41 @@ def evaluate(d, p, s0_cache):
     return out
 
 
-def sweep(n_draws=1500, seed=20260926, out="silver_sweep_results.csv"):
+def sweep(inst="SILVER", n_draws=1000, seed=20260926, out=None):
+    """Randomized search for one instrument. Per-config stats on the six fixed calendar windows."""
     validate_fast()
+    meta = INSTRUMENTS[inst]
+    sessions = SESSIONS_NSE if inst == "BANKNIFTY" else SESSIONS_MCX
+    from trading_agents.core.config import load_config
+    floor = load_config()["strategy"].get(meta["key"], {}).get("atr_min_pts", 0)
     rng = random.Random(seed)
-    d = base("MCX_SILVER1")
+    d = base(meta["bars"])
     s0_cache, rows = {}, []
     for i in range(n_draws):
-        r = evaluate(d, draw(rng), s0_cache)
+        p = draw(rng, sessions)
+        if p["atr_min_pts"] == 20 and floor:
+            p["atr_min_pts"] = floor
+        r = evaluate(d, p, s0_cache)
         if r:
+            r["inst"] = inst
             rows.append(r)
-        if (i + 1) % 100 == 0:
-            print(f"  {i+1}/{n_draws} draws, {len(rows)} usable", flush=True)
+        if (i + 1) % 200 == 0:
+            print(f"  [{inst}] {i+1}/{n_draws} draws, {len(rows)} usable", flush=True)
     R = pd.DataFrame(rows)
+    out = out or f"sweep_{inst}.csv"
     R.to_csv(ROOT / "research_data" / out, index=False)
-    print(f"DONE: {len(R)} configs -> research_data/{out}", flush=True)
+    print(f"DONE {inst}: {len(R)} configs, {int((R.n>=MIN_TRADES).sum())} with >=90 trades "
+          f"-> research_data/{out}", flush=True)
     return R
+
+
+def sweep_all(n_draws=1000):
+    for inst in ("SILVER", "CRUDEOIL", "BANKNIFTY"):
+        sweep(inst, n_draws=n_draws)
 
 
 if __name__ == "__main__":
     if "--sweep" in sys.argv:
-        sweep()
+        sweep_all()
     else:
         validate_fast()
