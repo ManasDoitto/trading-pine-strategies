@@ -81,3 +81,14 @@ Consequences: (1) at 20 consecutive losses and a median trade of -324 pts, the p
 (2) the median trade loses, so the strategy lives entirely on the 3.5x win/loss ratio; (3) shorts out-earned longs by
 21% despite fewer trades in a period when silver rose.
 Dashboard: `strategy_comparison_dashboard.html` (Silver H2H card).
+
+
+---
+## CORRECTION 2 (found 26 Sep while testing BankNifty): bo(3)'s "after costs" number is flattered
+Gross-to-net gap per trade for the silver variants: Silver #1 67.6 pts, bo(5) 58.5, bo(10) 51.4, **bo(3) 10.6**.
+Costing bo(3) removed only 8,912 pts (2.6%) where the others lose 15-22%. Costs change which days the 350-pt daily-loss
+lock fires, so the net run took a different, luckier trade sequence; roughly 40,000 pts of bo(3)'s +329,029 net looks
+like path luck, and my "+90% after costs" and "2025: +60,363" headlines for bo(3) overstate it. The GROSS comparison
+(+337,941 vs +222,240, +52%) is the cleaner one and is unaffected. It also shows this strategy's outcome moves by tens
+of thousands of points from a 0.02% cost change - a robustness warning independent of the ranking.
+The Silver H2H dashboard card has been patched (headline stat replaced, asterisk on the bo(3) net cell).

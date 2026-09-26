@@ -162,7 +162,7 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
     <div class="muted" style="margin-top:6px;">
       <b>Best-3-mo share</b> = share of total profit earned in the 3 best months. <b>Ex best 3</b> = profit from the other 28 months.
       <b>95% CI low</b> = lower bound on total profit from a monthly bootstrap; <b>P(&le;0)</b> = share of resamples where the total is zero or negative.
-      <b>Options</b> = ATM option bought at each signal and sold at the exit, Black-76, IV 28%, spread per side.
+      <b>*bo(3) after-costs:</b> costing it removed only 10.6 pts/trade versus 51&ndash;68 for the others, so the daily-loss lock changed which trades it took; ~40,000 of that figure is likely path luck. Compare on gross. <b>Options</b> = ATM option bought at each signal and sold at the exit, Black-76, IV 28%, spread per side.
     </div>
 
     <div class="grid grid-2" style="margin-top:22px;">
@@ -899,7 +899,7 @@ renderCharts(tabKeys[0]);
 
   document.getElementById("h2hStats").innerHTML = [
     ["+"+Math.round((b3.g/inc.g-1)*100)+"%", "bo(3) vs Silver #1, gross points ("+b3.g.toLocaleString()+" vs "+inc.g.toLocaleString()+")"],
-    ["+"+Math.round((b3.c/inc.c-1)*100)+"%", "bo(3) vs Silver #1, after 0.02%/side costs"],
+    ["10.6 vs 51–68", "cost per trade (pts), bo(3) vs the other silver variants — bo(3)’s net figure looks path-flattered (~40k pts); rely on the gross comparison"],
     [(b3.top3)+"% vs "+(inc.top3)+"%", "profit from best 3 months: bo(3) vs Silver #1"],
     ["p = 0.150", "paired monthly sign test, bo(3) better in 20 of 31 months (not conventionally significant)"]
   ].map(x=>`<div class="stat"><div class="v" style="font-size:20px;">${x[0]}</div><div class="l">${x[1]}</div></div>`).join("");
@@ -910,7 +910,7 @@ renderCharts(tabKeys[0]);
   H.forEach(r=>{
     const hi = r.k==="bo3" ? "background:rgba(34,197,94,0.08);" : (r.k==="inc" ? "background:rgba(148,163,184,0.10);" : "");
     th += `<tr style="${hi}"><td style="text-align:left;font-weight:${(r.k==="bo3"||r.k==="inc")?600:400};">${r.n}</td>
-      <td>${r.t.toLocaleString()}</td><td>${fmtPts(r.g)}</td><td>${fmtPts(r.c)}</td>
+      <td>${r.t.toLocaleString()}</td><td>${fmtPts(r.g)}</td><td>${fmtPts(r.c)}${r.k==="bo3"?"*":""}</td>
       <td><span style="color:${pfc(r.pf)};font-weight:600;">${r.pf.toFixed(3)}</span></td>
       <td>${r.dg.toLocaleString()} / ${r.dn.toLocaleString()}</td><td>${r.top3}%</td><td>${fmtPts(r.ex)}</td>
       <td style="color:${r.lo>0?'#4ade80':'#f87171'};">${fmtPts(r.lo)}</td><td>${r.pl.toFixed(1)}%</td>
