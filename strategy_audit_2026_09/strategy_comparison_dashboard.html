@@ -107,6 +107,7 @@
   <a href="#hero" data-jump="hero">Overview</a>
   <a href="#instruments" data-jump="instruments">Instruments</a>
   <a href="#cross" data-jump="cross">Cross-Instrument</a>
+  <a href="#silverh2h" data-jump="silverh2h">Silver H2H (26 Sep)</a>
   <a href="#families" data-jump="families">Family Rankings</a>
   <a href="#calculator" data-jump="calculator">Option Calculator</a>
   <a href="#timeline" data-jump="timeline">Evolution</a>
@@ -126,7 +127,7 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
 <div class="wrap">
 
   <div class="hero" id="hero">
-    <div class="muted">github.com/ManasDoitto/trading-pine-strategies &middot; updated 14 Sep 2026</div>
+    <div class="muted">github.com/ManasDoitto/trading-pine-strategies &middot; updated 26 Sep 2026 (silver head-to-head added)</div>
     <h1 style="font-size:26px;margin-top:6px;">Strategy Comparison Dashboard</h1>
     <p class="muted" style="max-width:720px;">Every strategy family tested this project across CrudeOil, Gold, Silver, BankNifty and Nifty on MCX/NSE, 3m-5m, tiled non-overlapping walk-forward windows, points net of costs. Losing strategies are shown, not hidden &mdash; they're most of what was tried.</p>
     <div class="hero-stats" id="hero-stats"></div>
@@ -142,6 +143,76 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
   <h2>Per-Instrument Deep Dive</h2>
   <div class="tabs" id="tabs"></div>
   <div id="panels"></div>
+  </div>
+
+
+  <div class="card" id="silverh2h" style="margin-top:28px;border-color:#94a3b8;">
+    <h2>Silver head-to-head &mdash; updated 26 Sep 2026</h2>
+    <div class="note info">
+      <b>One basis for everything here:</b> MCX:SILVER1! 5m, the same bars, 30 months (25 Mar 2024 &ndash; 24 Sep 2026), 1 lot (30 kg, &#8377;30 per point),
+      results in <b>points</b>. &ldquo;Silver #1&rdquo; is <code>working_strategies/Silver/1_v4.0_wideATR_plus_fixed350</code>. &ldquo;bo(N)&rdquo; keeps Silver #1's stops, target,
+      EMA filter and daily limit but enters on an N-bar Donchian breakout. Figures shown gross (no costs) and net of 0.02%/side.
+      This card supersedes the older silver rows for comparison purposes.
+    </div>
+
+    <div class="grid grid-4" id="h2hStats" style="margin:14px 0;"></div>
+
+    <h3>All eight silver variants</h3>
+    <div class="table-wrap"><table id="h2hTable"></table></div>
+    <div class="muted" style="margin-top:6px;">
+      <b>Best-3-mo share</b> = share of total profit earned in the 3 best months. <b>Ex best 3</b> = profit from the other 28 months.
+      <b>95% CI low</b> = lower bound on total profit from a monthly bootstrap; <b>P(&le;0)</b> = share of resamples where the total is zero or negative.
+      <b>Options</b> = ATM option bought at each signal and sold at the exit, Black-76, IV 28%, spread per side.
+    </div>
+
+    <div class="grid grid-2" style="margin-top:22px;">
+      <div><h3>Profit by calendar year, net of costs</h3><div class="chart-box" style="height:280px;"><canvas id="h2hYear"></canvas></div>
+        <div class="muted">Silver #1 earned nothing in 2025; the breakout versions earned ~+57,000&ndash;60,000 in a year with no big move.</div></div>
+      <div><h3>Cumulative profit across TradingView replay windows (gross)</h3><div class="chart-box" style="height:280px;"><canvas id="h2hTv"></canvas></div>
+        <div class="muted">13 chained ~81-day windows. All three are driven by the Dec 2025 &ndash; Mar 2026 window (W10).</div></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:22px;">
+      <div><h3>As bought options (ATM, flat IV 28%)</h3><div class="chart-box" style="height:280px;"><canvas id="h2hOpt"></canvas></div>
+        <div class="muted">Breakout versions keep more of their points than Silver #1 at both spreads.</div></div>
+      <div><h3>Profit concentration: best 3 months vs the rest</h3><div class="chart-box" style="height:280px;"><canvas id="h2hConc"></canvas></div>
+        <div class="muted">Silver #1: 84% of profit in 3 months. bo(3): 66%.</div></div>
+    </div>
+
+    <h3 style="margin-top:26px;">Anatomy of bo(3) vs Silver #1 (30 months, gross)</h3>
+    <div class="table-wrap"><table id="h2hAnat"></table></div>
+    <div class="note" style="margin-top:12px;">
+      <b>What bo(3) actually is.</b> It is described as &ldquo;Silver #1 plus a breakout entry&rdquo;, but <b>757 of its 836 trades (90.5%) are triggered by the breakout</b>;
+      only 39 are pure SHA flips and 40 coincide with a flip. Run with <i>no SHA flip at all</i>, a 3-bar breakout gives +329,025 gross vs +337,941 with it, and identical drawdown.
+      So it is really a <b>3-bar breakout strategy with EMA9/22 trend filter</b> that borrows Silver #1's stops and risk rules; the SHA flip contributes ~2.6%.
+    </div>
+
+    <h3 style="margin-top:22px;">What is and is not established</h3>
+    <div class="grid grid-2">
+      <div class="card" style="background:var(--surface2);"><b style="color:#4ade80;">Established</b>
+        <ul style="margin:8px 0 0 18px;padding:0;font-size:13px;color:var(--text-dim);line-height:1.6;">
+          <li>bo(3) leads Silver #1 on every basis measured except 2024 and no-cost drawdown.</li>
+          <li>Harness and TradingView agree (0.03% on drawdown over a 72-trade overlap).</li>
+          <li>All three lookbacks (3/5/10) beat #1 on the harness &mdash; a plateau, not one lucky setting.</li>
+          <li>Both #1 and the breakouts have a total distinguishable from zero.</li>
+        </ul></div>
+      <div class="card" style="background:var(--surface2);"><b style="color:#f59e0b;">Not established</b>
+        <ul style="margin:8px 0 0 18px;padding:0;font-size:13px;color:var(--text-dim);line-height:1.6;">
+          <li>That bo(3) beats #1 <i>out of sample</i>: paired monthly sign test p = 0.150; 95% CI on the difference spans zero.</li>
+          <li>Both strategies were tuned on the same 30 months; one silver move (Jan&ndash;Mar 2026) dominates all of them.</li>
+          <li>Drawdown: 71,324 gross vs 33,693 for #1, but 43,748 vs 38,708 after costs &mdash; treat as a range.</li>
+          <li>bo(5) loses to #1 on TradingView&rsquo;s replay; only bo(3) holds up there.</li>
+        </ul></div>
+    </div>
+    <div class="note info" style="margin-top:14px;">
+      <b>Forward test:</b> SILVER v4.1 <b>breakout(3)</b> live on MCX:SILVER1! 5m from <b>2026-09-27 00:00 IST</b>. Judge after &ge;60 forward trades:
+      KEEP if PF &ge; 1.20 and drawdown &lt; 75,000 pts; DROP if PF &lt; 0.90 or drawdown &gt; 75,000; in between = inconclusive. Promote only if it also out-earns Silver #1 over the same bars.
+      Rules: <code>pre_registration_silver_bo3_forwardtest_2026_09_26.md</code>. Until then Silver #1 is the proven-in-backtest incumbent; neither has out-of-sample evidence.
+    </div>
+    <div class="note" style="margin-top:10px;">
+      <b>Corrections made 26 Sep:</b> an earlier verdict said the breakout keeps only 36% of its points as options versus 47% for #1 &mdash; that 36% was v5.1&rsquo;s figure, not v4.1&rsquo;s.
+      Measured properly the breakouts translate <i>better</i> than #1. The &ldquo;2.1&times; drawdown&rdquo; is a no-cost figure; after costs it is +13%.
+      Sources: <code>silver_definitive_comparison_2026_09_26.md</code>, <code>breakout_three_variants_verdict_2026_09_26.md</code>, <code>tv_replay_both_variants_2026_09_26.md</code>.
+    </div>
   </div>
 
   <div class="card" id="cross" style="margin-top:28px;">
@@ -232,7 +303,7 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
     <code>strategy_audit_2026_09/best_2yr_analysis.md</code>,
     <code>strategy_audit_2026_09/deep_multi_asset_sweep_2026_09_13.md</code>,
     <code>strategy_audit_2026_09/gold_silver_recalibration_results.md</code>,
-    <code>strategy_audit_2026_09/silver_daily_loss_limit_results.md</code>, plus this session's own raw
+    <code>strategy_audit_2026_09/silver_daily_loss_limit_results.md</code>, <code>strategy_audit_2026_09/silver_definitive_comparison_2026_09_26.md</code>, plus this session's own raw
     walk-forward data files in <code>strategy_audit_2026_09/</code>. Some strategy families in the repo (Master
     Adaptive drafts, older SMC v1.0, several one-off BankNifty concepts v3/v6-v9) are referenced by verdict only
     where full per-window figures weren't re-verified in this pass &mdash; marked "not fully re-audited" rather
@@ -301,6 +372,19 @@ const INSTRUMENTS = {
   silver: {
     label: "Silver", symbol: "MCX:SILVER1!", pv: 30, tf: "5m", months: 32.3, windows: 12, accent: "#94a3b8",
     strategies: [
+      {name:"3-bar breakout + EMA9/22 trend, Silver #1 stops (bo(3)) [26 Sep]", trades:839, tpm:28.0, win:31.5, pf:1.53, net:329029, dd:43748, sharpe:null, posw:"11/13 (TV replay)",
+       windowNet:[],
+       params:{"Entry":"Close breaks the prior 3-bar high (long) / low (short); SHA flip also allowed but triggers only 79 of 836 trades","Trend filter":"EMA9 > EMA22 (long) / < (short); no EMA200","Stop":"10-bar swing +0.1xATR, floored at 2.5xATR, skip if >5xATR","Target":"3R fixed, no trailing","Risk mgmt":"Hard daily loss limit 350pts","Session":"0915-2330 IST, holds overnight"},
+       status:"ok", verdict:"Measured 26 Sep 2026 on one harness, 30 months, NET of 0.02%/side. Beats Silver #1 on harness gross (+337,941 vs +222,240), net (+329,029 vs +173,363), TradingView replay (+341,764 vs +266,172, ahead in 9 of 13 windows), option translation (+181,947 vs +104,882 at 1% spread) and 2025 alone (+60,363 vs -102). Profit ex best-3-months +113,719 vs +34,726. NOT proven: paired monthly sign test p=0.150; both tuned on the same 30 months; Jan-Mar 2026 dominates. FORWARD TEST RUNNING from 2026-09-27.", src:"silver_definitive_comparison_2026_09_26.md"},
+      {name:"5-bar breakout + Silver #1 stops (bo(5)) [26 Sep]", trades:838, tpm:27.9, win:30.1, pf:1.41, net:258250, dd:37432, sharpe:null, posw:"10/13 (TV replay)",
+       windowNet:[], params:{"Entry":"Prior 5-bar Donchian break, else as bo(3)"}, status:"warn",
+       verdict:"Same idea, 5-bar lookback. Loses to Silver #1 on TradingView's replay engine (PF 1.369 vs 1.548) and 60% of its edge over #1 comes from one month - the weaker of the three lookbacks.", src:"breakout_three_variants_verdict_2026_09_26.md"},
+      {name:"10-bar breakout + Silver #1 stops (bo(10)) [26 Sep]", trades:849, tpm:28.3, win:30.4, pf:1.43, net:273528, dd:37933, sharpe:null, posw:"-",
+       windowNet:[], params:{"Entry":"Prior 10-bar Donchian break, else as bo(3)"}, status:"warn",
+       verdict:"Same idea, 10-bar lookback. Paired monthly sign test p=0.720 vs Silver #1 - indistinguishable.", src:"breakout_three_variants_verdict_2026_09_26.md"},
+      {name:"Silver #1 re-measured, same harness [26 Sep]", trades:723, tpm:24.1, win:30.3, pf:1.37, net:173363, dd:38708, sharpe:null, posw:"11/13 (TV replay)",
+       windowNet:[], params:{"Entry":"SHA flip + EMA9>EMA22","Stop":"min 2.5xATR, max 5.0xATR","Target":"3R","Risk mgmt":"350pt daily limit"}, status:"ok",
+       verdict:"Re-measured on the same bars/window/costs as the breakout rows above so they are comparable. 84% of its profit comes from its best 3 months; earned -102 pts in 2025 after costs. Its own edge is distinguishable from zero (lower 95% bound +25,064).", src:"silver_definitive_comparison_2026_09_26.md"},
       {name:"v4.0 wide-ATR + fixed 350pt daily loss limit", trades:783, tpm:24.2, win:29.6, pf:1.35, net:160845, dd:24551, sharpe:null, posw:"-",
        windowNet:[-2924,-482,6099,10743,91,5320,-1542,-15916,11278,137335,126,10718],
        params:{"Entry":"SHA colour flip (v4.0 logic)","Stop":"min 2.5xATR, max 5.0xATR (widened from crude's 1.5x/3.0x)","Target":"3R","Risk mgmt":"Hard daily loss limit: 350pts, force-flat + lock out for the day on breach"},
@@ -437,7 +521,7 @@ function heatColor(v, maxAbs){
     <div class="stat"><div class="v">${total}</div><div class="l">Strategy rows in this dashboard</div></div>
     <div class="stat"><div class="v" style="color:#4ade80">${profitable}</div><div class="l">Genuinely profitable (PF&gt;1.15, real sample)</div></div>
     <div class="stat"><div class="v">BankNifty v0.4</div><div class="l">Best statistically-weighted pick (PF 1.33)</div></div>
-    <div class="stat"><div class="v">Silver+limit</div><div class="l">Best PF overall this exercise (PF 1.35)</div></div>
+    <div class="stat"><div class="v">Silver 3-bar breakout</div><div class="l">Leading silver candidate, forward test live from 27 Sep (PF 1.53 net)</div></div>
   `;
 })();
 
@@ -794,6 +878,96 @@ renderCharts(tabKeys[0]);
   costSlider.addEventListener("input", update);
   lotsInput.addEventListener("input", update);
   populateStrategies();
+})();
+</script>
+
+<script>
+/* ============================== SILVER HEAD-TO-HEAD (26 Sep 2026) ============================== */
+(function(){
+  const H = [
+    {n:"Silver #1 (SHA flip)",        t:747,  g:222240, c:173363, pf:1.503, dg:33693, dn:38708, top3:84, ex:34726,  lo:25064,  pl:1.1, o1:104882, o2:46014,  k:"inc"},
+    {n:"Silver #2 (no breaker)",      t:1014, g:198886, c:137427, pf:1.277, dg:79621, dn:90030, top3:88, ex:24605,  lo:-21984, pl:4.0, o1:82050,  o2:-1210,  k:"old"},
+    {n:"Silver #3 (vanilla)",         t:984,  g:87282,  c:27276,  pf:1.173, dg:43067, dn:45805, top3:86, ex:12136,  lo:-1544,  pl:2.8, o1:-10872, o2:-91772, k:"old"},
+    {n:"bo(3)  3-bar breakout",       t:836,  g:337941, c:329029, pf:1.563, dg:71324, dn:43748, top3:66, ex:113719, lo:111678, pl:0.0, o1:181947, o2:114618, k:"bo3"},
+    {n:"bo(5)  5-bar breakout",       t:825,  g:307265, c:258250, pf:1.519, dg:30646, dn:37432, top3:64, ex:110976, lo:100158, pl:0.0, o1:169554, o2:104628, k:"bo5"},
+    {n:"bo(10) 10-bar breakout",      t:840,  g:317138, c:273528, pf:1.515, dg:37207, dn:37933, top3:74, ex:83693,  lo:85099,  pl:0.0, o1:183489, o2:115959, k:"bo10"},
+    {n:"v5.0 SHA-ADX hybrid",         t:112,  g:39577,  c:32739,  pf:1.968, dg:6959,  dn:7670,  top3:90, ex:3877,   lo:354,    pl:2.4, o1:15147,  o2:5255,   k:"v5"},
+    {n:"v5.1 v5.0 + breakout(5)",     t:202,  g:60183,  c:47604,  pf:1.874, dg:8847,  dn:9790,  top3:85, ex:9322,   lo:6918,   pl:0.9, o1:19577,  o2:2091,   k:"v5"}
+  ];
+  const COL = {inc:"#94a3b8", bo3:"#22c55e", bo5:"#3b82f6", bo10:"#a78bfa"};
+  const inc = H[0], b3 = H[3];
+
+  document.getElementById("h2hStats").innerHTML = [
+    ["+"+Math.round((b3.g/inc.g-1)*100)+"%", "bo(3) vs Silver #1, gross points ("+b3.g.toLocaleString()+" vs "+inc.g.toLocaleString()+")"],
+    ["+"+Math.round((b3.c/inc.c-1)*100)+"%", "bo(3) vs Silver #1, after 0.02%/side costs"],
+    [(b3.top3)+"% vs "+(inc.top3)+"%", "profit from best 3 months: bo(3) vs Silver #1"],
+    ["p = 0.150", "paired monthly sign test, bo(3) better in 20 of 31 months (not conventionally significant)"]
+  ].map(x=>`<div class="stat"><div class="v" style="font-size:20px;">${x[0]}</div><div class="l">${x[1]}</div></div>`).join("");
+
+  const pfc = v => v>=1.5? "#4ade80" : v>=1.3? "#a3e635" : v>=1.15? "#fbbf24" : "#f87171";
+  let th = `<thead><tr><th style="text-align:left;">Strategy</th><th>Trades</th><th>Gross pts</th><th>After costs</th><th>PF</th>
+    <th>Max DD gross / net</th><th>Best-3-mo share</th><th>Ex best 3</th><th>95% CI low</th><th>P(&le;0)</th><th>Options 1%</th><th>Options 2%</th></tr></thead><tbody>`;
+  H.forEach(r=>{
+    const hi = r.k==="bo3" ? "background:rgba(34,197,94,0.08);" : (r.k==="inc" ? "background:rgba(148,163,184,0.10);" : "");
+    th += `<tr style="${hi}"><td style="text-align:left;font-weight:${(r.k==="bo3"||r.k==="inc")?600:400};">${r.n}</td>
+      <td>${r.t.toLocaleString()}</td><td>${fmtPts(r.g)}</td><td>${fmtPts(r.c)}</td>
+      <td><span style="color:${pfc(r.pf)};font-weight:600;">${r.pf.toFixed(3)}</span></td>
+      <td>${r.dg.toLocaleString()} / ${r.dn.toLocaleString()}</td><td>${r.top3}%</td><td>${fmtPts(r.ex)}</td>
+      <td style="color:${r.lo>0?'#4ade80':'#f87171'};">${fmtPts(r.lo)}</td><td>${r.pl.toFixed(1)}%</td>
+      <td>${fmtPts(r.o1)}</td><td style="color:${r.o2>0?'inherit':'#f87171'};">${fmtPts(r.o2)}</td></tr>`;
+  });
+  th += `<tr><td colspan="12" class="muted" style="text-align:left;padding-top:10px;">TradingView tiled replay, gross, 13 windows: Silver #1 PF 1.548 / +266,172 / worst-window DD 33,706 / 11 of 13 windows profitable &middot;
+     bo(3) PF 1.487 / +341,764 / 71,329 / 11 of 13 (ahead of #1 in 9 of 13) &middot; bo(5) PF 1.369 / +261,439 / 42,612 / 10 of 13 (ahead in 7 of 13).</td></tr></tbody>`;
+  document.getElementById("h2hTable").innerHTML = th;
+
+  const grid = {color:"rgba(148,163,184,0.12)"}, tick = {color:"#94a3b8"};
+  const base = {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:"#cbd5e1"}}},
+                scales:{x:{ticks:tick,grid:grid}, y:{ticks:tick,grid:grid}}};
+
+  new Chart(document.getElementById("h2hYear"), {type:"bar", data:{
+    labels:["2024 (from 25 Mar)","2025","2026 (Jan\u2013Sep)"],
+    datasets:[{label:"Silver #1",data:[16073,-102,157392],backgroundColor:COL.inc},
+              {label:"bo(3)",data:[13609,60363,255058],backgroundColor:COL.bo3},
+              {label:"bo(5)",data:[5059,56878,196312],backgroundColor:COL.bo5}]}, options:base});
+
+  const W = ["W1","W2","W3","W4","W5","W6","W7","W8","W9","W10","W11","W12","W13"];
+  const TV = {inc:[-4949,4378,8833,13407,1191,10151,-292,5034,1385,164791,1654,55615,4974],
+              bo5:[-2319,4388,4633,4787,-2870,7740,6062,10142,53440,182856,-15556,220,7916],
+              bo3:[-5866,5367,5630,6092,-6010,12742,4723,12158,33526,172881,15641,74665,10215]};
+  const cum = a => a.reduce((o,v,i)=>{o.push((o[i-1]||0)+v);return o;},[]);
+  new Chart(document.getElementById("h2hTv"), {type:"line", data:{labels:W,
+    datasets:[{label:"Silver #1",data:cum(TV.inc),borderColor:COL.inc,backgroundColor:COL.inc,tension:.15},
+              {label:"bo(3)",data:cum(TV.bo3),borderColor:COL.bo3,backgroundColor:COL.bo3,tension:.15},
+              {label:"bo(5)",data:cum(TV.bo5),borderColor:COL.bo5,backgroundColor:COL.bo5,tension:.15}]}, options:base});
+
+  const O = [H[0],H[3],H[4],H[5]];
+  new Chart(document.getElementById("h2hOpt"), {type:"bar", data:{labels:O.map(r=>r.n.split("  ")[0]),
+    datasets:[{label:"Futures, gross",data:O.map(r=>r.g),backgroundColor:"#475569"},
+              {label:"Option, 1% spread",data:O.map(r=>r.o1),backgroundColor:"#22c55e"},
+              {label:"Option, 2% spread",data:O.map(r=>r.o2),backgroundColor:"#f59e0b"}]}, options:base});
+
+  new Chart(document.getElementById("h2hConc"), {type:"bar", data:{labels:[H[0],H[3],H[4],H[5]].map(r=>r.n.split("  ")[0]),
+    datasets:[{label:"Best 3 months",data:[H[0],H[3],H[4],H[5]].map(r=>r.g-r.ex),backgroundColor:"#ef4444"},
+              {label:"Other 28 months",data:[H[0],H[3],H[4],H[5]].map(r=>r.ex),backgroundColor:"#22c55e"}]},
+    options:Object.assign({}, base, {scales:{x:{stacked:true,ticks:tick,grid:grid}, y:{stacked:true,ticks:tick,grid:grid}}})});
+
+  const A = [
+    ["Trades (per month)",        "747 (24.9)",              "836 (27.9)"],
+    ["Win rate",                  "30.5%",                   "30.9%"],
+    ["Average win / average loss","+2,912 / \u2212851 (3.42\u00d7)", "+3,637 / \u22121,039 (3.50\u00d7)"],
+    ["Average trade / median trade","+298 / \u2212290 pts",  "+404 / \u2212324 pts"],
+    ["Largest win / largest loss","+43,422 / \u22129,542",   "+36,806 / \u221216,490"],
+    ["Longest losing streak",     "16 trades",               "20 trades"],
+    ["Average hold (median)",     "10.9 h (3.1 h)",          "15.0 h (4.0 h)"],
+    ["Average stop distance",     "833 pts (0.58% of price) \u2248 \u20b924,990 per lot", "1,044 pts (0.72% of price) \u2248 \u20b931,320 per lot"],
+    ["Exits",                     "518 stop / 229 target",   "578 stop / 258 target"],
+    ["Long / short net",          "+117,307 (376) / +104,933 (371)", "+152,897 (467) / +185,045 (369)"],
+    ["Entry trigger",             "SHA flip 100%",           "breakout 757 \u00b7 flip 39 \u00b7 both 40"],
+    ["Days with an entry (trades/day)", "481 (1.55)",        "417 (2.00)"],
+    ["Best / worst entry hour (IST)", "22:00 +57,283 / 18:00 \u221215,579", "10:00 +80,175 / 16:00 \u221211,501"]
+  ];
+  document.getElementById("h2hAnat").innerHTML = `<thead><tr><th style="text-align:left;">Measure</th><th>Silver #1</th><th>bo(3)</th></tr></thead><tbody>` +
+    A.map(r=>`<tr><td style="text-align:left;">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("") + "</tbody>";
 })();
 </script>
 </body>

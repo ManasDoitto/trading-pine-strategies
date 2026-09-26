@@ -53,3 +53,31 @@ big silver run - the single most useful fact in this table.
 On every basis measured - harness gross, harness net, TradingView replay (bo(3)), options at 1% and 2% spread,
 2025 alone, profit excluding the best 3 months, concentration, and lower confidence bound - bo(3) is ahead of
 Silver #1. It is behind only in 2024 and on gross-of-costs drawdown. It is worth forward testing, and is now running.
+
+---
+## Anatomy of bo(3) vs Silver #1 (30 months, gross points, 1 lot) — and a description correction
+| measure | Silver #1 | bo(3) |
+|---|---|---|
+| trades (per month) | 747 (24.9) | 836 (27.9) |
+| win rate | 30.5% | 30.9% |
+| avg win / avg loss | +2,912 / -851 (3.42x) | +3,637 / -1,039 (3.50x) |
+| avg trade / median trade | +298 / -290 | +404 / -324 |
+| largest win / largest loss | +43,422 / -9,542 | +36,806 / -16,490 |
+| longest losing streak | 16 | 20 |
+| avg hold (median) | 10.9h (3.1h) | 15.0h (4.0h) |
+| avg stop distance | 833 pts (0.58%) ~ Rs 24,990/lot | 1,044 pts (0.72%) ~ Rs 31,320/lot |
+| exits | 518 stop / 229 target | 578 stop / 258 target |
+| long / short net | +117,307 (376) / +104,933 (371) | +152,897 (467) / +185,045 (369) |
+| entry trigger | SHA flip 100% | breakout 757, flip 39, both 40 |
+| days with an entry | 481 (1.55/day) | 417 (2.00/day) |
+
+**Description correction.** bo(3) has been called "Silver #1 plus an extra breakout entry". That understates it:
+**90.5% of its trades (757 of 836) are triggered by the breakout**, and running a 3-bar breakout with NO SHA flip at all
+gives +329,025 gross (PF 1.546, 855 trades) versus +337,941 with it, with identical drawdown (71,324). The flip adds
+~2.6%. bo(3) is effectively a **3-bar Donchian breakout with an EMA9/22 trend filter** that borrows Silver #1's stop,
+target and daily-limit rules. The comparison is therefore "breakout trigger vs SHA-flip trigger, same exits" — which is
+also why breakouts at lookbacks 3, 5 and 10 all land in the same place: it is the breakout family, not a lucky setting.
+Consequences: (1) at 20 consecutive losses and a median trade of -324 pts, the psychological load is higher than #1's;
+(2) the median trade loses, so the strategy lives entirely on the 3.5x win/loss ratio; (3) shorts out-earned longs by
+21% despite fewer trades in a period when silver rose.
+Dashboard: `strategy_comparison_dashboard.html` (Silver H2H card).
