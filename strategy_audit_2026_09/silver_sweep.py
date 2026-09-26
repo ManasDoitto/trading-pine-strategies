@@ -77,8 +77,11 @@ def frame(d, p):
     f["near_ema9_s"] = f["close"] >= f["e9"] - p["pb_atr_mult"] * atr
     vol = (atr > atr.rolling(p["vol_sma_len"]).mean()) if p["use_vol_filter"] else True
     cap = p["max_sl"] * atr
-    tl = (f["e9"] > f["e22"]) & (f["close"] > f["e200"])
-    ts = (f["e9"] < f["e22"]) & (f["close"] < f["e200"])
+    if p.get("use200", True):
+        tl = (f["e9"] > f["e22"]) & (f["close"] > f["e200"])
+        ts = (f["e9"] < f["e22"]) & (f["close"] < f["e200"])
+    else:
+        tl, ts = (f["e9"] > f["e22"]), (f["e9"] < f["e22"])
     g = f["in_sess"] & f["sha_stable"] & f["atr_ok"] & vol & f["adx_ok"] & ~f["in_flat_window"]
     f["ok_l"] = g & fu & tl & (f["risk_l"] <= cap) & f["near_ema9_l"]
     f["ok_s"] = g & fd & ts & (f["risk_s"] <= cap) & f["near_ema9_s"] & ~f["ok_l"]
@@ -87,7 +90,7 @@ def frame(d, p):
 
 def validate_fast(bars_name="MCX_SILVER1"):
     """Assert the fast frame reproduces v50_frame's entry signals exactly on the shipped config."""
-    p = dict(v50.V50_INSTRUMENT_PARAMS["SILVER"]); p["atr_min_pts"] = 0
+    p = dict(v50.V50_INSTRUMENT_PARAMS["SILVER"]); p["atr_min_pts"] = 0; p["use200"] = True
     ref = v50.v50_frame(rs.load(bars_name), p)
     cap = p["max_sl"] * ref["atr"]
     tl = (ref["e9"] > ref["e22"]) & (ref["close"] > ref["e200"])
@@ -126,6 +129,7 @@ SPACE = dict(
     use_vol_filter=[True, False], vol_sma_len=[30, 50, 80],
     day_loss_limit=[0, 350, 700, 1500],
     sess_id=[0, 1, 2],
+    use200=[True, False],
 )
 WINDOWS = [(pd.Timestamp(a), pd.Timestamp(b)) for a, b in (
     ("2024-03-25", "2024-08-25"), ("2024-08-25", "2025-01-25"), ("2025-01-25", "2025-06-25"),

@@ -117,3 +117,45 @@ the five out-of-sample results, compare against the shipped configs and the medi
 
 Pass criteria unchanged, plus: **7. combined >= 40 trades/month.** A config that only reaches 40/mo by going net
 negative (as BankNifty does) is reported as failing, not as meeting the target.
+
+
+---
+## AMENDMENT 3 (written 2026-09-26, BEFORE any sweep result was read; the run was stopped again)
+
+The user reframed the objective: "think from net points earned perspective, if some strategy is not getting as many
+points earned over the periods like the best strategies we already have in repo, then no fruitful result will come."
+Correct, and it invalidates PF as the selection criterion - PF rewards rare, small, high-quality trades, which is
+exactly how v5.0 arrived at 112 trades and +39,577 points.
+
+## The bar, re-measured on THIS harness (30 months, gross points, qty 1) so it is comparable
+| strategy | trades | /mo | PF | **net pts** | maxDD |
+|---|---|---|---|---|---|
+| **SILVER working_strategies #1: v4.0 wide-ATR + fixed 350 limit** | 747 | 24.9 | 1.503 | **+222,240.5** | 33,692.8 |
+| SILVER #2: v4.0 wide-ATR, no breaker | 1,014 | 33.8 | 1.277 | +198,885.8 | 79,620.7 |
+| SILVER #3: v4.0 vanilla | 984 | 32.8 | 1.173 | +87,282.3 | 43,067.4 |
+| SILVER #1 params on SILVERM1 | 732 | 24.4 | 1.278 | +126,575.1 | 82,673.7 |
+| **CRUDE working_strategies #1: v4.0 SHA flip RR4.0** | 785 | 26.2 | 1.263 | **+5,614.5** | 2,175.6 |
+| CRUDE v4.0 RR3.0 | 856 | 28.5 | 1.205 | +4,480.7 | 2,001.4 |
+| *silver v5.0 shipped* | 112 | 3.7 | 1.968 | *+39,577.2* | 6,958.6 |
+| *silver v5.0, pullback+ADX off* | 834 | 27.8 | 1.345 | *+111,455.9* | 23,741.4 |
+| *crude v5.0 shipped* | 155 | 5.2 | 1.575 | *+1,347.0* | 2,175.6 |
+
+**v5.0 is not competitive on points and never was.** Silver v5.0 as shipped earns **18%** of what the repo's existing
+silver #1 earns; even with its two starving filters removed it reaches 50%. Crude v5.0 earns **24%** of crude #1.
+The existing v4.0 strategies also already satisfy the frequency target on their own: silver 24.9/mo + crude 26.2/mo
++ BankNifty v0.4 ~2.5/mo = **~54 trades/month combined**, comfortably past the 40/mo sweet spot.
+
+So the honest statement of where this stands: **the thing to beat is +222,240 pts (silver) and +5,614 pts (crude) at
+~25 trades/month each, not v5.0's numbers.** v5.0's high PF was never evidence of a better strategy.
+
+## Design changes
+1. **Selection criterion is now net points**, not PF, evaluated walk-forward (select on windows 1..i-1 by cumulative
+   net points, score on window i), subject to the frequency floor. PF, drawdown and month-concentration are still
+   reported and still gate, but they no longer choose.
+2. **`use200` is added to the search space.** `signals_v50.v50_frame` hardcodes `close > e200` into trend_l, so every
+   configuration reachable by the previous sweep carried the EMA200 filter. The repo's point-earning v4.0 strategies do
+   NOT use it. With it off and v4.0-like parameters the sweep region reaches n=978 (32.6/mo), PF 1.248, +102,234 pts -
+   i.e. the winning region was unreachable before this fix. (Pine note: the rewritten .pine files hardcode EMA200 ON to
+   match the Python, so they inherit the same restriction.)
+3. **New pass criterion 8: the pick must beat its instrument's working_strategies #1 on net points** over the same
+   window, on this harness, or it is reported as not worth switching to.
