@@ -62,3 +62,61 @@ decay plus spread over the holding period. Points-per-trade, not PF, is the scre
 Silver: viable as bought options at ~47% of the futures points, if spreads stay near 1%/side and premium outlay is
 affordable. Crude: not viable - the edge is 31x smaller than the premium. This is the first result in this session
 that changes what should actually be traded, and it did not come from tuning.
+
+
+---
+# SILVERM (added 2026-09-26) - the contract config.toml actually trades
+
+Measured from the live Dhan chain (2026-09-26, expiry 2026-10-27, underlying 231,793, strike step 1,000):
+**CE IV 31.4% median, PE IV ~21.5% - a ~10-point skew.** Calls are expensive, puts are cheap.
+
+**SILVERM option liquidity is far better than SILVER's**, which changes the practical picture more than the pricing does:
+**16 of the nearest 24 strikes carry CE open interest** (SILVER: 4 of 12), with real volume - 10,133 contracts at
+235000, 1,838 at 236000, 1,616 at 230000. On SILVER the near-ATM book was 14 / 162 / 28 / 1. If these are to be traded
+as options at all, SILVERM is the tradeable book.
+
+## Futures baseline (same v4.0 wide-ATR + 350 params, on SILVERM's own bars)
+732 trades (24.4/mo), PF 1.278, **+126,575.1 pts**, maxDD 82,673.7, win 31.4%, hold 11.5h, 401 long / 331 short.
+Lower than SILVER1's +222,240 on the same rules - already known and recorded in `[[trading-agents-build]]`.
+
+## Option results, with the measured skew
+| spread/side | PF | net (pts) | maxDD | avg premium |
+|---|---|---|---|---|
+| 0% | 1.486 | +108,890.5 | 23,870.6 | 3,808 |
+| 0.5% | 1.332 | +80,470.7 | 27,929.9 | 3,808 |
+| **1%** | **1.200** | **+52,050.9** | 32,797.3 | 3,808 |
+| 2% | 0.984 | **-4,788.7** | 45,482.6 | 3,808 |
+
+At 1%/side it keeps **41% of the futures points** (+52,051 of +126,575) at PF 1.200. At 2% it is a **loser**.
+The break-even spread is just under 2%/side - a thinner margin than SILVER's, because SILVERM's futures edge is
+smaller to begin with.
+
+## The skew is the most useful finding here
+Splitting the 1%-spread result by direction:
+
+| side | trades | net (pts) | avg premium |
+|---|---|---|---|
+| CE (long signals) | 401 | **+7,218.6** | 4,517 |
+| PE (short signals) | 331 | **+44,832.3** | 2,949 |
+
+**86% of the option profit comes from the short side**, on fewer trades. The long side is close to breakeven. This is
+not a signal-quality difference - it is the skew: calls cost 4,517 points against puts at 2,949 for the same ATM
+distance, so every long trade starts ~1,570 points further behind. Pricing both sides at a flat 31.4% destroys the
+result (PF 1.091 at 1% spread, and **-40,951 at 2%**), which is exactly how a flat-IV model would mislead here.
+
+**Actionable: the put side of SILVERM is materially cheaper than the call side. A short-only option-buying variant,
+or one that demands a bigger expected move before paying up for calls, is worth testing.** Not yet tested - stated as
+the next step, not a result.
+
+## SILVERM vs SILVER as an options vehicle
+| | SILVER | SILVERM |
+|---|---|---|
+| futures net (pts) | +222,240.5 | +126,575.1 |
+| option net @1% spread | +104,882.3 (47%) | +52,050.9 (41%) |
+| break-even spread | between 1% and 2% | just under 2% |
+| avg premium per trade | 3,831 pts = **Rs 114,930** | 3,808 pts = **Rs 19,041** |
+| near-ATM strikes with OI | 4 of 12 | **16 of 24** |
+
+SILVER earns twice the points; SILVERM costs a sixth of the capital per trade and has the liquidity to actually fill.
+At Rs 19,041 of premium per trade and ~24 trades/month, SILVERM is a realistic book for an account that cannot put
+Rs 115,000 of premium at risk per trade. Neither is compelling after a 2% spread.

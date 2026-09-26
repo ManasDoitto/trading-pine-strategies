@@ -35,7 +35,7 @@ def pick_expiry(t, expiries):
     return e[0] if len(e) else None
 
 
-def option_pnl(trades, sigma, strike_step=1000, spread_pct=0.0, right_map=("CE", "PE")):
+def option_pnl(trades, sigma, strike_step=1000, spread_pct=0.0, right_map=("CE", "PE"), sigma_pe=None):
     """Buy ATM CE for a long futures signal, ATM PE for a short. Returns a per-trade frame in PREMIUM POINTS."""
     t = pd.DataFrame(trades).copy()
     t["entry_time"] = pd.to_datetime(t["entry_time"]); t["exit_time"] = pd.to_datetime(t["exit_time"])
@@ -49,8 +49,9 @@ def option_pnl(trades, sigma, strike_step=1000, spread_pct=0.0, right_map=("CE",
         T_in = max((exp - r.entry_time).total_seconds() / (365 * 86400), 1e-6)
         T_out = max((exp - r.exit_time).total_seconds() / (365 * 86400), 1e-6)
         right = right_map[0] if r.side == "LONG" else right_map[1]
-        p_in = black76.price(r.entry, K, T_in, sigma, R_RATE, right)
-        p_out = black76.price(r.exit, K, T_out, sigma, R_RATE, right)
+        sig = sigma if right == "CE" else (sigma_pe if sigma_pe is not None else sigma)
+        p_in = black76.price(r.entry, K, T_in, sig, R_RATE, right)
+        p_out = black76.price(r.exit, K, T_out, sig, R_RATE, right)
         cost = spread_pct * (p_in + p_out)
         rows.append(dict(entry_time=r.entry_time, exit_time=r.exit_time, side=r.side,
                          fut_net=r.net, K=K, dte_in=T_in * 365, hold_h=(r.exit_time - r.entry_time).total_seconds() / 3600,
