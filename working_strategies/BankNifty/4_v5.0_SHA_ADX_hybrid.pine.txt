@@ -79,6 +79,13 @@ trendOKS = (e9 < e22) and (close < e200)
 inSess = not useSess or not na(time(timeframe.period, sessTime))
 inForceFlat = not na(time(timeframe.period, forceFlatTime))
 atrOK = atrMinPts == 0 or (not na(atr) and atr >= atrMinPts)
+// 15m ADX gate: ADX(14) of the PREVIOUS COMPLETED 15m bar (Python adx_15m_prev -> adx_ok).
+// _a[1] inside the request.security call is what makes it the previous bar, so lookahead_on is safe here.
+f_adxPrev() =>
+    [_p, _m, _a] = ta.dmi(htfAdxLen, htfAdxLen)
+    _a[1]
+hAdx = request.security(syminfo.tickerid, "15", f_adxPrev(), lookahead=barmerge.lookahead_on)
+adxOK = htfAdxMin == 0 or (not na(hAdx) and hAdx >= htfAdxMin)
 volSmaAtr = ta.sma(atr, volSmaLen)
 volRegimeOK = not useVolRegime or (not na(volSmaAtr) and atr > volSmaAtr)
 nearEma9L = not usePullback or close <= e9 + pbAtrMult * atr
@@ -89,8 +96,8 @@ riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
 cap = maxSL * atr
 
 // Entry conditions (MATCH Python ok_l/ok_s — no atr>=riskL, correct atrOK)
-okL = inSess and flipUp and trendOKL and shaStable and atrOK and volRegimeOK and nearEma9L and (riskL <= cap) and not inForceFlat
-okS = inSess and flipDn and trendOKS and shaStable and atrOK and volRegimeOK and nearEma9S and (riskS <= cap) and not okL and not inForceFlat
+okL = inSess and flipUp and trendOKL and shaStable and atrOK and volRegimeOK and adxOK and nearEma9L and (riskL <= cap) and not inForceFlat
+okS = inSess and flipDn and trendOKS and shaStable and atrOK and volRegimeOK and adxOK and nearEma9S and (riskS <= cap) and not okL and not inForceFlat
 
 // ============ DAILY LOSS CIRCUIT BREAKER ============
 newDay = ta.change(time("D")) != 0
