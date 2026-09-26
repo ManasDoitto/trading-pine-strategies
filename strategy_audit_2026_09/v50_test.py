@@ -14,6 +14,8 @@ from trading_agents.core import signals as v40
 from trading_agents.core import signals_v50 as v50
 
 T0 = pd.Timestamp("2024-03-25")
+COMM = float(sys.argv[1]) if len(sys.argv) > 1 else 0.0002   # per side; user asked for gross points (0) on 2026-09-26
+TAG = "" if COMM else "_gross"
 COMMON = dict(sha_len1=10, sha_len2=10, sw_len=10, sw_buf=0.1, sha_min_hold=3, breakout_lookback=5,
               use_quality_filters=False, vol_sma_len=80, entry_mode="flip", atr_min_pts=0)
 CFG = {
@@ -79,11 +81,11 @@ def run_all():
         s0 = start_idx(f)
         unsat = int((f["atr"] >= f["risk_l"]).sum() + (f["atr"] >= f["risk_s"]).sum())  # the Pine atr >= risk gate
         bf, bq = baseline_frame(df, p)
-        B = split(rs.simulate(bf, bq, start=s0))
+        B = split(rs.simulate(bf, bq, start=s0, commission=COMM))
         flat_at = p["force_flat_window"][0]
         for use200 in (True, False):
             g = gated(f, p, use200)
-            tr = rs.simulate(g, dict(p, day_loss_limit_pts=p["day_loss_limit"]), start=s0, flat_at=flat_at)
+            tr = rs.simulate(g, dict(p, day_loss_limit_pts=p["day_loss_limit"]), start=s0, flat_at=flat_at, commission=COMM)
             if not tr:
                 print(name, "e200" if use200 else "noE200", "NO TRADES")
                 continue
@@ -141,7 +143,7 @@ if __name__ == "__main__":
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 40)
     R = run_all()
-    R.to_csv(ROOT / "research_data" / "v50_results.csv", index=False)
+    R.to_csv(ROOT / "research_data" / f"v50_results{TAG}.csv", index=False)
     print(R[["strategy", "e200", "n", "pf", "net", "dd", "win", "posM", "bestM", "tr", "va", "ho", "PASS"]].to_string(index=False))
     print("\nbaseline (plain v4.0, same stops/RR/session), same window:")
     print(R.drop_duplicates("strategy")[["strategy", "base_n", "base_pf", "base_net", "base_dd", "base_ho"]].to_string(index=False))
