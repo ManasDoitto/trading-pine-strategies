@@ -132,6 +132,10 @@ def build(d, name, min_sl_atr=1.0, max_sl_atr=None):
         L, S = c > d["dc10_hi"], c < d["dc10_lo"]
     elif name == "donch20":
         L, S = c > d["dc20_hi"], c < d["dc20_lo"]
+    elif name.startswith("donch") and name[5:].isdigit():
+        lb = int(name[5:])
+        hi, lo = h.rolling(lb).max().shift(1), l.rolling(lb).min().shift(1)
+        L, S = c > hi, c < lo
     elif name == "momentum3":
         up3 = (c > c.shift(1)) & (c.shift(1) > c.shift(2)) & (c.shift(2) > c.shift(3))
         dn3 = (c < c.shift(1)) & (c.shift(1) < c.shift(2)) & (c.shift(2) < c.shift(3))
@@ -169,10 +173,17 @@ def sim(v, tf, comm=0.0, inst=None):
     if v.get("tod"):
         t0, t1 = [int(x[:2]) * 60 + int(x[3:]) for x in v["tod"]]
         in_sess = in_sess & (d["tmin"] >= t0) & (d["tmin"] < t1)
+    if v.get("skip_dow") is not None:
+        in_sess = in_sess & (d["time"].dt.dayofweek != v["skip_dow"])
     L, S, risk_l, risk_s = build(d, v["name"], v.get("min_sl", 1.0), v.get("max_sl"))
     if v.get("vol_filter"):
         vf = d["volume"] > d["volume"].rolling(20).mean()
         L, S = L & vf, S & vf
+    if v.get("adx_min"):
+        gate = d["adx15_prev"] >= v["adx_min"]
+        L, S = L & gate, S & gate
+    if v.get("use200"):
+        L, S = L & (d["close"] > d["e200"]), S & (d["close"] < d["e200"])
     g = d.copy()
     g["ok_l"] = in_sess & L
     g["ok_s"] = in_sess & S & ~g["ok_l"]
