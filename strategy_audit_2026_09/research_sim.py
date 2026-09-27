@@ -24,7 +24,8 @@ def load(name):
     return df[["time", "open", "high", "low", "close", "volume"]]
 
 
-def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None, be_at_r=None, trail_start_r=None, trail_dist_r=1.0):
+def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None, be_at_r=None, trail_start_r=None, trail_dist_r=1.0,
+             cooldown_bars=None, reversal_exit=False):
     """Bracket strategy with next-bar-open fills, as production simulate() does, plus:
     gap_fills   a bar that OPENS beyond the stop/target exits at that open (TradingView), not at the level
     commission  fraction of price charged per side (0.0002 = the Pine scripts' 0.02%)
@@ -33,6 +34,9 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                 applies from the NEXT bar (no same-bar lookahead)
     max_per_day  stop taking new signals after this many per calendar day
     flat_at     "HH:MM": exit at the OPEN of the first bar at/after this time; no entry is filled at/after it
+    cooldown_bars   after an SL exit, no new entry is armed for this many bars (round 7)
+    reversal_exit   if True, an opposite-direction ok_l/ok_s signal while a position is open forces an exit
+                at that bar's OPEN before any new position is considered (round 7)
     Returns a list of trade dicts with `net` (points, after commission)."""
     rows = df.to_dict("records")
     limit = p.get("day_loss_limit_pts") or 0
@@ -42,9 +46,10 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         flat = int(hh) * 60 + int(mm)
     trades, pos, pending = [], None, None
     day, day_real, locked, taken = None, 0.0, False, 0
+    cooldown_until = -1
 
     def close(px, t, why):
-        nonlocal pos, day_real, locked
+        nonlocal pos, day_real, locked, cooldown_until
         sign = 1 if pos["side"] == "LONG" else -1
         gross = (px - pos["entry"]) * sign
         net = gross - commission * (pos["entry"] + px)
@@ -52,6 +57,8 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         day_real += net
         if limit and day_real <= -limit:
             locked = True
+        if cooldown_bars and why == "SL":
+            cooldown_until = i + cooldown_bars
         pos = None
 
     for i in range(start, len(rows)):
@@ -74,6 +81,8 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                 forced = "FLAT"
             elif time_stop_min and (r["time"] - pos["entry_time"]).total_seconds() / 60 >= time_stop_min:
                 forced = "TIME"
+            if forced is None and reversal_exit and pos["entry_time"] != r["time"] and (r["ok_s"] if long_ else r["ok_l"]):
+                forced = "REV"
             if forced:
                 close(r["open"], r["time"], forced)
             else:
@@ -101,7 +110,8 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                             pos["sl"] = max(pos["sl"], t) if long_ else min(pos["sl"], t)
 
         if (pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"])
-                and (max_per_day is None or taken < max_per_day)):
+                and (max_per_day is None or taken < max_per_day)
+                and (cooldown_bars is None or i >= cooldown_until)):
             taken += 1
             side = "LONG" if r["ok_l"] else "SHORT"
             risk = r["risk_l"] if side == "LONG" else r["risk_s"]
