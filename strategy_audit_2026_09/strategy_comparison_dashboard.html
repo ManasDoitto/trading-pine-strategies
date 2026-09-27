@@ -136,8 +136,9 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
 
   <div class="note info">
     <b>Three source-of-truth discrepancies worth knowing before reading further:</b>
-    (0) <b>CrudeOil:</b> the "Per-Instrument Deep Dive" tab and Cross-Instrument table below are filtered to crude #1 at its <b>validated 17:30 entry start</b> (429 trades, PF&nbsp;1.476, <b>+6,558 gross pts</b>, both confirmed on TradingView replay) rather than the script's 09:15 default (785 trades, PF&nbsp;1.263, +5,614) &mdash;
-    17:30 wins on PF, points/trade and after-cost profit, at the cost of trade frequency (16.0/mo vs 26.2/mo). See the <a href="#crudeh2h" data-jump="crudeh2h" style="color:#f59e0b;">Crude Tuning (27 Sep)</a> card for the full session-start table and 298 tuning trials that failed to beat either. These rows previously showed a stale +2,811 figure from an older, informal 11-window audit that pre-dates this project's validated <code>research_sim.py</code> harness &mdash; now corrected.
+    (0) <b>CrudeOil:</b> the "Per-Instrument Deep Dive" tab and Cross-Instrument table below feature <b>crude v4.2</b> (crude #1's entry/stop, but no fixed target &mdash; exits on the stop or a reversal signal instead), 09:15 start:
+    885 trades, PF&nbsp;1.541, <b>+10,623 gross pts</b>, DD 1,279, both confirmed on TradingView replay &mdash; it beats crude #1's own 09:15 baseline (PF 1.229, +5,672) on every axis. Crude #1 at a 17:30 start (PF 1.476, +6,558) is still the best plain-target variant, but v4.2 beats it too.
+    See the <a href="#crudeh2h" data-jump="crudeh2h" style="color:#f59e0b;">Crude Tuning (27 Sep)</a> card for the full comparison and 326 tuning trials. These rows previously showed a stale +2,811 figure from an older, informal 11-window audit that pre-dates this project's validated <code>research_sim.py</code> harness &mdash; now corrected. <b>v4.2 has not been forward-tested</b> &mdash; treat it as replay-confirmed, not live-confirmed.
     (1) <b>BankNifty v0.4</b> has two official numbers depending on cost convention: PF&nbsp;1.33&nbsp;/&nbsp;+1,403&nbsp;pts (this project's standard "no added slippage" convention, used everywhere for cross-instrument comparability) vs PF&nbsp;1.29&nbsp;/&nbsp;+1,277&nbsp;pts (with the 5-pt slippage the script's own header actually recommends and bakes in). Both are shown below.
     (2) <b>BankNifty v13</b> looks profitable (PF&nbsp;1.06,&nbsp;+914) with no added slippage, but the repo's own "Best Strategy Per Script" doc found it essentially breaks even to slightly negative (PF&nbsp;0.99,&nbsp;&minus;124) once realistic 5-pt slippage is charged &mdash; the same 5&nbsp;pts that v0.4 already survives comfortably. This dashboard shows both readings rather than picking one.
   </div>
@@ -404,6 +405,10 @@ const INSTRUMENTS = {
        windowNet:[-664,-8,-273,49,-176,-491,-240,-224,2688,1387,108],
        params:{"Entry":"EMA touch pullback, sepMlt 0.5xATR (looser)","Trend filter":"EMA9/22","Stop":"pullback low +0.15xATR","Target":"2R","Session":"1000-2230 IST"},
        status:"warn", verdict:"Highest raw points, ties v4.0. Dies at 1 tick of slippage stress-test -- not robust to realistic execution costs.", src:"audit_summary.md"},
+      {name:"crude v4.2: reversal exit, no target (09:15) — TradingView-confirmed 27 Sep", trades:885, tpm:29.6, win:20.0, pf:1.541, net:10623, dd:1279, sharpe:null, posw:"9/13",
+       windowNet:[293,93,1466,-739,255,87,175,-554,-133,374,8064,-3,1245],
+       params:{"Entry":"SHA colour flip (same as crude #1)","Trend filter":"EMA9>EMA22","Stop":"10-bar swing +0.1xATR, min 1.5x, skip if >3x ATR","Target":"NONE -- exits only on the stop or a reversal exit","Session":"0915-2330 IST (script's default)"},
+       status:"ok", verdict:"New 27 Sep: crude #1's exact entry/stop, but the fixed 4R target is replaced with a reversal exit (close on an opposite valid SHA-flip+trend signal, filled next bar's open) or the stop, whichever comes first. Beats crude #1's 09:15 baseline on every axis: PF 1.229->1.541, net +5,672->+10,623 (+87%), DD 1,898->1,279 (-33%), at almost the same trade count -- confirmed independently on TradingView tiled replay, not just the harness. Costs: win rate drops to ~20% (far fewer, far bigger wins) and holds can run multiple days. The SAME idea at a 17:30 start does NOT hold up on TradingView (PF ties crude #1 exactly, net -16%) -- keep this at 09:15 only. Not yet forward-tested. See the Crude Tuning (27 Sep) card for the full comparison.", src:"crude_reversal_exit_tv_confirmation_2026_09_27.md"},
       {name:"crude #1: v4.0 SHA flip RR4.0, 17:30 start — validated 27 Sep", trades:429, tpm:16.0, win:27.5, pf:1.476, net:6558, dd:1398, sharpe:null, posw:"8/13",
        windowNet:[],
        params:{"Entry":"SHA colour flip (same as v4.0)","Trend filter":"EMA9>EMA22","Stop":"10-bar swing +0.1xATR, min 1.5x, skip if >3x ATR","Target":"4R (raised from 3R)","Session":"1730-2330 IST (later than the script's 0915 default)"},
@@ -525,7 +530,7 @@ const INSTRUMENTS = {
 };
 
 const FAMILIES = [
-  {name:"SHA Colour Flip", desc:"Smoothed Heikin-Ashi colour reversal (v4.0 lineage)", crude:1.476, bnf:0.88, gold:1.13, silver:1.35, verdict:"ok", note:"Best-performing family overall once instrument-tuned (session/stops). Only family positive on 4 of 5 instruments. Crude figure is crude #1 at its validated 17:30 entry start (27 Sep)."},
+  {name:"SHA Colour Flip", desc:"Smoothed Heikin-Ashi colour reversal (v4.0 lineage)", crude:1.541, bnf:0.88, gold:1.13, silver:1.35, verdict:"ok", note:"Best-performing family overall once instrument-tuned (session/stops/exit). Only family positive on 4 of 5 instruments. Crude figure is v4.2 (reversal exit, no target, 09:15 start), TradingView-confirmed 27 Sep."},
   {name:"EMA Pullback + reclaim", desc:"EMA cross + pullback to fast EMA + wick + reclaim", crude:1.14, bnf:1.33, gold:null, silver:null, verdict:"ok", note:"Best family on BankNifty by a wide margin (v0.4). Also strong on crude (v2.1)."},
   {name:"Sweep-Fade", desc:"Liquidity sweep + fade at PDH/PDL or intraday levels", crude:null, bnf:1.06, gold:null, silver:null, verdict:"warn", note:"Positive without slippage on BankNifty, roughly breakeven with realistic slippage. Untested on other instruments."},
   {name:"SMC Sweep+FVG", desc:"Liquidity sweep + displacement candle + fair-value-gap pullback", crude:1.40, bnf:0.93, gold:null, silver:null, verdict:"warn", note:"Highest raw PF anywhere (crude, 86 trades -- thin). Negative on BankNifty."},
@@ -538,7 +543,7 @@ const CROSS_TABLE = [
   {inst:"BankNifty", strat:"v0.4 EMA pullback + 15m ADX gate", pf:1.33, net:1403, tpm:2.5, dd:1620},
   {inst:"Silver",   strat:"v4.0 wide-ATR + fixed 350pt daily limit", pf:1.35, net:160845, tpm:24.2, dd:24551},
   {inst:"Gold",     strat:"v4.0 SHA flip, COMEX session", pf:1.13, net:16312, tpm:16.6, dd:null},
-  {inst:"CrudeOil", strat:"crude #1 (SHA flip RR4.0, 17:30 start) — validated 27 Sep", pf:1.476, net:6558, tpm:16.0, dd:1398},
+  {inst:"CrudeOil", strat:"crude v4.2 (reversal exit, no target, 09:15) — TV-confirmed 27 Sep", pf:1.541, net:10623, tpm:29.6, dd:1279},
   {inst:"Nifty",    strat:"none at 3m/5m", pf:null, net:null, tpm:null, dd:null},
 ];
 
