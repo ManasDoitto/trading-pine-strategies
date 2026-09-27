@@ -136,9 +136,8 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
 
   <div class="note info">
     <b>Three source-of-truth discrepancies worth knowing before reading further:</b>
-    (0) <b>CrudeOil:</b> the "Per-Instrument Deep Dive" tab below and the Cross-Instrument table still carry an <i>older, informal audit</i> of crude #1 (net +2,811&ndash;5,672 depending on row, different window scheme, pre-dates this project's validated <code>research_sim.py</code> harness).
-    The <b>current, validated</b> figures are 785 trades, PF&nbsp;1.263, <b>+5,614 gross pts</b> at the script's default 09:15 session start, or PF&nbsp;1.476 / <b>+6,558 gross pts</b> at a 17:30 start (both confirmed on TradingView replay) &mdash;
-    see the <a href="#crudeh2h" data-jump="crudeh2h" style="color:#f59e0b;">Crude Tuning (27 Sep)</a> card, which also covers 298 tuning trials that failed to beat it. Treat the older rows below as historical, not current.
+    (0) <b>CrudeOil:</b> the "Per-Instrument Deep Dive" tab and Cross-Instrument table below are filtered to crude #1 at its <b>validated 17:30 entry start</b> (429 trades, PF&nbsp;1.476, <b>+6,558 gross pts</b>, both confirmed on TradingView replay) rather than the script's 09:15 default (785 trades, PF&nbsp;1.263, +5,614) &mdash;
+    17:30 wins on PF, points/trade and after-cost profit, at the cost of trade frequency (16.0/mo vs 26.2/mo). See the <a href="#crudeh2h" data-jump="crudeh2h" style="color:#f59e0b;">Crude Tuning (27 Sep)</a> card for the full session-start table and 298 tuning trials that failed to beat either. These rows previously showed a stale +2,811 figure from an older, informal 11-window audit that pre-dates this project's validated <code>research_sim.py</code> harness &mdash; now corrected.
     (1) <b>BankNifty v0.4</b> has two official numbers depending on cost convention: PF&nbsp;1.33&nbsp;/&nbsp;+1,403&nbsp;pts (this project's standard "no added slippage" convention, used everywhere for cross-instrument comparability) vs PF&nbsp;1.29&nbsp;/&nbsp;+1,277&nbsp;pts (with the 5-pt slippage the script's own header actually recommends and bakes in). Both are shown below.
     (2) <b>BankNifty v13</b> looks profitable (PF&nbsp;1.06,&nbsp;+914) with no added slippage, but the repo's own "Best Strategy Per Script" doc found it essentially breaks even to slightly negative (PF&nbsp;0.99,&nbsp;&minus;124) once realistic 5-pt slippage is charged &mdash; the same 5&nbsp;pts that v0.4 already survives comfortably. This dashboard shows both readings rather than picking one.
   </div>
@@ -385,10 +384,10 @@ const INSTRUMENTS = {
        windowNet:[-664,-8,-273,49,-176,-491,-240,-224,2688,1387,108],
        params:{"Entry":"EMA touch pullback, sepMlt 0.5xATR (looser)","Trend filter":"EMA9/22","Stop":"pullback low +0.15xATR","Target":"2R","Session":"1000-2230 IST"},
        status:"warn", verdict:"Highest raw points, ties v4.0. Dies at 1 tick of slippage stress-test -- not robust to realistic execution costs.", src:"audit_summary.md"},
-      {name:"crude #1: v4.0 SHA flip RR4.0 (recalibrated) — validated 27 Sep", trades:785, tpm:26.2, win:24.3, pf:1.263, net:5614, dd:2176, sharpe:null, posw:"8/13",
+      {name:"crude #1: v4.0 SHA flip RR4.0, 17:30 start — validated 27 Sep", trades:429, tpm:16.0, win:27.5, pf:1.476, net:6558, dd:1398, sharpe:null, posw:"8/13",
        windowNet:[],
-       params:{"Entry":"SHA colour flip (same as v4.0)","Trend filter":"EMA9>EMA22","Stop":"10-bar swing +0.1xATR, min 1.5x, skip if >3x ATR","Target":"4R (raised from 3R)","Session":"0915-2330 IST"},
-       status:"ok", verdict:"Superseded numbers 27 Sep: validated on this project's research_sim.py harness (30mo, matches TradingView to 0.03% on drawdown) AND confirmed on TradingView tiled replay (13 windows, +5,672). This is the current 'crude #1' -- see the Crude Tuning (27 Sep) card for the full session-start comparison (17:30 start: PF 1.476, +6,558) and 298 tuning trials that failed to beat it. The 2,811-pt figure previously shown here was an earlier, informal 11-window audit on a shorter span and is superseded.", src:"strategy_audit_2026_09/crude1_tweak_guide_2026_09_26.md + silver_v52_v53_and_crude_1730_2026_09_27.md + crude_round6_newsignals_results_2026_09_27.md"},
+       params:{"Entry":"SHA colour flip (same as v4.0)","Trend filter":"EMA9>EMA22","Stop":"10-bar swing +0.1xATR, min 1.5x, skip if >3x ATR","Target":"4R (raised from 3R)","Session":"1730-2330 IST (later than the script's 0915 default)"},
+       status:"ok", verdict:"Superseded numbers 27 Sep: validated on this project's research_sim.py harness (30mo, matches TradingView to 0.03% on drawdown) AND confirmed on TradingView tiled replay (13 windows, +6,036 gross). Featured here at the 17:30 entry start, which beats the script's 0915 default on PF (1.476 vs 1.263), points/trade and after-cost profit, at the cost of trade frequency (16.0/mo vs 26.2/mo -- see the Crude Tuning (27 Sep) card for the full session-start table and 298 tuning trials that failed to beat this). The 2,811-pt figure previously shown here was an earlier, informal 11-window audit on a shorter span and is superseded.", src:"strategy_audit_2026_09/crude1_tweak_guide_2026_09_26.md + silver_v52_v53_and_crude_1730_2026_09_27.md + crude_round6_newsignals_results_2026_09_27.md"},
       {name:"SMC v1.2 (sweep+FVG, swingLen=10)", trades:178, tpm:6.0, win:55.3, pf:1.25, net:655, dd:454, sharpe:null, posw:"6/11",
        windowNet:[], params:{"Entry":"Liquidity sweep + displacement + FVG pullback","Trend filter":"EMA200 macro","Exit":"Chandelier trail","Session":"US session"},
        status:"warn", verdict:"Strong PF but thin sample.", src:"smc_liquidity_sweep_fvg_v1.2_results.md"},
@@ -506,7 +505,7 @@ const INSTRUMENTS = {
 };
 
 const FAMILIES = [
-  {name:"SHA Colour Flip", desc:"Smoothed Heikin-Ashi colour reversal (v4.0 lineage)", crude:1.14, bnf:0.88, gold:1.13, silver:1.35, verdict:"ok", note:"Best-performing family overall once instrument-tuned (session/stops). Only family positive on 4 of 5 instruments."},
+  {name:"SHA Colour Flip", desc:"Smoothed Heikin-Ashi colour reversal (v4.0 lineage)", crude:1.476, bnf:0.88, gold:1.13, silver:1.35, verdict:"ok", note:"Best-performing family overall once instrument-tuned (session/stops). Only family positive on 4 of 5 instruments. Crude figure is crude #1 at its validated 17:30 entry start (27 Sep)."},
   {name:"EMA Pullback + reclaim", desc:"EMA cross + pullback to fast EMA + wick + reclaim", crude:1.14, bnf:1.33, gold:null, silver:null, verdict:"ok", note:"Best family on BankNifty by a wide margin (v0.4). Also strong on crude (v2.1)."},
   {name:"Sweep-Fade", desc:"Liquidity sweep + fade at PDH/PDL or intraday levels", crude:null, bnf:1.06, gold:null, silver:null, verdict:"warn", note:"Positive without slippage on BankNifty, roughly breakeven with realistic slippage. Untested on other instruments."},
   {name:"SMC Sweep+FVG", desc:"Liquidity sweep + displacement candle + fair-value-gap pullback", crude:1.40, bnf:0.93, gold:null, silver:null, verdict:"warn", note:"Highest raw PF anywhere (crude, 86 trades -- thin). Negative on BankNifty."},
@@ -519,7 +518,7 @@ const CROSS_TABLE = [
   {inst:"BankNifty", strat:"v0.4 EMA pullback + 15m ADX gate", pf:1.33, net:1403, tpm:2.5, dd:1620},
   {inst:"Silver",   strat:"v4.0 wide-ATR + fixed 350pt daily limit", pf:1.35, net:160845, tpm:24.2, dd:24551},
   {inst:"Gold",     strat:"v4.0 SHA flip, COMEX session", pf:1.13, net:16312, tpm:16.6, dd:null},
-  {inst:"CrudeOil", strat:"crude #1 (SHA flip RR4.0, 09:15) — validated 27 Sep", pf:1.263, net:5614, tpm:26.2, dd:2176},
+  {inst:"CrudeOil", strat:"crude #1 (SHA flip RR4.0, 17:30 start) — validated 27 Sep", pf:1.476, net:6558, tpm:16.0, dd:1398},
   {inst:"Nifty",    strat:"none at 3m/5m", pf:null, net:null, tpm:null, dd:null},
 ];
 
