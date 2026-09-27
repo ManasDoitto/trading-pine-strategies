@@ -47,6 +47,7 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
     trades, pos, pending = [], None, None
     day, day_real, locked, taken = None, 0.0, False, 0
     cooldown_until = -1
+    pending_rev = False       # a reversal signal seen at bar i's CLOSE fires at bar i+1's OPEN (no lookahead)
 
     def close(px, t, why):
         nonlocal pos, day_real, locked, cooldown_until
@@ -77,12 +78,13 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         if pos is not None:
             long_ = pos["side"] == "LONG"
             forced = None
-            if flat is not None and minute >= flat and pos["entry_time"] != r["time"]:
+            if pending_rev and pos["entry_time"] != r["time"]:
+                forced = "REV"
+                pending_rev = False
+            elif flat is not None and minute >= flat and pos["entry_time"] != r["time"]:
                 forced = "FLAT"
             elif time_stop_min and (r["time"] - pos["entry_time"]).total_seconds() / 60 >= time_stop_min:
                 forced = "TIME"
-            if forced is None and reversal_exit and pos["entry_time"] != r["time"] and (r["ok_s"] if long_ else r["ok_l"]):
-                forced = "REV"
             if forced:
                 close(r["open"], r["time"], forced)
             else:
@@ -108,6 +110,8 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                         if trail_start_r is not None and gain >= trail_start_r * rk:
                             t = pos["ext"] - trail_dist_r * rk if long_ else pos["ext"] + trail_dist_r * rk
                             pos["sl"] = max(pos["sl"], t) if long_ else min(pos["sl"], t)
+                        if reversal_exit and (r["ok_s"] if long_ else r["ok_l"]):
+                            pending_rev = True      # seen at bar i's close; fires at bar i+1's open (see top of loop)
 
         if (pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"])
                 and (max_per_day is None or taken < max_per_day)
