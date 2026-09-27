@@ -49,23 +49,25 @@ ROWS_JS = f"""(function() {{
 }})()"""
 
 
-def chart_target(chart_id=None):
-    """The chart page to read. With several chart tabs open it will not guess: pass --chart-id."""
+def chart_target(chart_id=None, target_id=None):
+    """The chart page to read. With several chart tabs open it will not guess: pass --chart-id or --target-id."""
     targets = json.load(urllib.request.urlopen(f"http://localhost:{PORT}/json/list", timeout=10))
     pages = [t for t in targets if t.get("type") == "page" and "/chart/" in t.get("url", "")]
-    if chart_id:
+    if target_id:
+        pages = [t for t in pages if t.get("id") == target_id]
+    elif chart_id:
         pages = [t for t in pages if f"/chart/{chart_id}" in t["url"]]
     if not pages:
         raise SystemExit("no matching TradingView chart page found on the debugging port")
     if len(pages) > 1:
-        listing = ", ".join(t["url"] for t in pages)
-        raise SystemExit(f"several chart tabs are open - pass --chart-id to choose one: {listing}")
+        listing = ", ".join(f"{t['id']} ({t['url']})" for t in pages)
+        raise SystemExit(f"several chart tabs are open - pass --target-id to choose one: {listing}")
     return pages[0]["webSocketDebuggerUrl"]
 
 
 class Chart:
-    def __init__(self, chart_id=None):
-        self.ws = connect(chart_target(chart_id), max_size=None, open_timeout=15)
+    def __init__(self, chart_id=None, target_id=None):
+        self.ws = connect(chart_target(chart_id, target_id), max_size=None, open_timeout=15)
         self.n = 0
 
     def evaluate(self, expression):
@@ -116,17 +118,18 @@ def main():
     ap.add_argument("--peek", action="store_true", help="report only, write nothing, request nothing")
     ap.add_argument("--back-to", help="YYYY-MM-DD: page history back to this date before dumping")
     ap.add_argument("--chart-id", help="the id in the chart URL, when several chart tabs are open")
+    ap.add_argument("--target-id", help="the raw devtools target id, when --chart-id still matches more than one")
     args = ap.parse_args()
 
-    chart = Chart(args.chart_id)
+    chart = Chart(args.chart_id, args.target_id)
     try:
         st = chart.evaluate(STATE_JS)
         print(f"chart: {st['symbol']} {st['resolution']}  {st['size']:,} bars loaded, "
               f"earliest {ist(st['firstTime'])} IST, older data available: {st['more']}")
         if args.peek:
             return 0
-        if str(st["resolution"]) != "5":
-            raise SystemExit(f"refusing: resolution {st['resolution']!r}; this store is 5m only")
+        if str(st["resolution"]) not in ("3", "5"):
+            raise SystemExit(f"refusing: resolution {st['resolution']!r}; this store handles 3m/5m only")
         if args.back_to:
             target = int(datetime.strptime(args.back_to, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
             st, why = page_back(chart, target)
@@ -140,7 +143,7 @@ def main():
     df["time"] = df["time"].astype("int64")
     df = df.drop_duplicates("time").sort_values("time").reset_index(drop=True)
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / (re.sub(r"[^A-Za-z0-9]+", "_", symbol).strip("_") + "_5m.csv")
+    path = OUT / (re.sub(r"[^A-Za-z0-9]+", "_", symbol).strip("_") + f"_{st['resolution']}m.csv")
     before = 0
     if path.exists():
         old = pd.read_csv(path)
