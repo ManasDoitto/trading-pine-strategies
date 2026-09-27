@@ -25,7 +25,7 @@ def load(name):
 
 
 def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None, be_at_r=None, trail_start_r=None, trail_dist_r=1.0,
-             cooldown_bars=None, reversal_exit=False):
+             cooldown_bars=None, reversal_exit=False, scale_r=None, scale_frac=0.5, min_hold_bars_rev=0):
     """Bracket strategy with next-bar-open fills, as production simulate() does, plus:
     gap_fills   a bar that OPENS beyond the stop/target exits at that open (TradingView), not at the level
     commission  fraction of price charged per side (0.0002 = the Pine scripts' 0.02%)
@@ -37,6 +37,11 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
     cooldown_bars   after an SL exit, no new entry is armed for this many bars (round 7)
     reversal_exit   if True, an opposite-direction ok_l/ok_s signal while a position is open forces an exit
                 at that bar's OPEN before any new position is considered (round 7)
+    scale_r / scale_frac  (round 8) once the running favourable excursion reaches scale_r * risk, realise
+                scale_frac of the position at that theoretical price (same convention as be_at_r/trail: judged
+                from the bar's own high/low extreme, no lookahead); the remaining (1-scale_frac) rides to the
+                normal exit. One trade record per entry, net = weighted sum of both legs.
+    min_hold_bars_rev  (round 8) a reversal signal is ignored until the position has been open this many bars
     Returns a list of trade dicts with `net` (points, after commission)."""
     rows = df.to_dict("records")
     limit = p.get("day_loss_limit_pts") or 0
@@ -52,8 +57,11 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
     def close(px, t, why):
         nonlocal pos, day_real, locked, cooldown_until
         sign = 1 if pos["side"] == "LONG" else -1
-        gross = (px - pos["entry"]) * sign
-        net = gross - commission * (pos["entry"] + px)
+        frac = pos.get("remaining_frac", 1.0)
+        final_leg_gross = (px - pos["entry"]) * sign * frac
+        final_leg_net = final_leg_gross - commission * (pos["entry"] + px) * frac
+        gross = final_leg_gross + pos.get("partial_gross", 0.0)
+        net = final_leg_net + pos.get("partial_net", 0.0)
         trades.append(dict(pos, exit_time=t, exit=px, result=why, gross=gross, net=net))
         day_real += net
         if limit and day_real <= -limit:
@@ -72,7 +80,7 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
             if flat is not None and minute >= flat:
                 pending = None                                     # would fill inside the flat window: skip
             else:
-                pos = dict(pending, entry_time=r["time"], entry=r["open"])
+                pos = dict(pending, entry_time=r["time"], entry=r["open"], entry_i=i)
                 pending = None
 
         if pos is not None:
@@ -110,7 +118,14 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                         if trail_start_r is not None and gain >= trail_start_r * rk:
                             t = pos["ext"] - trail_dist_r * rk if long_ else pos["ext"] + trail_dist_r * rk
                             pos["sl"] = max(pos["sl"], t) if long_ else min(pos["sl"], t)
-                        if reversal_exit and (r["ok_s"] if long_ else r["ok_l"]):
+                        if scale_r is not None and not pos.get("scaled") and gain >= scale_r * rk:
+                            scale_px = pos["entry"] + (1 if long_ else -1) * scale_r * rk
+                            leg_gross = (scale_px - pos["entry"]) * (1 if long_ else -1) * scale_frac
+                            pos["partial_gross"] = pos.get("partial_gross", 0.0) + leg_gross
+                            pos["partial_net"] = pos.get("partial_net", 0.0) + (leg_gross - commission * (pos["entry"] + scale_px) * scale_frac)
+                            pos["remaining_frac"] = 1.0 - scale_frac
+                            pos["scaled"] = True
+                        if reversal_exit and (i - pos.get("entry_i", i)) >= min_hold_bars_rev and (r["ok_s"] if long_ else r["ok_l"]):
                             pending_rev = True      # seen at bar i's close; fires at bar i+1's open (see top of loop)
 
         if (pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"])
