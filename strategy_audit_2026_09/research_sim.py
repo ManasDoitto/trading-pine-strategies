@@ -107,7 +107,7 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
             risk = r["risk_l"] if side == "LONG" else r["risk_s"]
             sign = 1 if side == "LONG" else -1
             pending = dict(side=side, signal_time=r["time"], risk_pts=risk,
-                           sl=r["close"] - sign * risk, tp=r["close"] + sign * p["rr"] * risk)
+                           sl=r["close"] - sign * risk, tp=r["close"] + sign * (p.get("rr_l", p["rr"]) if sign == 1 else p.get("rr_s", p["rr"])) * risk)
     return trades
 
 
