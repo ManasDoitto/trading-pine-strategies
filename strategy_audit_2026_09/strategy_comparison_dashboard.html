@@ -108,6 +108,7 @@
   <a href="#instruments" data-jump="instruments">Instruments</a>
   <a href="#cross" data-jump="cross">Cross-Instrument</a>
   <a href="#silverh2h" data-jump="silverh2h">Silver H2H (26 Sep)</a>
+  <a href="#crudeh2h" data-jump="crudeh2h">Crude Tuning (27 Sep)</a>
   <a href="#families" data-jump="families">Family Rankings</a>
   <a href="#calculator" data-jump="calculator">Option Calculator</a>
   <a href="#timeline" data-jump="timeline">Evolution</a>
@@ -212,6 +213,56 @@ document.querySelectorAll('.nav a[data-jump]').forEach(function(a){
       <b>Corrections made 26 Sep:</b> an earlier verdict said the breakout keeps only 36% of its points as options versus 47% for #1 &mdash; that 36% was v5.1&rsquo;s figure, not v4.1&rsquo;s.
       Measured properly the breakouts translate <i>better</i> than #1. The &ldquo;2.1&times; drawdown&rdquo; is a no-cost figure; after costs it is +13%.
       Sources: <code>silver_definitive_comparison_2026_09_26.md</code>, <code>breakout_three_variants_verdict_2026_09_26.md</code>, <code>tv_replay_both_variants_2026_09_26.md</code>.
+    </div>
+  </div>
+
+  <div class="card" id="crudeh2h" style="margin-top:28px;border-color:#94a3b8;">
+    <h2>Crude #1 &mdash; session-start tuning and 248-trial search &mdash; updated 27 Sep 2026</h2>
+    <div class="note info">
+      <b>One basis for everything here:</b> MCX:CRUDEOIL1! 5m, harness on TradingView-harvested bars, 30 months (25 Mar 2024 &ndash; 24 Sep 2026) unless marked TV replay (13 tiled ~81-day windows,
+      18 Jan 2024 &ndash; 25 Sep 2026, gross only). &ldquo;Crude #1&rdquo; is <code>working_strategies/CrudeOil/1_v4.0_SHA_flip_RR4.0_recal.pine.txt</code>: SHA(10/10) flip + EMA9/22 alignment,
+      10-bar swing stop floored at 1.5&times;ATR, skipped if stop &gt; 3.0&times;ATR, fixed 4R target, one position, holds overnight, 09:15&ndash;23:30 session. Points, no costs unless marked after-cost (0.02%/side, ~2.6&nbsp;pts/trade).
+    </div>
+
+    <div class="grid grid-4" id="ch2hStats" style="margin:14px 0;"></div>
+
+    <h3>Session-start variants (same script, only the entry-window start changes)</h3>
+    <div class="table-wrap"><table id="ch2hTable"></table></div>
+    <div class="muted" style="margin-top:6px;">
+      This is the only change across the whole crude search that is confirmed real: it held up on the harness <i>and</i> on TradingView replay, in both halves of the data.
+      Total points barely move &mdash; a later start just removes the low-value morning/afternoon trades, so profit per trade and PF rise while frequency falls.
+    </div>
+
+    <div class="grid grid-2" style="margin-top:22px;">
+      <div><h3>Cumulative profit across TradingView replay windows (gross)</h3><div class="chart-box" style="height:280px;"><canvas id="ch2hTv"></canvas></div>
+        <div class="muted">13 chained ~81-day windows. Window 11 (May 2026) supplies most of the profit under every start time &mdash; this is one strategy, not several.</div></div>
+      <div><h3>Points per trade vs trades per month, by start time</h3><div class="chart-box" style="height:280px;"><canvas id="ch2hEff"></canvas></div>
+        <div class="muted">Your 20-trades/month floor is met only at 09:15 and 15:00.</div></div>
+    </div>
+
+    <h3 style="margin-top:26px;">248 tuning trials, 5 pre-registered rounds &mdash; none beat crude #1</h3>
+    <div class="table-wrap"><table id="ch2hRounds"></table></div>
+
+    <div class="grid grid-2" style="margin-top:14px;">
+      <div class="card" style="background:var(--surface2);"><b style="color:#4ade80;">Established</b>
+        <ul style="margin:8px 0 0 18px;padding:0;font-size:13px;color:var(--text-dim);line-height:1.6;">
+          <li>Later entry starts (15:00&ndash;18:00) raise PF, points/trade and after-cost profit at every start tested, on both the harness and TradingView replay.</li>
+          <li>Crude #1's edge is almost entirely long trades: short-only is roughly breakeven at every start.</li>
+          <li>The 3&times;ATR stop-width cap and SHA(10/10) lengths are load-bearing &mdash; every attempt to loosen either one lost money.</li>
+          <li>Selection transfer across 150 of the 248 trials: Spearman(first half, second half) between 0.01 and 0.41 &mdash; ranking a config on one half predicts almost nothing about the other.</li>
+        </ul></div>
+      <div class="card" style="background:var(--surface2);"><b style="color:#f59e0b;">Not established</b>
+        <ul style="margin:8px 0 0 18px;padding:0;font-size:13px;color:var(--text-dim);line-height:1.6;">
+          <li>Any exit change (break-even, trailing, time stop), EMA re-tune, or entry filter as a real edge &mdash; every apparent winner's gain sat entirely in the second half of the data.</li>
+          <li>The EMA9-slope filter (round 4's only pass) failed its own plateau check one round later (round 5).</li>
+          <li>An ATR-percentile volatility filter (round 3's closest miss) failed the same plateau check in round 4.</li>
+          <li>No forward test is running for crude &mdash; the standings above are backtest-only.</li>
+        </ul></div>
+    </div>
+    <div class="note" style="margin-top:14px;">
+      Sources: <code>crude1_tweak_guide_2026_09_26.md</code>, <code>silver_v52_v53_and_crude_1730_2026_09_27.md</code> (Parts 1, 3, 4 &mdash; TradingView session-start replay),
+      <code>crude_50cfg_results_2026_09_27.md</code>, <code>crude_round2_results_2026_09_27.md</code>, <code>crude_round3_results_2026_09_27.md</code>,
+      <code>crude_round4_results_2026_09_27.md</code>, <code>crude_round5_results_2026_09_27.md</code> (rounds 1&ndash;5, all pre-registered).
     </div>
   </div>
 
@@ -968,6 +1019,70 @@ renderCharts(tabKeys[0]);
   ];
   document.getElementById("h2hAnat").innerHTML = `<thead><tr><th style="text-align:left;">Measure</th><th>Silver #1</th><th>bo(3)</th></tr></thead><tbody>` +
     A.map(r=>`<tr><td style="text-align:left;">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("") + "</tbody>";
+})();
+</script>
+
+<script>
+/* ============================== CRUDE #1 SESSION-START + 248-TRIAL TUNING (27 Sep 2026) ============================== */
+(function(){
+  // harness figures (30 months, gross / after 0.02%/side), plus TradingView 13-window replay (gross)
+  const S = [
+    {n:"09:15 (baseline)", perMo:28.3, pf:1.263, net:5614, cnet:3577, tv:5672, tvpf:1.229, dd:1898, k:"base"},
+    {n:"15:00",            perMo:20.5, pf:1.260, net:5327, cnet:3614, tv:5327, tvpf:1.260, dd:1454, k:"ok"},
+    {n:"16:00",            perMo:18.9, pf:1.282, net:5389, cnet:3808, tv:5389, tvpf:1.282, dd:1408, k:"ok"},
+    {n:"17:00",            perMo:17.1, pf:1.286, net:5143, cnet:3710, tv:5143, tvpf:1.286, dd:1262, k:"ok"},
+    {n:"17:30",            perMo:16.0, pf:1.476, net:6558, cnet:5437, tv:6036, tvpf:1.361, dd:1293, k:"best"},
+    {n:"18:00",            perMo:14.6, pf:1.478, net:6273, cnet:5250, tv:5959, tvpf:1.378, dd:1304, k:"best"}
+  ];
+  const inc = S[0], best = S[4];
+
+  document.getElementById("ch2hStats").innerHTML = [
+    ["+"+Math.round((best.cnet/inc.cnet-1)*100)+"%", "17:30 start vs 09:15 baseline, after-cost profit ("+best.cnet.toLocaleString()+" vs "+inc.cnet.toLocaleString()+" pts, TradingView-replay confirmed)"],
+    ["248", "pre-registered tuning trials across 5 rounds (exits, EMA lengths, entry filters, RR/stops, session variants)"],
+    ["0", "trials that beat crude #1 at every entry start on a pre-registered rule after a follow-up check"],
+    ["~breakeven", "short-only crude #1, every entry start &mdash; the edge is almost entirely long trades"]
+  ].map(x=>`<div class="stat"><div class="v" style="font-size:20px;">${x[0]}</div><div class="l">${x[1]}</div></div>`).join("");
+
+  const pfc = v => v>=1.45? "#4ade80" : v>=1.3? "#a3e635" : v>=1.15? "#fbbf24" : "#f87171";
+  let ts = `<thead><tr><th style="text-align:left;">Entry start (all end 23:30)</th><th>Trades/mo</th><th>PF (harness)</th><th>Gross pts (harness)</th><th>After-cost (harness)</th>
+    <th>TV replay net (gross)</th><th>TV replay PF</th><th>Worst-window DD (TV)</th></tr></thead><tbody>`;
+  S.forEach(r=>{
+    const hi = r.k==="best" ? "background:rgba(34,197,94,0.08);" : (r.k==="base" ? "background:rgba(148,163,184,0.10);" : "");
+    ts += `<tr style="${hi}"><td style="text-align:left;font-weight:${(r.k==="best"||r.k==="base")?600:400};">${r.n}</td>
+      <td>${r.perMo}</td><td><span style="color:${pfc(r.pf)};font-weight:600;">${r.pf.toFixed(3)}</span></td>
+      <td>${fmtPts(r.net)}</td><td>${fmtPts(r.cnet)}</td><td>${fmtPts(r.tv)}</td>
+      <td><span style="color:${pfc(r.tvpf)};font-weight:600;">${r.tvpf.toFixed(3)}</span></td><td>${r.dd.toLocaleString()}</td></tr>`;
+  });
+  ts += `</tbody>`;
+  document.getElementById("ch2hTable").innerHTML = ts;
+
+  const grid = {color:"rgba(148,163,184,0.12)"}, tick = {color:"#94a3b8"};
+  const base2 = {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:"#cbd5e1"}}},
+                scales:{x:{ticks:tick,grid:grid}, y:{ticks:tick,grid:grid}}};
+
+  const W = ["W1","W2","W3","W4","W5","W6","W7","W8","W9","W10","W11","W12","W13"];
+  const TV = {a0915:[164,589,787,-728,-323,344,733,-397,-174,-138,2608,908,1299],
+              a1730:[245,376,1372,-545,-141,322,657,-197,-260,-264,2874,748,849]};
+  const cum = a => a.reduce((o,v,i)=>{o.push((o[i-1]||0)+v);return o;},[]);
+  new Chart(document.getElementById("ch2hTv"), {type:"line", data:{labels:W,
+    datasets:[{label:"09:15 (baseline)",data:cum(TV.a0915),borderColor:"#94a3b8",backgroundColor:"#94a3b8",tension:.15},
+              {label:"17:30",data:cum(TV.a1730),borderColor:"#22c55e",backgroundColor:"#22c55e",tension:.15}]}, options:base2});
+
+  new Chart(document.getElementById("ch2hEff"), {type:"bar", data:{labels:S.map(r=>r.n),
+    datasets:[{label:"Trades / month",data:S.map(r=>r.perMo),backgroundColor:"#3b82f6",yAxisID:"y"},
+              {label:"After-cost pts / trade",data:S.map(r=>Math.round((r.cnet/(r.perMo*30))*10)/10),backgroundColor:"#f59e0b",yAxisID:"y1"}]},
+    options:Object.assign({}, base2, {scales:{x:{ticks:tick,grid:grid}, y:{position:"left",ticks:tick,grid:grid,title:{display:true,text:"trades/mo",color:"#94a3b8"}},
+      y1:{position:"right",ticks:tick,grid:{display:false},title:{display:true,text:"after-cost pts/trade",color:"#94a3b8"}}}})});
+
+  const R = [
+    ["1 (50)", "exits (BE/trail/time-stop), max trades/day, EMA lengths, ADX, session/swing/RR", "highest first-half pick failed on second half; only EMA 9/34 beat control in both halves", "FAIL &mdash; pre-registered pick did not transfer"],
+    ["2 (50)", "plateau check on EMA 9/34 (7 slow-EMA values) + 9/34 combos + long/short + windows", "only 3 of 7 slow-EMA values beat control in both halves (not a plateau)", "FAIL &mdash; round-1 lead was a lucky point"],
+    ["3 (50)", "25 entry-quality filters (candle body, RSI, VWAP, volume, ATR%, squeeze, day-open, etc.)", "no filter beat control in both halves at both starts; ATR&lt;p90 closest but first half below control", "FAIL &mdash; nothing passes; one hypothesis flagged"],
+    ["4 (48)", "plateau check on ATR&lt;p90 + combos, long/short split, entry-end cuts, EMA9 slope 6", "ATR&lt;p90 not a plateau (0/9, 1/9); EMA9-slope-6 passed the rule at both starts (margin +3&ndash;5%)", "1 marginal PASS &mdash; EMA9 slope 6 (small, untested further)"],
+    ["5 (50)", "plateau check on EMA9-slope windows {3,6,12,24}; asymmetric RR/stops, gap dir, momentum, day-range", "only 1 of 4 slope windows works; every other idea lost at one or both starts", "FAIL &mdash; round-4 pass does not survive the plateau check"]
+  ];
+  document.getElementById("ch2hRounds").innerHTML = `<thead><tr><th>Round (configs)</th><th style="text-align:left;">What was tried</th><th style="text-align:left;">Result</th><th style="text-align:left;">Verdict</th></tr></thead><tbody>` +
+    R.map(r=>`<tr><td>${r[0]}</td><td style="text-align:left;">${r[1]}</td><td style="text-align:left;">${r[2]}</td><td style="text-align:left;">${r[3]}</td></tr>`).join("") + "</tbody>";
 })();
 </script>
 </body>
