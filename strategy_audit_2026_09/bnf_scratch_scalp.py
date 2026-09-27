@@ -160,8 +160,8 @@ def build(d, name, min_sl_atr=1.0, max_sl_atr=None):
     return L.fillna(False), S.fillna(False), risk_l, risk_s
 
 
-def sim(v, tf, comm=0.0):
-    d = B.base(tf)
+def sim(v, tf, comm=0.0, inst=None):
+    d = B.base(tf, inst)
     d = extra(d)
     s0m, s1m = [int(x[:2]) * 60 + int(x[3:]) for x in SESSION]
     ff0, ff1 = [int(x[:2]) * 60 + int(x[3:]) for x in FLAT]
@@ -181,9 +181,9 @@ def sim(v, tf, comm=0.0):
     return rs.simulate(g, p, start=rs.WARMUP, commission=comm, time_stop_min=v.get("time_stop"), flat_at=FLAT[0])
 
 
-def summ(tag, v, tf):
-    tr = sim(v, tf)
-    d = B.base(tf)
+def summ(tag, v, tf, inst=None):
+    tr = sim(v, tf, inst=inst)
+    d = B.base(tf, inst)
     months = (d["time"].iloc[-1] - d["time"].iloc[rs.WARMUP]).days / 30.44
     if len(tr) < 15:
         return dict(id=tag, tf=tf, n=len(tr), months=round(months, 1))
