@@ -20,9 +20,10 @@ from trading_agents.core import signals_v50 as v50
 from trading_agents.core.levels import true_range, wilder
 
 BARS = ROOT / "research_data" / "bars"
-PV = 30  # NSE:BANKNIFTY1! point value, 1 lot
+PV = 30  # NSE:BANKNIFTY1! point value, 1 lot (overridden per-instrument by callers, e.g. nifty_port_test.py)
 SESSION = ("09:15", "15:20")
 FLAT = ["15:20", "15:30"]
+DEFAULT_INST = "NSE_BANKNIFTY1"
 _D = {}
 
 
@@ -32,9 +33,11 @@ def load_tf(name, tf):
     return df[["time", "open", "high", "low", "close", "volume"]]
 
 
-def base(tf):
-    if tf not in _D:
-        df = load_tf("NSE_BANKNIFTY1", tf)
+def base(tf, inst=None):
+    inst = inst or DEFAULT_INST
+    key = (inst, tf)
+    if key not in _D:
+        df = load_tf(inst, tf)
         d = df.reset_index(drop=True).copy()
         d["e9"] = v50.ema(d["close"], 9)
         d["e22"] = v50.ema(d["close"], 22)
@@ -44,12 +47,12 @@ def base(tf):
         r500 = d["atr"].rolling(500)
         d["atr_p90"] = r500.quantile(0.9)
         d["tmin"] = d["time"].dt.hour * 60 + d["time"].dt.minute
-        _D[tf] = d
-    return _D[tf]
+        _D[key] = d
+    return _D[key]
 
 
-def sim(v, tf, comm=0.0):
-    d = base(tf)
+def sim(v, tf, comm=0.0, inst=None):
+    d = base(tf, inst)
     c, o, h, l, atr = d["close"], d["open"], d["high"], d["low"], d["atr"]
     s0m, s1m = [int(x[:2]) * 60 + int(x[3:]) for x in SESSION]
     ff0, ff1 = [int(x[:2]) * 60 + int(x[3:]) for x in FLAT]
@@ -106,9 +109,9 @@ def sim(v, tf, comm=0.0):
     return rs.simulate(g, p, start=s0, commission=comm, **kw)
 
 
-def summ(tag, v, tf):
-    tr = sim(v, tf)
-    d = base(tf)
+def summ(tag, v, tf, inst=None):
+    tr = sim(v, tf, inst=inst)
+    d = base(tf, inst)
     months = (d["time"].iloc[-1] - d["time"].iloc[rs.WARMUP]).days / 30.44
     if len(tr) < 10:
         return dict(id=tag, tf=tf, n=len(tr), months=round(months, 1))
