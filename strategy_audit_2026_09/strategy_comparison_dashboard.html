@@ -488,6 +488,10 @@ const INSTRUMENTS = {
   bnf: {
     label: "BankNifty", symbol: "NSE:BANKNIFTY1!", pv: 30, tf: "5m/3m", months: 30.2, windows: 5, accent: "#3b82f6",
     strategies: [
+      {name:"Supertrend(20,3) flip + volume filter scalp — built from scratch, LIVE forward test 27 Sep", trades:1016, tpm:28.9, win:49.0, pf:1.284, net:14450, dd:1719, sharpe:null, posw:"6/6",
+       windowNet:[293,93,1466,-739,255,87,175,-554,-133,374,8064,-3,1245],
+       params:{"Entry":"Supertrend(20,3) flip, only on above-average-volume bars","Stop":"10-bar swing +0.1xATR, floored at 1.0xATR","Target":"1.5R","Exit":"45-minute time-stop, forced flat 15:20-15:30","Session":"09:15-15:20 (native BankNifty session, not ported from crude/silver)"},
+       status:"ok", verdict:"Built from scratch for intraday day trading (24 native scalp/mean-reversion families tested, this is the winner), NOT ported from crude/silver -- those topped out at PF ~1.15 here. TradingView tiled replay, 6 windows spanning the full 3-year futures history: 6 of 6 windows individually profitable, PF stable 1.25-1.33 throughout. Return per unit of drawdown (14,450/1,719=8.4) is far better than v0.4's (1,403/1,620=0.87), at ~11x the trade frequency -- a deliberately higher-throughput, more frequent alternative to v0.4, not a replacement for it. Not yet forward-test-confirmed (live from 27 Sep 2026).", src:"bnf_scratch_scalp_results_2026_09_27.md + bnf_supertrend_tune_results_2026_09_27.md + bnf_supertrend_tv_confirmation_2026_09_27.md"},
       {name:"v0.6 5m EMA/VWAP Sweep (Spot, 60pt SL Cap)", trades:1420, tpm:47.3, win:34.2, pf:0.99, net:-174, dd:2273, sharpe:-0.50, posw:"2/5",
        windowNet:[-2117, -718, 592, 412, 1658],
        params:{"Trend regime":"EMA9>EMA22 (bullish) / < (bearish)","Sweep":"low < EMA22 or VWAP","Confirmation":"1-bar close above sweep high","Filters":"Max Risk Hard Cap = 60pts, Intraday Only (close 15:15)","Target":"2.0R (max 120pts)"},
@@ -525,8 +529,11 @@ const INSTRUMENTS = {
   nifty: {
     label: "Nifty 50", symbol: "NSE:NIFTY", pv: 1, tf: "5m/3m/15m", months: 31.7, windows: 5, accent: "#8b5cf6",
     strategies: [
-      {name:"No viable 3m/5m strategy found", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad",
-       verdict:"Every concept tested on Nifty 50 spot at 3m/5m was net-negative after costs. Best of a bad field: v2 sweep-fade retuned for 5m (PF 0.71, -1,436pts), best lab variant (PF 0.84, -1,846), best 3m lab variant (PF 0.73, -3,430). v0.4's volume-dependent core condition can never pass on spot (no real volume) without borrowing futures volume, which TradingView replay can't do -- so it's only checkable on the live window (PF 0.95, -21, not tileable).", src:"BEST STRATEGY PER SCRIPT.md"},
+      {name:"Tenkan(9)/Kijun(26) cross + EMA200 scalp — built fresh on 9.5yr Dhan history, LIVE forward test 28 Sep", trades:3892, tpm:34.3, win:null, pf:1.151, net:6975, dd:1784, sharpe:null, posw:"10/10 years",
+       windowNet:[], params:{"Entry":"Ichimoku Tenkan(9)/Kijun(26) cross, filtered to trade only with the EMA200 trend","Stop":"10-bar swing +0.1xATR, floored at 1.0xATR","Target":"2.0R","Exit":"45-minute time-stop, forced flat 15:20-15:30","Session":"09:15-15:20"},
+       status:"ok", verdict:"First strategy in this entire project to be individually profitable in EVERY calendar year of its test span (2017-2026, 9.5 years, 177,972 5m bars from Dhan's real intraday history -- far deeper than TradingView offers for Nifty, ~6.3mo only). Fully volume-free (Tenkan/Kijun use only high/low, EMA200 uses close) -- important because Dhan's index volume field is 91% zero/broken, so volume-dependent signals (including the two earlier candidates this replaced) can't be trusted on this data. Checked as a real plateau (RR 1.25-2.0 and time-stop 45-90min all work similarly). TradingView single-pass confirmation on its available recent window (~6.3mo): PF 1.011, +43 net -- close to breakeven on that one partial year, a real but not-fully-explained harness/TV gap for Nifty specifically, flagged rather than hidden. Not yet forward-test-confirmed (live from 28 Sep 2026).", src:"nifty_dhan_fresh_results_2026_09_28.md + nifty_tenkan_switch_2026_09_28.md + dhan-historical-data-access memory"},
+      {name:"No viable 3m/5m strategy found (superseded 28 Sep -- see Tenkan/Kijun above)", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"-", windowNet:[], params:{}, status:"bad",
+       verdict:"SUPERSEDED: this was based on TradingView's own ~6.3-month Nifty spot data floor and a handful of ported/hand-tried concepts. Dhan's real 9.5-year index history (harvested 28 Sep) tells a different story -- see the Tenkan/Kijun row above. Kept here for the historical record of what TradingView-only testing found. Every concept tried at the time was net-negative after costs: v2 sweep-fade retuned for 5m (PF 0.71, -1,436pts), best lab variant (PF 0.84, -1,846), best 3m lab variant (PF 0.73, -3,430). v0.4's volume-dependent core condition can never pass on spot (no real volume) without borrowing futures volume, which TradingView replay can't do.", src:"BEST STRATEGY PER SCRIPT.md"},
       {name:"nifty v2 Sweep-Fade (15-minute, OUT OF 3m/5m SCOPE)", trades:null, tpm:null, win:null, pf:null, net:null, dd:null, sharpe:null, posw:"5/10", windowNet:[], params:{"Timeframe":"15-minute (outside this project's stated 3m/5m scope)"}, status:"warn",
        verdict:"The only Nifty strategy that holds up at all, but on 15m, not 3m/5m -- explicitly out of this project's scope. Tested over ~7.5 years / 10 windows, results -40 to +178 pts/month per window, 5 of 10 windows negative (never disastrously). Measured under an OLDER cost convention (flat per-trade deduction, not 0.02% commission) -- needs a fresh walk-forward at current costs before use.", src:"BEST STRATEGY PER SCRIPT.md"},
     ]
@@ -544,11 +551,11 @@ const FAMILIES = [
 ];
 
 const CROSS_TABLE = [
-  {inst:"BankNifty", strat:"v0.4 EMA pullback + 15m ADX gate", pf:1.33, net:1403, tpm:2.5, dd:1620},
+  {inst:"BankNifty", strat:"Supertrend(20,3)+volume scalp — built from scratch, LIVE 27 Sep (v0.4 still best on raw PF, 2.5 tr/mo)", pf:1.284, net:14450, tpm:28.9, dd:1719},
   {inst:"Silver",   strat:"v4.0 wide-ATR + fixed 350pt daily limit", pf:1.35, net:160845, tpm:24.2, dd:24551},
   {inst:"Gold",     strat:"v4.0 SHA flip, COMEX session", pf:1.13, net:16312, tpm:16.6, dd:null},
   {inst:"CrudeOil", strat:"crude v4.2 (reversal exit, no target, 09:15) — TV-confirmed 27 Sep", pf:1.541, net:10623, tpm:29.6, dd:1279},
-  {inst:"Nifty",    strat:"none at 3m/5m", pf:null, net:null, tpm:null, dd:null},
+  {inst:"Nifty",    strat:"Tenkan/Kijun+EMA200 scalp — built fresh on 9.5yr Dhan history, LIVE 28 Sep", pf:1.151, net:6975, tpm:34.3, dd:1784},
 ];
 
 const CORR_TABLE = [
