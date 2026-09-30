@@ -46,21 +46,42 @@ def v40_frame(bars, p):
     t = df["time"].dt.time
     s0, s1 = (_t(x) for x in p["session"])
     df["in_sess"] = (t >= s0) & (t < s1)
+    # exclude_hours (Silver, 2026-09-28): a structural low-liquidity window (verified via 5m volume
+    # rank, stable 0.87 train/holdout correlation) - the gap between the Indian morning session
+    # winding down and London/COMEX building volume. Holdout-validated across 4 split points
+    # (+25k to +32k net, every window) - unlike an hour picked by backward-looking P&L, which failed
+    # every holdout check tried (see strategy_audit_2026_09 chat log, 2026-09-28). None/empty -> no-op.
+    exclude_hours = set(p.get("exclude_hours") or [])
+    if exclude_hours:
+        df["in_sess"] = df["in_sess"] & ~df["time"].dt.hour.isin(exclude_hours)
     df["risk_l"] = np.maximum(df["close"] - (df["sw_lo"] - p["sw_buf"] * df["atr"]), p["min_sl"] * df["atr"])
     df["risk_s"] = np.maximum((df["sw_hi"] + p["sw_buf"] * df["atr"]) - df["close"], p["min_sl"] * df["atr"])
     cap = p["max_sl"] * df["atr"]
-    df["ok_l"] = df["in_sess"] & df["flip_up"] & (df["e9"] > df["e22"]) & (df["risk_l"] <= cap)
-    df["ok_s"] = df["in_sess"] & df["flip_dn"] & (df["e9"] < df["e22"]) & (df["risk_s"] <= cap) & ~df["ok_l"]
+    # bo_lookback (v4.1): entry = SHA flip OR a Donchian breakout of the prior N-bar high/low, channel
+    # shifted one bar so the current bar cannot see itself. None/0 -> identical to the plain flip entry.
+    bo = p.get("bo_lookback")
+    entry_l, entry_s = df["flip_up"], df["flip_dn"]
+    if bo:
+        entry_l = entry_l | (df["close"] > df["high"].rolling(bo).max().shift(1))
+        entry_s = entry_s | (df["close"] < df["low"].rolling(bo).min().shift(1))
+    df["ok_l"] = df["in_sess"] & entry_l & (df["e9"] > df["e22"]) & (df["risk_l"] <= cap)
+    df["ok_s"] = df["in_sess"] & entry_s & (df["e9"] < df["e22"]) & (df["risk_s"] <= cap) & ~df["ok_l"]
     return df
 
 
 def simulate(df, p, start=WARMUP_BARS, next_open=True):
     """Bracket-only trade simulation. Entries fill at the next bar's open (Pine default) with
-    SL/TP fixed from the signal bar's close. Returns (closed_trades, open_position, pending)."""
+    SL/TP fixed from the signal bar's close. Returns (closed_trades, open_position, pending).
+
+    reversal_exit (v4.2, off by default): no fixed target - the only exits are the stop, or an
+    opposite-direction ok_l/ok_s signal while a position is open. That decision, like a fresh
+    entry, fills at the NEXT bar's open (Pine's default order timing), via `pending_close`."""
     rows = df.to_dict("records")
     trades, pos, pending = [], None, None
     day, day_real, locked = None, 0.0, False
     limit = p.get("day_loss_limit_pts") or 0
+    reversal_exit = bool(p.get("reversal_exit"))
+    pending_close = None
 
     def close(px, t, why):
         nonlocal pos, day_real, locked
@@ -77,23 +98,32 @@ def simulate(df, p, start=WARMUP_BARS, next_open=True):
         d = r["time"].date()
         if d != day:
             day, day_real, locked = d, 0.0, False
+        just_reversed = False
+        if pending_close is not None and pos is not None:
+            close(r["open"], r["time"], pending_close)
+            pending_close = None
+            just_reversed = True
         if pending is not None:
             pos = dict(pending, entry_time=r["time"], entry=r["open"])
             pending = None
         if pos is not None:
             is_long = pos["side"] == "LONG"
             hit_sl = r["low"] <= pos["sl"] if is_long else r["high"] >= pos["sl"]
-            hit_tp = r["high"] >= pos["tp"] if is_long else r["low"] <= pos["tp"]
+            hit_tp = (not reversal_exit) and (r["high"] >= pos["tp"] if is_long else r["low"] <= pos["tp"])
             if hit_sl or hit_tp:                                 # both in one bar: assume the stop
                 close(pos["sl"] if hit_sl else pos["tp"], r["time"], "SL" if hit_sl else "TP")
             elif locked:
                 close(r["close"], r["time"], "DAY LIMIT")
-        if pos is None and pending is None and not locked and (r["ok_l"] or r["ok_s"]):
+            elif reversal_exit and pos is not None and (r["ok_s"] if is_long else r["ok_l"]):
+                pending_close = "REV"
+        if (not just_reversed and pos is None and pending is None and not locked
+                and (r["ok_l"] or r["ok_s"])):
             side = "LONG" if r["ok_l"] else "SHORT"
             risk = r["risk_l"] if side == "LONG" else r["risk_s"]
             sign = 1 if side == "LONG" else -1
             sig = dict(side=side, signal_time=r["time"], risk_pts=risk,
-                       sl=r["close"] - sign * risk, tp=r["close"] + sign * p["rr"] * risk)
+                       sl=r["close"] - sign * risk,
+                       tp=(None if reversal_exit else r["close"] + sign * p["rr"] * risk))
             if next_open:
                 pending = sig
             else:

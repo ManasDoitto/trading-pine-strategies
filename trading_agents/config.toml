@@ -55,6 +55,17 @@ session = ["09:00", "23:30"]
 tv_symbol = "MCX:SILVERM1!"
 r7_max_strikes_otm = 5
 
+[instruments.NIFTY]
+option_segment = "NSE_FNO"
+option_instrument = "OPTIDX"
+underlying_segment = "IDX_I"
+underlying_instrument = "INDEX"
+underlying_security_id = 13        # NIFTY 50 index (does not roll)
+chain_segment = "IDX_I"
+session = ["09:15", "15:30"]
+tv_symbol = "NSE:NIFTY"
+r7_max_strikes_otm = 3             # 50-pt strikes -> 150 pts
+
 # ---------------------------------------------------------------- rules
 # Option-buyer rule detectors (core/rules.py). Tune these to your own plan.
 [rules]
@@ -111,20 +122,37 @@ iv_sane_range = [3.0, 150.0]
 max_iv_model_gap = 10.0            # |Dhan IV - Black-76 IV from LTP| in vol points; beyond it Black-76 is used
 max_underlying_gap_pct = 2.0       # chain last_price vs futures close; beyond it ATM is re-centred on the close
 
-# v4.0 SHA-flip strategy parameters (working_strategies/*/1_*.pine.txt). BANKNIFTY v0.4 is not modelled.
+# Strategy parameters. Set 2026-09-28 to the dashboard's best pick per instrument
+# (strategy_audit_2026_09/strategy_comparison_dashboard.html), replacing what trading_exec had been
+# running (v4.0 base for Crude/Silver, v0.4 for BankNifty - see git history for those definitions).
 [strategy.CRUDEOIL]
-name = "CRUDE v4.0 SHA flip RR4.0 (working_strategies/CrudeOil/1)"
+# v4.2: crude #1's entry/stop UNCHANGED (SHA flip + EMA9/22, 10-bar swing stop, 1.5-3.0x ATR).
+# NO fixed R:R target - exit is the stop, or a reversal_exit (an opposite valid signal while in a
+# position; fills next bar's open, same as a fresh entry). rr is unused or the Signal.rr field.
+name = "CRUDE v4.2 reversal-exit, no fixed target (dashboard best pick, 2026-09-28)"
 sha_len1 = 10
 sha_len2 = 10
 sw_len = 10
 sw_buf = 0.1
 min_sl = 1.5
 max_sl = 3.0
-rr = 4.0
+rr = 0.0
+reversal_exit = true
+# INFORMATIONAL ONLY - never used by simulate() (reversal_exit ignores rr entirely) or the shadow
+# tracker's real exit. A reference price shown alongside the alert for a quick office-hours glance,
+# computed from the 30-month backtest: avg win 172.4 pts / avg risk_pts 30.4 = 5.67R (172 winning
+# trades of 817, 21.1% win rate; median win is much lower, 83 pts - the mean is pulled up by a few
+# large trend-riding wins, so treat this as a loose target, not a tight one).
+ref_rr = 5.7
 session = ["09:15", "23:30"]
 
 [strategy.SILVER]
-name = "Silver v4.0 wide-ATR + fixed 350-pt daily limit (working_strategies/Silver/1)"
+# v4.1 bo(3): #1's flip entry OR a 3-bar Donchian breakout, same EMA9/22 trend filter and stops as
+# #1. See bo_lookback in signals.py::v40_frame. Beats the flip-only incumbent on SILVER1!'s own
+# 30-month history (PF 1.563 vs 1.503, +337,941 vs +222,240 pts) - see silver_final_comparison.py.
+# exclude_hours 15-16 IST added 2026-09-28: a structural low-liquidity window, holdout-validated
+# across 4 split points (see signals.py::v40_frame's comment on exclude_hours for the full case).
+name = "Silver v4.1 SHA flip + 3-bar Donchian breakout, wide-ATR + 350pt daily limit, 15-17h excluded (dashboard best pick, 2026-09-28)"
 sha_len1 = 10
 sha_len2 = 10
 sw_len = 10
@@ -132,17 +160,17 @@ sw_buf = 0.1
 min_sl = 2.5
 max_sl = 5.0
 rr = 3.0
+bo_lookback = 3
 day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
+exclude_hours = [15, 16]
 
 [strategy.SILVERM]
-# Switched 2026-09-18 from computing signals on SILVER (only 41-45% agreement with SILVERM's own
-# price action, measured twice) to SILVERM's own bars directly. Same v4.0 wide-ATR + breaker params
-# as SILVER; over the last ~3mo of SILVERM's own history (its full Dhan bar history) this scored
-# BETTER than the old SILVER-sourced signal, not just less mismatched: PF 1.41 vs 1.03, net +21,558
-# vs +984 pts, 71 vs 56 trades. Still a short sample (71 trades) vs SILVER's 32-month tuning history
-# -- treat as provisional, not yet as proven as the original SILVER number.
-name = "Silver v4.0 wide-ATR + fixed 350-pt daily limit, on SILVERM's own price action"
+# Same v4.1 bo(3) as SILVER, kept for SILVERM's OWN price action (used only by the premarket/
+# session-close briefs, which price SILVERM directly - trading_exec now signals SILVERM's traded
+# options off SILVER1! instead, via signal_from in trading_exec/config.toml; see the 2026-09-28
+# backtest that found SILVER1! outperforms SILVERM1! on both variants over the same 30-month window).
+name = "Silver v4.1 SHA flip + 3-bar Donchian breakout, 15-17h excluded, on SILVERM's own price action"
 sha_len1 = 10
 sha_len2 = 10
 sw_len = 10
@@ -150,39 +178,46 @@ sw_buf = 0.1
 min_sl = 2.5
 max_sl = 5.0
 rr = 3.0
+bo_lookback = 3
 day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
+exclude_hours = [15, 16]
 
-# BankNifty v0.4 (working_strategies/BankNifty/1), default inputs copied from the Pine. It runs on the
-# front-month FUTURE (NSE:BANKNIFTY1!): its core filter needs volume and VWAP, which the index lacks.
-# engine = "v04" -> trading_agents/core/signals_v04.py. The v4.0 agents' strategy sections skip it.
+# Supertrend(20,3) + above-average volume, on the front-month FUTURE (NSE:BANKNIFTY1!) - needs
+# volume, which the index lacks (same reason v0.4 ran on the future). engine = "supertrend" ->
+# trading_agents/core/signals_scalp.py. Re-enabled 2026-09-28, replacing v0.4 (paused since
+# 2026-09-18, unverified port): TV 6-window replay PF 1.284, +14,450 net, 6/6 windows profitable.
 [strategy.BANKNIFTY]
-engine = "v04"
-name = "BankNifty v0.4 EMA pullback + 15m ADX gate (working_strategies/BankNifty/1)"
-ema_fast = 9
-ema_med = 21
-ema_slow = 200
-entry_window = ["09:30", "15:00"]
-skip_open_min = 15
-flat_window = ["15:15", "15:30"]
-flat_exit_at = "15:20"             # the force-flat close fills at the next bar's open
-atr_min_pts = 50.0
-atr_buff = 0.15
-stop_floor_atr = 0.5
-max_stop_atr = 2.0
+engine = "supertrend"
+name = "BankNifty Supertrend(20,3) + above-avg volume scalp (dashboard best pick, 2026-09-28)"
+st_mult = 3.0
+st_period = 20
+use_vol_filter = true
+vol_len = 20
+min_sl = 1.0
+rr = 1.5
+time_stop_min = 45
+entry_window = ["09:15", "15:20"]
+flat_window = ["15:20", "15:30"]
+
+# Ichimoku Tenkan(9)/Kijun(26) cross, filtered to the EMA200 trend, on the NIFTY index directly (no
+# volume needed). engine = "tenkan_kijun" -> trading_agents/core/signals_scalp.py. New 2026-09-28:
+# positive in all 10 calendar years 2017-2026 on Dhan's full history (nifty_dhan_fresh.py).
+[strategy.NIFTY]
+# ema200_dist_min + rr=2.5 added 2026-09-29: fewer, higher-quality trades (see signals_scalp.py::
+# tenkan_frame's comment for the full holdout-validated case; ~20 stricter alternatives were tried
+# and rejected first). 11% fewer trades, PF 1.152->1.175, holdout net +2,392->+2,731, 10/10 years kept.
+engine = "tenkan_kijun"
+name = "Nifty Tenkan(9)/Kijun(26) + EMA200 scalp, EMA200 distance filter (dashboard best pick, 2026-09-29)"
+tenkan_len = 9
+kijun_len = 26
+ema200_len = 200
+ema200_dist_min = 1.0
+min_sl = 1.0
 rr = 2.5
-wick_frac = 0.5
-vol_mlt = 1.0
-rsi_len = 3
-rsi_max_long = 80
-rsi_min_short = 20
-pb_lookback = 10
-reclaim_win = 8
-cool_bars = 3
-allow_coil = true
-cluster_mlt = 1.0
-cluster_buf = 0.25
-htf_adx_min = 25.0
+time_stop_min = 45
+entry_window = ["09:15", "15:20"]
+flat_window = ["15:20", "15:30"]
 
 # Pre-registered forward test (memory: crude-v4-forward-test). Never move these goalposts.
 [forward_test.CRUDEOIL]

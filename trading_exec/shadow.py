@@ -16,6 +16,8 @@ import os
 from datetime import date, datetime, timedelta
 
 from trading_agents.core import instruments
+from trading_agents.core import signals as v40
+from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.market_data import intraday_bars
 
 from .config import data_dir, load_config
@@ -129,8 +131,14 @@ def _option_bars(client, trade, now):
 
 def _exit_scan(trade, ubars):
     """First underlying touch of stop or target after entry. Stop wins a tie, as in simulate().
-    A strategy with a same-day force-flat (BankNifty v0.4, flat_at 15:20) exits at that bar's open."""
+    A strategy with a same-day force-flat (BankNifty v0.4, flat_at 15:20) exits at that bar's open.
+
+    trade["target"] is None for a reversal-exit strategy (Crude v4.2): there is no fixed target
+    to scan for, so only the stop (and any force-flat) can close it here. The real reversal exit
+    is a second, opposite-direction signal - not reproduced in this points-only scan, so a v4.2
+    shadow trade that never hits its stop stays open longer than the live strategy actually would."""
     is_long = trade["side"] == "LONG"
+    has_target = trade.get("target") is not None
     flat_at = None
     if trade.get("flat_at"):
         hh, mm = trade["flat_at"].split(":")
@@ -139,10 +147,35 @@ def _exit_scan(trade, ubars):
         if flat_at is not None and r["time"].time() >= flat_at:
             return r["time"], float(r["open"]), "EOD"
         hit_sl = r["low"] <= trade["sl"] if is_long else r["high"] >= trade["sl"]
-        hit_tp = r["high"] >= trade["target"] if is_long else r["low"] <= trade["target"]
+        hit_tp = has_target and (r["high"] >= trade["target"] if is_long else r["low"] <= trade["target"])
         if hit_sl or hit_tp:
             return r["time"], (trade["sl"] if hit_sl else trade["target"]), ("SL" if hit_sl else "TARGET")
     return None, None, None
+
+
+def _reversal_exit_scan(client, trade, now):
+    """For a reversal_exit strategy (Crude v4.2): there is no fixed target to scan bars for, and the
+    real exit - an opposite valid signal while in a position - can only be seen by rerunning the
+    actual strategy, not by comparing the trade's own sl/target to price. This reruns production
+    simulate() over a properly warmed-up window (WARMUP_BARS before entry, same as live) and reads
+    this trade's own outcome off it: the only way to reproduce the reversal exit exactly."""
+    strat = (agents_config().get("strategy", {}) or {}).get(trade.get("signal_instrument") or trade["instrument"])
+    if not strat or not strat.get("reversal_exit"):
+        return None
+    sid, seg, kind = trade.get("signal_security_id"), trade.get("signal_segment"), trade.get("signal_series_type")
+    if not sid:
+        return None
+    entry_date = datetime.fromisoformat(trade["bar_time"]).date()
+    bars = intraday_bars(client, sid, seg, kind, entry_date - timedelta(days=30), now.date(), interval=5)
+    if bars.empty:
+        return None
+    df = v40.v40_frame(bars, strat)
+    sim_trades, _pos, _pending = v40.simulate(df, strat)
+    bar_time = datetime.fromisoformat(trade["bar_time"])
+    for t in sim_trades:
+        if t["signal_time"] == bar_time and t["side"] == trade["side"]:
+            return t["exit_time"], t["exit"], t["result"]
+    return None
 
 
 def mark(client, trade, now=None):
@@ -168,7 +201,8 @@ def mark(client, trade, now=None):
 
     ubars = _underlying_bars(client, trade, now)
     if ubars is not None and not ubars.empty:
-        t, level, reason = _exit_scan(trade, ubars)
+        rev = _reversal_exit_scan(client, trade, now) if trade.get("target") is None else None
+        t, level, reason = rev if rev is not None else _exit_scan(trade, ubars)
         if t is not None:
             at_exit = obars[obars["time"] <= t] if not obars.empty else obars
             exit_premium = float(at_exit["close"].iloc[-1]) if len(at_exit) else trade.get("last_premium")

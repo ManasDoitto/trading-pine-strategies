@@ -17,7 +17,7 @@ import sys
 import traceback
 from datetime import date, datetime, time, timedelta
 
-from ..core import instruments, levels, options, signals, signals_v04
+from ..core import instruments, levels, options, signals, signals_scalp, signals_v04
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
 from ..core.market_data import intraday_bars
@@ -92,6 +92,28 @@ def strategy_session_v04(bars, scfg, day):
         pending_at_close=None,
         note="v0.4 arms stop orders: `armed` are the setups offered, `signals` the ones price triggered. "
              "It force-flats at 15:20, so nothing is normally open at the close.",
+    )
+
+
+def strategy_session_scalp(bars, scfg, day, frame_fn, engine_name):
+    """Supertrend (BankNifty) or Tenkan-Kijun (Nifty) for `day`, same shape as strategy_session."""
+    if len(bars) < signals_scalp.WARMUP_BARS + 50:
+        return dict(modelled=True, available=False, name=scfg["name"], note=f"only {len(bars)} 5m bars of history")
+    df = frame_fn(bars, scfg)
+    trades, pos, pending = signals_scalp.simulate_scalp(df, scfg)
+    today = df[df["time"].dt.date == day]
+    fired = [dict(time=r["time"], side="LONG" if r["ok_l"] else "SHORT", close=r["close"],
+                  risk_pts=r["risk_l"] if r["ok_l"] else r["risk_s"],
+                  option_for_buyer="CE" if r["ok_l"] else "PE")
+             for r in today.to_dict("records") if r["ok_l"] or r["ok_s"]]
+    day_trades = [signals_scalp._trade_view(t) for t in trades if t["entry_time"].date() == day]
+    return dict(
+        modelled=True, available=True, approximate=True, engine=engine_name, name=scfg["name"], rr=scfg["rr"],
+        signals=fired, flips=len(fired),
+        trades=day_trades, trades_net_pts=sum(t.get("pnl_pts", 0) for t in day_trades),
+        wins=sum(1 for t in day_trades if t.get("pnl_pts", 0) > 0),
+        open_at_close=signals_scalp._trade_view(pos, float(df["close"].iloc[-1])) if pos else None,
+        pending_at_close=signals_scalp._trade_view(pending) if pending else None,
     )
 
 
@@ -187,8 +209,9 @@ def instrument_facts(client, u, day, cfg, premarket, journal):
         sess = session_summary(day_bars, prior if prior.get("available") else None)
 
     scfg = scfg_all.get(u)
-    if scfg and scfg.get("engine", "v40") == "v04":
-        # v0.4 needs volume and VWAP: it is graded on the front-month future, like the live checker.
+    engine = (scfg or {}).get("engine", "v40")
+    if engine in ("v04", "supertrend"):
+        # Both need volume (or volume+VWAP): graded on the front-month future, like the live checker.
         fut = instruments.front_future(u, day)
         if fut is None:
             strat = dict(modelled=True, available=False, name=scfg["name"],
@@ -196,8 +219,13 @@ def instrument_facts(client, u, day, cfg, premarket, journal):
         else:
             fbars = intraday_bars(client, fut["security_id"], fut["segment"], fut["instrument"],
                                   day - timedelta(days=pcfg["history_days"]), day, interval=5)
-            strat = strategy_session_v04(fbars[fbars["time"].dt.date <= day], scfg, day)
+            fprior = fbars[fbars["time"].dt.date <= day]
+            strat = (strategy_session_v04(fprior, scfg, day) if engine == "v04"
+                     else strategy_session_scalp(fprior, scfg, day, signals_scalp.supertrend_frame, "supertrend"))
             strat["series"] = fut["label"]
+    elif engine == "tenkan_kijun":
+        strat = strategy_session_scalp(bars[bars["time"].dt.date <= day], scfg, day,
+                                       signals_scalp.tenkan_frame, "tenkan_kijun")
     else:
         strat = strategy_session(bars[bars["time"].dt.date <= day], scfg, day)
     user = user_session_trades(journal, day, u)

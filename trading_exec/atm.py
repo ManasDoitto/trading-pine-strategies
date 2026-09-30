@@ -95,11 +95,16 @@ def underlying_ltp(client, instrument, expiry):
         return None
 
 
-def premium_targets(atm, signal):
+def premium_targets(atm, signal, ref_rr=None):
     """Translate the strategy's underlying SL/target into approximate premium terms via delta.
 
     Approximate on purpose, since delta moves. Used for display and for the shadow record, never
     as an exit trigger: shadow exits track the underlying, exactly as the strategy does.
+
+    ref_rr: for a strategy with no fixed target (reversal_exit), an INFORMATIONAL reference multiple
+    of risk (e.g. the backtest's avg win / avg risk) to show as a rough glance-at-your-phone target.
+    Never used as an exit trigger - only the real target (when there is one) or the reversal itself
+    closes the trade. Ignored when the signal already has a real target.
     """
     delta = abs(atm.get("delta") or 0)
     premium = atm.get("entry_premium")
@@ -107,12 +112,19 @@ def premium_targets(atm, signal):
     if not delta or not premium:
         return dict(available=False)
     risk = signal.risk_pts * delta
-    reward = signal.risk_pts * signal.rr * delta
-    return dict(
+    has_target = getattr(signal, "target", None) is not None
+    reward = signal.risk_pts * signal.rr * delta if has_target else None
+    out = dict(
         available=True, delta=round(delta, 4),
-        risk_premium_pts=round(risk, 2), reward_premium_pts=round(reward, 2),
+        risk_premium_pts=round(risk, 2),
         approx_sl_premium=round(max(premium - risk, 0), 2),
-        approx_target_premium=round(premium + reward, 2),
-        risk_inr=round(risk * qty, 2), reward_inr=round(reward * qty, 2),
+        risk_inr=round(risk * qty, 2),
         cost_inr=round(premium * qty, 2),
     )
+    if has_target:
+        out.update(reward_premium_pts=round(reward, 2), approx_target_premium=round(premium + reward, 2),
+                    reward_inr=round(reward * qty, 2))
+    elif ref_rr:
+        ref_reward = signal.risk_pts * ref_rr * delta
+        out.update(ref_rr=ref_rr, approx_ref_target_premium=round(premium + ref_reward, 2))
+    return out

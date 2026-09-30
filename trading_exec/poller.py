@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 
 from trading_agents.core import instruments
 from trading_agents.core import signals as v40
+from trading_agents.core import signals_scalp as scalp
 from trading_agents.core import signals_v04 as v04
 from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.market_data import intraday_bars
@@ -76,6 +77,23 @@ def v40_signals(traded, source, params, series, bars):
     if not hit:
         return []
     pending, close = hit
+    tp = pending["tp"]                          # None for reversal_exit (v4.2): no fixed target
+    return [Signal(strategy=params["name"], instrument=traded, side=pending["side"],
+                   bar_time=_iso(pending["signal_time"]), entry_hint=round(close, 2),
+                   sl=round(pending["sl"], 2), target=(round(tp, 2) if tp is not None else None),
+                   risk_pts=round(pending["risk_pts"], 2), rr=params["rr"], **_series_fields(source, series))]
+
+
+# ---------------------------------------------------------------- scalp (supertrend / tenkan_kijun)
+def scalp_signals(traded, source, params, series, bars, frame_fn):
+    """Same shape as v40_signals, for the two engines in signals_scalp.py."""
+    df = frame_fn(bars, params)
+    if len(df) < scalp.WARMUP_BARS + 50:
+        return []
+    _trades, _pos, pending = scalp.simulate_scalp(df, params)
+    if not pending or pending["signal_time"] != df["time"].iat[-1]:
+        return []
+    close = float(df["close"].iat[-1])
     return [Signal(strategy=params["name"], instrument=traded, side=pending["side"],
                    bar_time=_iso(pending["signal_time"]), entry_hint=round(close, 2),
                    sl=round(pending["sl"], 2), target=round(pending["tp"], 2),
@@ -155,8 +173,13 @@ def poll_once(client, now=None, seen=None):
         bars = closed_bars(client, series, now, cfg["history_days"], cfg["interval_minutes"])
         if bars.empty:
             continue
-        if params.get("engine", "v40") == "v04":
+        engine = params.get("engine", "v40")
+        if engine == "v04":
             found = v04_signals(client, traded, source, params, series, bars)
+        elif engine == "supertrend":
+            found = scalp_signals(traded, source, params, series, bars, scalp.supertrend_frame)
+        elif engine == "tenkan_kijun":
+            found = scalp_signals(traded, source, params, series, bars, scalp.tenkan_frame)
         else:
             found = v40_signals(traded, source, params, series, bars)
         for sig in found:

@@ -1,4 +1,6 @@
 import math
+import os
+import time
 import unittest
 from datetime import date, datetime
 from unittest import mock
@@ -7,6 +9,16 @@ from trading_agents.core import black76, rules, trades
 from trading_agents.core.dhan_client import READ_METHODS, ReadOnlyDhan
 from trading_agents.core.option_symbols import from_fill, parse_custom_symbol, underlying_of
 from trading_agents.tests.fixtures import RULES, fill
+
+
+def _rate_limit_worker(queue, n, gap):
+    """Module-level (not nested) so it's picklable under multiprocessing's spawn start
+    method, which Windows requires."""
+    from trading_agents.core.dhan_client import wait_for_slot
+
+    for _ in range(n):
+        wait_for_slot("data", min_gap=gap)
+        queue.put(time.time())
 
 
 class ReadOnlyClientTest(unittest.TestCase):
@@ -38,6 +50,39 @@ class ReadOnlyClientTest(unittest.TestCase):
     def test_allowlist_exists_on_dhanhq(self):
         from dhanhq import dhanhq
         self.assertFalse([m for m in READ_METHODS if not hasattr(dhanhq, m)])
+
+
+class CrossProcessRateLimitTest(unittest.TestCase):
+    """2026-09-29: runner.py (poll_seconds=60) and trade_watch.py (poll_seconds=20) each held
+    their own ReadOnlyDhan with its own in-memory _last_call dict. Each process individually
+    respected its own throttle, but the two interleaved to blow past Dhan's actual per-account
+    limit -- DH-904 "breaching rate limits", ~40 times in one session, starting hours before
+    anything else touched Dhan that day. wait_for_slot() must hold the COMBINED rate under the
+    cap across genuinely separate OS processes (threads share memory and would not catch the
+    original bug), which is what this spawns and checks."""
+
+    def test_two_processes_share_one_clock(self):
+        import multiprocessing as mp
+
+        from trading_agents.core.dhan_client import _STATE_PATH
+
+        for p in (_STATE_PATH, _STATE_PATH.parent / (_STATE_PATH.name + ".lock")):
+            if p.exists():
+                p.unlink()
+
+        n, gap = 6, 0.5
+        q = mp.Queue()
+        procs = [mp.Process(target=_rate_limit_worker, args=(q, n, gap)) for _ in range(2)]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)
+            self.assertEqual(p.exitcode, 0, "worker process failed")
+
+        stamps = sorted(q.get(timeout=5) for _ in range(2 * n))
+        gaps = [b - a for a, b in zip(stamps, stamps[1:])]
+        self.assertGreaterEqual(min(gaps), gap - 0.05,
+                                 f"combined rate breached the shared limit across processes: {gaps}")
 
 
 class MarketDataFailureTest(unittest.TestCase):

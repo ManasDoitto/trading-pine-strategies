@@ -4,6 +4,7 @@ Wraps dhanhq and exposes ONLY allowlisted data/report methods. Order placement,
 modification, cancellation, kill-switch, position conversion etc. are
 unreachable through this object by construction.
 """
+import json
 import os
 import time
 
@@ -16,32 +17,72 @@ READ_METHODS = frozenset({
     "ticker_data", "ohlc_data", "quote_data",
 })
 
-# Minimum seconds between consecutive calls of the same method (Dhan rate limits).
+# Minimum seconds between consecutive calls in the same category (Dhan rate limits).
 # ticker_data is 1/sec: below that it returns a payload with no data, which every caller reads as
 # "no price" rather than as an error (verified 2026-09-17 - back-to-back calls dropped the quote).
-_MIN_GAP = {"option_chain": 3.1, "expiry_list": 3.1, "ticker_data": 1.1}
-_DEFAULT_GAP = 0.25
+#
+# intraday_minute_data/historical_daily_data share a "data" bucket, not one each: 2026-09-29,
+# runner.py (poll_seconds=60) and trade_watch.py (poll_seconds=20) each ran their OWN
+# ReadOnlyDhan instance with its OWN in-memory _last_call dict, so each process individually
+# respected a 0.25s gap while the two processes interleaved to blow well past Dhan's actual
+# combined per-account limit (DH-904 "breaching rate limits", ~40 times in one session, starting
+# hours before anything else was touched). Fix: the gap-tracking state now lives in a small file
+# under a cross-process lock, so every process sharing this Dhan token -- however many are
+# running -- waits on the same clock. See trading_agents/tests/test_core.py for the regression test.
+_CATEGORY = {
+    "intraday_minute_data": "data", "historical_daily_data": "data",
+    "ticker_data": "quote", "ohlc_data": "quote", "quote_data": "quote",
+    "option_chain": "chain", "expiry_list": "chain",
+}
+_MIN_GAP = {"data": 0.4, "quote": 1.1, "chain": 3.1}
+_DEFAULT_GAP = 0.4
+
+_STATE_PATH = REPO_ROOT / "exec_data" / ".dhan_rate_state.json"
+
+
+def _file_lock(timeout=20.0):
+    from filelock import FileLock
+    _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    return FileLock(str(_STATE_PATH) + ".lock", timeout=timeout)
+
+
+def wait_for_slot(category: str, min_gap: float | None = None) -> float:
+    """Cross-process throttle: reserves the next allowed call time for `category` in the
+    shared state file, then sleeps until it. Safe to call from any process/script that
+    talks to Dhan (trading_exec, trading_agents, stockopt/, ad-hoc scripts) -- they all
+    share one account-level rate limit. Returns the seconds actually slept."""
+    gap = _MIN_GAP.get(category, _DEFAULT_GAP) if min_gap is None else min_gap
+    with _file_lock():
+        state = {}
+        if _STATE_PATH.exists():
+            try:
+                state = json.loads(_STATE_PATH.read_text())
+            except (json.JSONDecodeError, OSError):
+                state = {}
+        now = time.time()
+        last = state.get(category, 0.0)
+        target = max(now, last + gap)
+        state[category] = target
+        _STATE_PATH.write_text(json.dumps(state))
+    delay = target - now
+    if delay > 0:
+        time.sleep(delay)
+    return max(delay, 0.0)
 
 
 class ReadOnlyDhan:
     def __init__(self, raw):
         object.__setattr__(self, "_raw", raw)
-        object.__setattr__(self, "_last_call", {})
 
     def __getattr__(self, name):
         if name not in READ_METHODS:
             raise AttributeError(f"'{name}' is not available: trading_agents is read-only")
         fn = getattr(self._raw, name)
+        category = _CATEGORY.get(name, name)
 
         def throttled(*args, **kwargs):
-            gap = _MIN_GAP.get(name, _DEFAULT_GAP)
-            wait = self._last_call.get(name, 0) + gap - time.monotonic()
-            if wait > 0:
-                time.sleep(wait)
-            try:
-                return fn(*args, **kwargs)
-            finally:
-                self._last_call[name] = time.monotonic()
+            wait_for_slot(category)
+            return fn(*args, **kwargs)
 
         return throttled
 

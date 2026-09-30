@@ -63,27 +63,35 @@ lots = 2
 min_dte = 2                         # crude ATM theta was ~27% of premium/day at DTE 1
 max_spread_pct = 15.0
 
-# Silver: signal computed directly on SILVERM's own price action (switched 2026-09-18 - see
-# trading_agents/config.toml [strategy.SILVERM] for why: only 41-45% agreement with the old
-# SILVER-sourced signal, and SILVERM's own action scored better on the data available). Options are
-# still bought through the SILVERM chain (the liquid one; big-SILVER ATM had OI 8 and a 168% spread).
+# Silver: signal now computed on SILVER1! (switched back 2026-09-28 - a fuller 30-month backtest on
+# SILVERM's own bar history, using the SAME harness, found SILVER1! outperforms SILVERM1! on both the
+# incumbent and the new bo(3) breakout variant; the 2026-09-18 switch was based on a much shorter,
+# provisional ~71-trade sample). Options are still bought through the SILVERM chain (the liquid one;
+# big-SILVER ATM had OI 8 and a 168% spread).
 [instruments.SILVERM]
 enabled = true
+signal_from = "SILVER"
 lots = 2
 min_dte = 2
 max_spread_pct = 15.0
 
-# BankNifty v0.4 runs on the front-month FUTURE (NSE:BANKNIFTY1!) - it needs volume and VWAP - and is
-# bought as BANKNIFTY index options. It alerts [setup armed] when its stop entry arms, then
-# [shadow entry] when the trigger is hit. Its trades are flat by 15:20.
+# BankNifty Supertrend(20,3)+volume runs on the front-month FUTURE (NSE:BANKNIFTY1!) - it needs
+# volume - and is bought as BANKNIFTY index options. Its trades are flat by 15:20.
 #
-# PAUSED 2026-09-18: the Python port is unverified. Replayed on Dhan futures from 1 Jul to 17 Sep it
-# found 1 trade (15-Jul SHORT, -96.8 pts) where the strategy notes expect about 2.5 a month. Until a
-# TradingView Strategy Tester trade list settles that, no BankNifty alerts. Set enabled = true to
-# resume - everything else stays wired, and the pre-market and session-close facts still model it.
+# RE-ENABLED 2026-09-28 on the new Supertrend engine (trading_agents/config.toml [strategy.BANKNIFTY],
+# engine="supertrend"), replacing v0.4 which had been PAUSED since 2026-09-18 (unverified port: 1 trade
+# in a 1 Jul-17 Sep replay vs an expected ~2.5/month). Supertrend is validated by a 6-window TradingView
+# replay (PF 1.284, +14,450 net, 6/6 windows profitable) - see strategy_comparison_dashboard.html.
 [instruments.BANKNIFTY]
-enabled = false
+enabled = true
 signal_series = "future"
 lots = 2
+min_dte = 2
+max_spread_pct = 15.0
+
+# Nifty Tenkan(9)/Kijun(26)+EMA200 runs on the NIFTY index directly (no volume needed). New 2026-09-28.
+[instruments.NIFTY]
+enabled = true
+lots = 1
 min_dte = 2
 max_spread_pct = 15.0

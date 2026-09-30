@@ -22,6 +22,7 @@ from datetime import date, datetime, time, timedelta
 import numpy as np
 
 from ..core import instruments, levels, options, signals
+from ..core import signals_scalp
 from ..core import signals_v04
 from ..core.config import data_dir, load_config
 from ..core.dhan_client import get_dhan_client
@@ -161,9 +162,9 @@ def instrument_facts(client, u, as_of, as_of_dt, cfg):
     engine = (scfg or {}).get("engine", "v40")
     if not scfg:
         strat = dict(modelled=False, available=False, note=f"no strategy configured for {u}")
-    elif engine == "v04":
-        # v0.4 reads volume and VWAP, which the BANKNIFTY index does not have: its state comes from
-        # the front-month future, the same series the live signal checker watches.
+    elif engine in ("v04", "supertrend"):
+        # Both need volume and VWAP (or, for supertrend, just volume), which the index lacks: their
+        # state comes from the front-month future, the same series the live signal checker watches.
         fut = instruments.front_future(u)
         if fut is None:
             strat = dict(modelled=True, available=False, name=scfg["name"],
@@ -171,8 +172,12 @@ def instrument_facts(client, u, as_of, as_of_dt, cfg):
         else:
             fbars = intraday_bars(client, fut["security_id"], fut["segment"], fut["instrument"],
                                   as_of - timedelta(days=pcfg["history_days"]), as_of, interval=5)
-            strat = signals_v04.v04_state(fbars[fbars["time"].dt.date < as_of], scfg)
+            fprior = fbars[fbars["time"].dt.date < as_of]
+            strat = (signals_v04.v04_state(fprior, scfg) if engine == "v04"
+                     else signals_scalp.supertrend_state(fprior, scfg))
             strat["series"] = fut["label"]
+    elif engine == "tenkan_kijun":
+        strat = signals_scalp.tenkan_state(prior, scfg)
     else:
         strat = signals.v40_state(prior, scfg)
 

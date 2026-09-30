@@ -14,14 +14,17 @@ Only one --loop runner can poll at a time: a second one exits immediately, so ov
 never double every alert. The lock is held by the OS and released if the process dies.
 """
 import argparse
+import json
 import os
 import sys
 import time
 import traceback
-from datetime import date, datetime, time as dtime
+from datetime import date, datetime, time as dtime, timedelta
 
+from trading_agents.core import signals as v40
+from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.dhan_client import get_dhan_client
-from trading_agents.core.market_data import DhanApiError
+from trading_agents.core.market_data import DhanApiError, intraday_bars
 
 from . import atm as atm_mod
 from . import guards, health, poller, shadow, signals, trade_watch
@@ -71,10 +74,79 @@ def _when(iso):
         return str(iso)
 
 
+EXIT_ALERTS_STORE = "exit_alerts_sent.json"
+
+
+def _exit_alert_keys():
+    p = data_dir() / EXIT_ALERTS_STORE
+    if not p.exists():
+        return set()
+    return set(json.loads(p.read_text(encoding="utf-8")))
+
+
+def _save_exit_alert_keys(keys):
+    p = data_dir() / EXIT_ALERTS_STORE
+    p.write_text(json.dumps(sorted(keys)[-500:]), encoding="utf-8")   # keep it small
+
+
+def check_exit_now_alerts(client, now=None):
+    """PROACTIVE 'get out now' alert for reversal_exit strategies (Crude v4.2): fires the moment the
+    most recently closed bar carries a valid opposite-direction signal for an OPEN shadow position -
+    BEFORE the strategy's own next-bar-open fill happens, not after.
+
+    Why this exists and [shadow exit]/REV is not enough for someone trading by hand: that alert only
+    fires once shadow.mark() can see the fill in the bar data, which needs the NEXT bar to have
+    already closed - by definition after the price the strategy exited at. This check runs on the
+    SAME bar the condition first appears, the same moment a fresh entry signal would fire if flat,
+    giving roughly one bar's width (~5 min for 5m strategies) to place a manual exit by hand, same as
+    the live strategy itself has before its own fill.
+
+    Deduplicated by (trade id, bar time) so it fires once per real event, not once per poll."""
+    now = now or datetime.now()
+    open_trades = [t for t in shadow.open_trades() if not t.get("observational")]
+    if not open_trades:
+        return
+    strategies = agents_config().get("strategy", {})
+    seen = _exit_alert_keys()
+    changed = False
+    for t in open_trades:
+        strat = strategies.get(t.get("signal_instrument") or t["instrument"])
+        if not strat or not strat.get("reversal_exit"):
+            continue
+        sid, seg, kind = t.get("signal_security_id"), t.get("signal_segment"), t.get("signal_series_type")
+        if not sid:
+            continue
+        bars = intraday_bars(client, sid, seg, kind, (now - timedelta(days=10)).date(), now.date(), interval=5)
+        bars = bars[bars["time"] + timedelta(minutes=5) <= now]        # only fully-closed bars
+        if len(bars) < v40.WARMUP_BARS + 50:
+            continue
+        df = v40.v40_frame(bars, strat)
+        last = df.iloc[-1]
+        opposite_fired = bool(last["ok_s"] if t["side"] == "LONG" else last["ok_l"])
+        key = f"{t['id']}|{last['time'].isoformat()}"
+        if opposite_fired and key not in seen:
+            seen.add(key)
+            changed = True
+            notify(f"[exit now] {t['instrument']} {t['side']} — reversal forming, act before the next bar", [
+                f"{last['time']:%d-%b %H:%M} bar just closed with a valid opposite-direction signal.",
+                f"reference underlying close {last['close']:,.1f}",
+                "",
+                "The live strategy exits at the NEXT bar's open (~5 min from now) - if you're trading this "
+                "by hand, place your own exit now rather than waiting for the [shadow exit] confirmation, "
+                "which only arrives after that fill has already happened.",
+                "",
+                f"{t['symbol']}  entry {t.get('entry_premium')}  last seen {t.get('last_premium', 'n/a')}",
+            ], "warning")
+    if changed:
+        _save_exit_alert_keys(seen)
+
+
 def handle_signal(client, sig, now):
     """Resolve the option, run guards, and either record a shadow trade or a blocked signal."""
+    strat = (agents_config().get("strategy", {}) or {}).get(sig.signal_instrument or sig.instrument) or {}
+    ref_rr = strat.get("ref_rr") if sig.target is None else None
     a = atm_mod.resolve(client, sig.instrument, sig.option_right, now)
-    prem = atm_mod.premium_targets(a, sig)
+    prem = atm_mod.premium_targets(a, sig, ref_rr=ref_rr)
     all_trades = shadow.load()
     ctx = dict(now=now,
                signals_today=[s for s in signals.on_date(signals.load_all(), now.date()) if s.kind == "entry"],
@@ -83,8 +155,16 @@ def handle_signal(client, sig, now):
     blocks = guards.check(sig, a, ctx)
 
     head = f"{sig.instrument} {sig.side} signal ({sig.strategy})"
-    base = [f"{_when(sig.bar_time)} bar  {sig.signal_label or 'underlying'} {_fmt(sig.entry_hint)}",
-            f"stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}"]
+    if sig.target is not None:
+        risk_line = f"stop {_fmt(sig.sl)}  target {_fmt(sig.target)}  risk {_fmt(sig.risk_pts)} pts  R:R {sig.rr:g}"
+    elif ref_rr:
+        sign = 1 if sig.side == "LONG" else -1
+        ref_target = sig.entry_hint + sign * ref_rr * sig.risk_pts
+        risk_line = (f"stop {_fmt(sig.sl)}  risk {_fmt(sig.risk_pts)} pts  (reversal exit, no fixed target - "
+                     f"~{_fmt(ref_target)} at {ref_rr:g}R avg-win reference, NOT a real exit)")
+    else:
+        risk_line = f"stop {_fmt(sig.sl)}  risk {_fmt(sig.risk_pts)} pts  (reversal exit, no fixed target)"
+    base = [f"{_when(sig.bar_time)} bar  {sig.signal_label or 'underlying'} {_fmt(sig.entry_hint)}", risk_line]
 
     if blocks:
         observed = None
@@ -94,7 +174,7 @@ def handle_signal(client, sig, now):
         if a.get("nearest_below_floor"):
             near = atm_mod.resolve(client, sig.instrument, sig.option_right, now, force_nearest=True)
             if near.get("usable"):
-                observed = shadow.open_trade(sig, near, atm_mod.premium_targets(near, sig), now,
+                observed = shadow.open_trade(sig, near, atm_mod.premium_targets(near, sig, ref_rr=ref_rr), now,
                                              observational=True)
                 shadow.record(observed)
         # No option was buyable, but the strategy still took this trade on the underlying. Follow it
@@ -120,6 +200,12 @@ def handle_signal(client, sig, now):
     sig.status = "SHADOW"
     sig.note = trade["id"]
     signals.append(sig)
+    if prem.get("approx_target_premium") is not None:
+        premium_target_txt = f" / target {_fmt(prem['approx_target_premium'])}"
+    elif prem.get("approx_ref_target_premium") is not None:
+        premium_target_txt = f" / ~{_fmt(prem['approx_ref_target_premium'])} avg-win ref (not a real exit)"
+    else:
+        premium_target_txt = ""
     notify(f"[shadow entry] {head}", ["SIMULATED - you hold nothing from this alert.", ""] + base + [
         "",
         f"option {a['symbol']}  ({a['lots']} lots = {a['qty_units']} units, DTE {a['dte']})",
@@ -127,7 +213,7 @@ def handle_signal(client, sig, now):
         f"IV {_fmt(a['iv'],1)}  delta {_fmt(a['delta'],3)}  theta {_fmt(a['theta'],1)}/day"
         f"  ({_fmt(a.get('theta_pct_of_premium'),1)}% of premium)",
         f"cost {_fmt(prem.get('cost_inr'),0)} INR   approx premium stop {_fmt(prem.get('approx_sl_premium'))}"
-        f" / target {_fmt(prem.get('approx_target_premium'))}",
+        f"{premium_target_txt}",
         "",
         "SHADOW ONLY - no order was placed.",
     ], "info")
@@ -162,6 +248,7 @@ def tick(client, now=None):
     now = now or datetime.now()
     out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], armed=0, blocked=0, opened=0,
                closed=[], watch_closed=[])
+    check_exit_now_alerts(client, now)                    # proactive - before the retrospective checks below
     for sig in poller.poll_once(client, now):
         if sig.kind == "armed":
             out["signals"].append(handle_armed(client, sig, now)["signal"])

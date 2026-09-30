@@ -6,3 +6,4 @@ pandas==3.0.5
 numpy==2.2.6
 python-dotenv==1.2.3
 requests==2.34.2
+filelock==4.0.5
