@@ -200,6 +200,8 @@ class PremarketHelpersTest(unittest.TestCase):
         und_low = dict(available=True, prev_day=dict(close=90, close_position_pct=20), pivots=dict(P=100))
         self.assertEqual(rule_bias(und_low, dict(available=False))[0], "bearish")
         self.assertEqual(rule_bias(dict(available=False), {})[0], "neutral")
+        # scalp engines (supertrend, tenkan) report no alignment: fall back to the levels read
+        self.assertEqual(rule_bias(und, dict(available=True, engine="supertrend"))[0], "bullish")
 
 
 if __name__ == "__main__":

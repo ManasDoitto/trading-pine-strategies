@@ -360,6 +360,7 @@ def build(as_of, rows, client, session="ALL"):
         ),
         rolling=dict(
             sessions=sorted(window_days),
+            n_sessions=len(window_days),
             summary=trades.summarize(window_eps),
             **buckets(window_eps),
             violations_by_rule=count_by_rule(window_viol),

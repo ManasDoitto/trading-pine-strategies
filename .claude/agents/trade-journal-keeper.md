@@ -49,7 +49,7 @@ Most severe first. For each: the rule ID and title, the symbol, and the detail t
 inr is not null. If none: "No rule violations today ✅".
 
 ## Rolling <N> sessions
-From rolling.*:
+<N> is rolling.n_sessions; cite it in the claims block. From rolling.*:
 - The summary line: n, net, win rate, PF.
 - by_hold, by_moneyness, by_dte and by_right as compact tables.
 - Name the best and worst bucket in each table, using the facts' numbers.

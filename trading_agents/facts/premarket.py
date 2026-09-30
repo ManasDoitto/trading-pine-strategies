@@ -54,7 +54,7 @@ def rule_bias(und, strat):
         return "neutral", "levels unavailable"
     c, piv, pos = und["prev_day"]["close"], und["pivots"]["P"], und["prev_day"]["close_position_pct"] or 50
     side = "above" if c >= piv else "below"
-    if strat.get("available"):
+    if strat.get("available") and "alignment" in strat:    # scalp engines (supertrend, tenkan) have none
         a = strat["alignment"]
         v04 = strat.get("engine") == "v04"
         why = ("EMA9>EMA21 on the future" if v04 else "SHA green, EMA9>EMA22",

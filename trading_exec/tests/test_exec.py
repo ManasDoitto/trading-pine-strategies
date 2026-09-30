@@ -125,6 +125,33 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(t["hold_min"], 90.0)
         self.assertEqual(t["status"], "CLOSED")
 
+    def marked(self, trade, obars, ubars, now):
+        with mock.patch.object(shadow, "_option_bars", lambda *a: obars), \
+                mock.patch.object(shadow, "_underlying_bars", lambda *a: ubars):
+            return shadow.mark(None, trade, now)
+
+    def test_expiry_day_trade_lives_until_the_close(self):
+        t = shadow.open_trade(sig(instrument="BANKNIFTY"), atm(expiry=date(2026, 9, 16), dte=0), {},
+                              datetime(2026, 9, 16, 11, 45))
+        quiet = bars([(10200, 10210, 10190, 10200)])
+        self.assertEqual(self.marked(t, bars([(234, 240, 230, 236)]), quiet,
+                                     datetime(2026, 9, 16, 11, 46))["status"], "OPEN")
+        t = self.marked(t, bars([(234, 240, 230, 236)]), quiet, datetime(2026, 9, 16, 15, 40))
+        self.assertEqual((t["status"], t["exit_reason"], t["exit_at"]), ("CLOSED", "EXPIRY", "2026-09-16T15:30:00"))
+
+    def test_expired_signal_future_closes_at_its_last_bar(self):
+        t = shadow.open_trade(sig(), atm(), {}, datetime(2026, 9, 16, 11, 45))
+        t["signal_series_type"] = "FUTCOM"
+        ubars = bars([(10200, 10210, 10190, 10200)])              # the future's last bar: 16-Sep 11:35
+        obars = pd.concat([bars([(234, 240, 230, 250)]), bars([(250, 260, 245, 255)], "2026-09-17T10:00:00"),
+                           bars([(255, 270, 250, 265)], "2026-09-18T10:00:00")], ignore_index=True)
+        t = self.marked(t, obars, ubars, datetime(2026, 9, 18, 10, 10))
+        self.assertEqual((t["status"], t["exit_reason"], t["exit_premium"]), ("CLOSED", "SIGNAL_SERIES_EXPIRED", 250.0))
+        # one later day alone is not enough: that can just be the underlying fetch lagging
+        t2 = shadow.open_trade(sig(), atm(), {}, datetime(2026, 9, 16, 11, 45))
+        t2["signal_series_type"] = "FUTCOM"
+        self.assertEqual(self.marked(t2, obars.iloc[:2], ubars, datetime(2026, 9, 17, 10, 10))["status"], "OPEN")
+
     def test_realised_today_only_counts_closed(self):
         a = shadow.open_trade(sig(), atm(), {}, datetime(2026, 9, 16, 11, 45))
         shadow._close(a, datetime(2026, 9, 16, 13, 0), 10364.5, "TARGET", 300.0)
@@ -578,14 +605,14 @@ class SignalFidelityTest(unittest.TestCase):
         with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, fresh)):
             self.assertIs(poller.entry_on_last_bar(df, self.P)[0], fresh)
 
-    def test_silverm_signals_come_from_its_own_price_action(self):
-        # switched 2026-09-18: SILVER-sourced signals only agreed with SILVERM's own price action
-        # 41-45% of the time (measured twice), and SILVERM's own action scored better on the data
-        # available - so no more cross-contract signal_from for silver.
+    def test_silverm_options_are_signalled_off_silver(self):
+        # switched back 2026-09-28: a 30-month backtest found SILVER1! outperforms SILVERM1! on both
+        # the incumbent and the bo(3) variant (the 2026-09-18 switch rested on ~71 trades). Options
+        # are still bought through the liquid SILVERM chain.
         from trading_exec.config import instrument_cfg
         from trading_agents.core.config import load_config as agents_config
-        self.assertIsNone(instrument_cfg("SILVERM").get("signal_from"))
-        self.assertEqual(agents_config()["strategy"]["SILVERM"]["day_loss_limit_pts"], 350)
+        self.assertEqual(instrument_cfg("SILVERM").get("signal_from"), "SILVER")
+        self.assertEqual(agents_config()["strategy"]["SILVER"]["day_loss_limit_pts"], 350)
 
     def test_option_priced_off_its_own_future_not_the_signal(self):
         from trading_exec import atm as atm_mod

@@ -211,10 +211,30 @@ def mark(client, trade, now=None):
             _close(trade, t, level, reason, exit_premium)
             return trade
 
-    if date.fromisoformat(trade["expiry"]) <= now.date():
+    # The signal future expired under this trade (CRUDEOIL-21Sep2026-FUT signal on its own expiry
+    # day): no more bars can ever reach its stop/target, so it would hold a position slot forever.
+    # Seen when the option keeps trading on 2+ later days the signal series has no bars for.
+    if ubars is not None and not obars.empty and str(trade.get("signal_series_type", "")).startswith("FUT"):
+        last_u = ubars["time"].iloc[-1] if not ubars.empty else datetime.fromisoformat(trade["bar_time"])
+        later_days = {d for d in obars["time"].dt.date if d > last_u.date()}
+        if len(later_days) >= 2:
+            at_exit = obars[obars["time"] <= last_u]
+            exit_premium = float(at_exit["close"].iloc[-1]) if len(at_exit) else trade.get("last_premium")
+            _close(trade, last_u, None, "SIGNAL_SERIES_EXPIRED", exit_premium)
+            return trade
+
+    if now >= expiry_close(trade):
         exit_premium = trade.get("last_premium") or 0.0
-        _close(trade, now, trade.get("underlying_exit"), "EXPIRY", exit_premium)
+        _close(trade, min(now, expiry_close(trade)), trade.get("underlying_exit"), "EXPIRY", exit_premium)
     return trade
+
+
+def expiry_close(trade):
+    """The option stops trading at its market's close on expiry day, not at midnight before it: an
+    expiry-day (DTE 0) observational trade must live through the session, not close as it opens."""
+    session = agents_config()["instruments"].get(trade["instrument"], {}).get("session", ["09:00", "23:30"])
+    hh, mm = (int(x) for x in session[1].split(":"))
+    return datetime.combine(date.fromisoformat(trade["expiry"]), datetime.min.time()).replace(hour=hh, minute=mm)
 
 
 def _close(trade, when, underlying_level, reason, exit_premium):

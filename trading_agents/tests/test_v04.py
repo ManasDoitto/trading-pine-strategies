@@ -7,9 +7,17 @@ import numpy as np
 import pandas as pd
 
 from trading_agents.core import signals_v04 as v04
-from trading_agents.core.config import load_config
 
-P = load_config()["strategy"]["BANKNIFTY"]
+# v0.4's own parameters, pinned here: BANKNIFTY's live config moved to the Supertrend engine on
+# 2026-09-28, but the v0.4 engine is still in the code (premarket engine="v04") and still tested.
+P = dict(
+    engine="v04", name="BankNifty v0.4 EMA pullback + 15m ADX gate (working_strategies/BankNifty/1)",
+    ema_fast=9, ema_med=21, ema_slow=200, entry_window=["09:30", "15:00"], skip_open_min=15,
+    flat_window=["15:15", "15:30"], flat_exit_at="15:20", atr_min_pts=50.0, atr_buff=0.15,
+    stop_floor_atr=0.5, max_stop_atr=2.0, rr=2.5, wick_frac=0.5, vol_mlt=1.0, rsi_len=3,
+    rsi_max_long=80, rsi_min_short=20, pb_lookback=10, reclaim_win=8, cool_bars=3, allow_coil=True,
+    cluster_mlt=1.0, cluster_buf=0.25, htf_adx_min=25.0,
+)
 
 
 def forced(bars, **cols):
