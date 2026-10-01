@@ -1,0 +1,62 @@
+{
+ "name": "Stocks-in-Play MA Base Breakout",
+ "version": "1.0",
+ "locked": "2026-09-29, before any out-of-sample evaluation",
+ "kernel": {
+  "gate_mode": 0,
+  "pb_on": 0,
+  "bo_on": 1,
+  "bo_n": 15,
+  "bo_tight": 2.5,
+  "bo_zone": 0.5,
+  "slope_lb": 10,
+  "slope_min": 0.15,
+  "slope_max": 99.0,
+  "ext_max": 2.5,
+  "use_htf": 0,
+  "use_daily": 1,
+  "use_rvol": 1,
+  "rvol_min": 1.0,
+  "rs_min": -99.0,
+  "stop_buf": 0.15,
+  "min_risk_atr": 0.8,
+  "rr": 5.0,
+  "trail_after": 0.0,
+  "trail_mode": 1,
+  "trail_buf": 0.25,
+  "arm_bars": 3,
+  "entry_from": 30,
+  "entry_to": 240,
+  "eod_min": 360,
+  "max_trades_day": 2
+ },
+ "day_filter": {
+  "gap_min": 0.75,
+  "orvol_min": 1.25,
+  "top_n": 0
+ },
+ "aplus": {
+  "rs_min": 1.5,
+  "symbol_allowlist_note": "v1, 2026-09-29 (reinstated after a v2/net_points>=20 variant was tried and reverted the same day -- v2 cut this to 52 symbols / ~5.3 trades/month, too thin to trust or compound on; see git history for the v2 numbers). 131 symbols where A+-tier trades were PF>1 and net%>0 over 2018-01..2024-12 (IS+VAL) only -- the 2025-26 OOS window and the held-out symbol set were never touched by this screen. Verified out-of-sample: OOS PF 1.95, +0.345%/trade, 258 trades (~12.6/month), 101 active symbols -- and the ONLY tier (vs. Core and unscreened A+) that stayed above the ~0.09%/trade option-buyer hurdle in every one of 9 tested years, 2018-2026. Applies to the A+ tier only -- the same screen made Core-tier results WORSE at tight thresholds (individual-stock PF is noisy at ~20 trades/symbol for Core; the rel-strength filter already thins A+ trades enough that its per-symbol PF carries more signal).",
+  "symbol_allowlist": [
+   "ABB", "ADANIENSOL", "ADANIENT", "ADANIGREEN", "AMBUJACEM", "ANGELONE", "APLAPOLLO",
+   "APOLLOHOSP", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "AUBANK", "AXISBANK", "BAJAJ-AUTO",
+   "BAJAJFINSV", "BAJAJHLDNG", "BAJFINANCE", "BANDHANBNK", "BANKBARODA", "BDL", "BEL",
+   "BHEL", "BIOCON", "BLUESTARCO", "BPCL", "BRITANNIA", "BSE", "CAMS", "CANBK", "CDSL",
+   "CGPOWER", "CIPLA", "COALINDIA", "COCHINSHIP", "COFORGE", "CONCOR", "CROMPTON",
+   "CUMMINSIND", "DABUR", "DELHIVERY", "DIVISLAB", "DIXON", "DRREDDY", "EICHERMOT",
+   "ETERNAL", "FEDERALBNK", "FORCEMOT", "FORTIS", "GAIL", "GMRAIRPORT", "GVT&D", "HAL",
+   "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO",
+   "HINDPETRO", "HINDUNILVR", "HINDZINC", "ICICIBANK", "ICICIGI", "IDEA", "IDFCFIRSTB",
+   "INDHOTEL", "INDIANB", "INDIGO", "INDUSINDBK", "INDUSTOWER", "INFY", "IRFC", "ITC",
+   "JIOFIN", "JSWENERGY", "JUBLFOOD", "KALYANKJIL", "KAYNES", "KEI", "KFINTECH",
+   "KPITTECH", "LAURUSLABS", "LICI", "LT", "LTF", "LTM", "LUPIN", "MAHABANK", "MANKIND",
+   "MARICO", "MARUTI", "MOTILALOFS", "NAM-INDIA", "NATIONALUM", "NAUKRI", "NESTLEIND",
+   "NHPC", "NMDC", "NYKAA", "OBEROIRLTY", "OFSS", "ONGC", "PERSISTENT", "PFC", "PGEL",
+   "PNBHOUSING", "POLICYBZR", "PRESTIGE", "RBLBANK", "RECLTD", "RELIANCE", "RVNL",
+   "SBILIFE", "SBIN", "SHREECEM", "SONACOMS", "SRF", "SUPREMEIND", "SUZLON", "TATAELXSI",
+   "TATAPOWER", "TATASTEEL", "TECHM", "TMPV", "ULTRACEMCO", "UNIONBANK", "VBL", "VEDL",
+   "VOLTAS", "YESBANK"
+  ]
+ }
+}

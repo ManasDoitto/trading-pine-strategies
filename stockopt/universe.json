@@ -1,0 +1,842 @@
+{
+ "360ONE": {
+  "secid": 13061,
+  "lot": 500
+ },
+ "ABB": {
+  "secid": 13,
+  "lot": 125
+ },
+ "ABCAPITAL": {
+  "secid": 21614,
+  "lot": 3100
+ },
+ "ADANIENSOL": {
+  "secid": 10217,
+  "lot": 675
+ },
+ "ADANIENT": {
+  "secid": 25,
+  "lot": 309
+ },
+ "ADANIGREEN": {
+  "secid": 3563,
+  "lot": 600
+ },
+ "ADANIPORTS": {
+  "secid": 15083,
+  "lot": 475
+ },
+ "ADANIPOWER": {
+  "secid": 17388,
+  "lot": 3550
+ },
+ "ALKEM": {
+  "secid": 11703,
+  "lot": 125
+ },
+ "AMBER": {
+  "secid": 1185,
+  "lot": 100
+ },
+ "AMBUJACEM": {
+  "secid": 1270,
+  "lot": 1200
+ },
+ "ANGELONE": {
+  "secid": 324,
+  "lot": 2500
+ },
+ "APLAPOLLO": {
+  "secid": 25780,
+  "lot": 350
+ },
+ "APOLLOHOSP": {
+  "secid": 157,
+  "lot": 125
+ },
+ "ASHOKLEY": {
+  "secid": 212,
+  "lot": 5000
+ },
+ "ASIANPAINT": {
+  "secid": 236,
+  "lot": 250
+ },
+ "ASTRAL": {
+  "secid": 14418,
+  "lot": 425
+ },
+ "ATHERENERG": {
+  "secid": 757645,
+  "lot": 375
+ },
+ "AUBANK": {
+  "secid": 21238,
+  "lot": 1000
+ },
+ "AUROPHARMA": {
+  "secid": 275,
+  "lot": 550
+ },
+ "AXISBANK": {
+  "secid": 5900,
+  "lot": 625
+ },
+ "BAJAJ-AUTO": {
+  "secid": 16669,
+  "lot": 75
+ },
+ "BAJAJFINSV": {
+  "secid": 16675,
+  "lot": 300
+ },
+ "BAJAJHLDNG": {
+  "secid": 305,
+  "lot": 75
+ },
+ "BAJFINANCE": {
+  "secid": 317,
+  "lot": 750
+ },
+ "BANDHANBNK": {
+  "secid": 2263,
+  "lot": 3600
+ },
+ "BANKBARODA": {
+  "secid": 4668,
+  "lot": 2925
+ },
+ "BANKINDIA": {
+  "secid": 4745,
+  "lot": 5200
+ },
+ "BDL": {
+  "secid": 2144,
+  "lot": 425
+ },
+ "BEL": {
+  "secid": 383,
+  "lot": 1425
+ },
+ "BHARATFORG": {
+  "secid": 422,
+  "lot": 500
+ },
+ "BHARTIARTL": {
+  "secid": 10604,
+  "lot": 475
+ },
+ "BHEL": {
+  "secid": 438,
+  "lot": 2625
+ },
+ "BIOCON": {
+  "secid": 11373,
+  "lot": 2500
+ },
+ "BLUESTARCO": {
+  "secid": 8311,
+  "lot": 325
+ },
+ "BOSCHLTD": {
+  "secid": 2181,
+  "lot": 25
+ },
+ "BPCL": {
+  "secid": 526,
+  "lot": 1975
+ },
+ "BRITANNIA": {
+  "secid": 547,
+  "lot": 125
+ },
+ "BSE": {
+  "secid": 19585,
+  "lot": 200
+ },
+ "CAMS": {
+  "secid": 342,
+  "lot": 825
+ },
+ "CANBK": {
+  "secid": 10794,
+  "lot": 6750
+ },
+ "CDSL": {
+  "secid": 21174,
+  "lot": 475
+ },
+ "CGPOWER": {
+  "secid": 760,
+  "lot": 850
+ },
+ "CHOLAFIN": {
+  "secid": 685,
+  "lot": 625
+ },
+ "CIPLA": {
+  "secid": 694,
+  "lot": 425
+ },
+ "COALINDIA": {
+  "secid": 20374,
+  "lot": 1350
+ },
+ "COCHINSHIP": {
+  "secid": 21508,
+  "lot": 400
+ },
+ "COFORGE": {
+  "secid": 11543,
+  "lot": 475
+ },
+ "COLPAL": {
+  "secid": 15141,
+  "lot": 275
+ },
+ "CONCOR": {
+  "secid": 4749,
+  "lot": 1250
+ },
+ "CROMPTON": {
+  "secid": 17094,
+  "lot": 2150
+ },
+ "CUMMINSIND": {
+  "secid": 1901,
+  "lot": 200
+ },
+ "DABUR": {
+  "secid": 772,
+  "lot": 1250
+ },
+ "DELHIVERY": {
+  "secid": 9599,
+  "lot": 2075
+ },
+ "DIVISLAB": {
+  "secid": 10940,
+  "lot": 100
+ },
+ "DIXON": {
+  "secid": 21690,
+  "lot": 50
+ },
+ "DLF": {
+  "secid": 14732,
+  "lot": 950
+ },
+ "DMART": {
+  "secid": 19913,
+  "lot": 150
+ },
+ "DRREDDY": {
+  "secid": 881,
+  "lot": 625
+ },
+ "EICHERMOT": {
+  "secid": 910,
+  "lot": 100
+ },
+ "ETERNAL": {
+  "secid": 5097,
+  "lot": 2425
+ },
+ "FEDERALBNK": {
+  "secid": 1023,
+  "lot": 2500
+ },
+ "FORCEMOT": {
+  "secid": 11573,
+  "lot": 25
+ },
+ "FORTIS": {
+  "secid": 14592,
+  "lot": 775
+ },
+ "GAIL": {
+  "secid": 4717,
+  "lot": 3550
+ },
+ "GLENMARK": {
+  "secid": 7406,
+  "lot": 375
+ },
+ "GMRAIRPORT": {
+  "secid": 13528,
+  "lot": 6975
+ },
+ "GODFRYPHLP": {
+  "secid": 1181,
+  "lot": 275
+ },
+ "GODREJCP": {
+  "secid": 10099,
+  "lot": 500
+ },
+ "GODREJPROP": {
+  "secid": 17875,
+  "lot": 325
+ },
+ "GRASIM": {
+  "secid": 1232,
+  "lot": 250
+ },
+ "GVT&D": {
+  "secid": 16783,
+  "lot": 125
+ },
+ "HAL": {
+  "secid": 2303,
+  "lot": 150
+ },
+ "HAVELLS": {
+  "secid": 9819,
+  "lot": 500
+ },
+ "HCLTECH": {
+  "secid": 7229,
+  "lot": 400
+ },
+ "HDFCAMC": {
+  "secid": 4244,
+  "lot": 300
+ },
+ "HDFCBANK": {
+  "secid": 1333,
+  "lot": 650
+ },
+ "HDFCLIFE": {
+  "secid": 467,
+  "lot": 1100
+ },
+ "HEROMOTOCO": {
+  "secid": 1348,
+  "lot": 150
+ },
+ "HINDALCO": {
+  "secid": 1363,
+  "lot": 700
+ },
+ "HINDPETRO": {
+  "secid": 1406,
+  "lot": 2025
+ },
+ "HINDUNILVR": {
+  "secid": 1394,
+  "lot": 300
+ },
+ "HINDZINC": {
+  "secid": 1424,
+  "lot": 1225
+ },
+ "HYUNDAI": {
+  "secid": 25844,
+  "lot": 275
+ },
+ "ICICIBANK": {
+  "secid": 4963,
+  "lot": 700
+ },
+ "ICICIGI": {
+  "secid": 21770,
+  "lot": 325
+ },
+ "ICICIPRULI": {
+  "secid": 18652,
+  "lot": 925
+ },
+ "IDEA": {
+  "secid": 14366,
+  "lot": 71475
+ },
+ "IDFCFIRSTB": {
+  "secid": 11184,
+  "lot": 9275
+ },
+ "IEX": {
+  "secid": 220,
+  "lot": 4350
+ },
+ "INDHOTEL": {
+  "secid": 1512,
+  "lot": 1000
+ },
+ "INDIANB": {
+  "secid": 14309,
+  "lot": 1000
+ },
+ "INDIGO": {
+  "secid": 11195,
+  "lot": 150
+ },
+ "INDUSINDBK": {
+  "secid": 5258,
+  "lot": 700
+ },
+ "INDUSTOWER": {
+  "secid": 29135,
+  "lot": 1700
+ },
+ "INFY": {
+  "secid": 1594,
+  "lot": 400
+ },
+ "INOXWIND": {
+  "secid": 7852,
+  "lot": 6400
+ },
+ "IOC": {
+  "secid": 1624,
+  "lot": 4875
+ },
+ "IREDA": {
+  "secid": 20261,
+  "lot": 4525
+ },
+ "IRFC": {
+  "secid": 2029,
+  "lot": 5425
+ },
+ "ITC": {
+  "secid": 1660,
+  "lot": 1725
+ },
+ "JINDALSTEL": {
+  "secid": 6733,
+  "lot": 625
+ },
+ "JIOFIN": {
+  "secid": 18143,
+  "lot": 2350
+ },
+ "JSWENERGY": {
+  "secid": 17869,
+  "lot": 1075
+ },
+ "JSWSTEEL": {
+  "secid": 11723,
+  "lot": 675
+ },
+ "JUBLFOOD": {
+  "secid": 18096,
+  "lot": 1250
+ },
+ "KALYANKJIL": {
+  "secid": 2955,
+  "lot": 1350
+ },
+ "KAYNES": {
+  "secid": 12092,
+  "lot": 150
+ },
+ "KEI": {
+  "secid": 13310,
+  "lot": 175
+ },
+ "KFINTECH": {
+  "secid": 13359,
+  "lot": 575
+ },
+ "KOTAKBANK": {
+  "secid": 1922,
+  "lot": 2000
+ },
+ "KPITTECH": {
+  "secid": 9683,
+  "lot": 775
+ },
+ "LAURUSLABS": {
+  "secid": 19234,
+  "lot": 850
+ },
+ "LICHSGFIN": {
+  "secid": 1997,
+  "lot": 1000
+ },
+ "LICI": {
+  "secid": 9480,
+  "lot": 1400
+ },
+ "LODHA": {
+  "secid": 3220,
+  "lot": 625
+ },
+ "LT": {
+  "secid": 11483,
+  "lot": 175
+ },
+ "LTF": {
+  "secid": 24948,
+  "lot": 2250
+ },
+ "LTM": {
+  "secid": 17818,
+  "lot": 150
+ },
+ "LUPIN": {
+  "secid": 10440,
+  "lot": 425
+ },
+ "M&M": {
+  "secid": 2031,
+  "lot": 200
+ },
+ "MAHABANK": {
+  "secid": 11377,
+  "lot": 6500
+ },
+ "MANAPPURAM": {
+  "secid": 19061,
+  "lot": 3000
+ },
+ "MANKIND": {
+  "secid": 15380,
+  "lot": 250
+ },
+ "MARICO": {
+  "secid": 4067,
+  "lot": 1200
+ },
+ "MARUTI": {
+  "secid": 10999,
+  "lot": 50
+ },
+ "MAXHEALTH": {
+  "secid": 22377,
+  "lot": 525
+ },
+ "MAZDOCK": {
+  "secid": 509,
+  "lot": 225
+ },
+ "MCX": {
+  "secid": 31181,
+  "lot": 225
+ },
+ "MFSL": {
+  "secid": 2142,
+  "lot": 400
+ },
+ "MOTHERSON": {
+  "secid": 4204,
+  "lot": 6150
+ },
+ "MOTILALOFS": {
+  "secid": 14947,
+  "lot": 775
+ },
+ "MPHASIS": {
+  "secid": 4503,
+  "lot": 275
+ },
+ "MUTHOOTFIN": {
+  "secid": 23650,
+  "lot": 275
+ },
+ "NAM-INDIA": {
+  "secid": 357,
+  "lot": 625
+ },
+ "NATIONALUM": {
+  "secid": 6364,
+  "lot": 1875
+ },
+ "NAUKRI": {
+  "secid": 13751,
+  "lot": 550
+ },
+ "NBCC": {
+  "secid": 31415,
+  "lot": 6500
+ },
+ "NESTLEIND": {
+  "secid": 17963,
+  "lot": 500
+ },
+ "NHPC": {
+  "secid": 17400,
+  "lot": 6950
+ },
+ "NMDC": {
+  "secid": 15332,
+  "lot": 6750
+ },
+ "NTPC": {
+  "secid": 11630,
+  "lot": 1500
+ },
+ "NYKAA": {
+  "secid": 6545,
+  "lot": 3125
+ },
+ "OBEROIRLTY": {
+  "secid": 20242,
+  "lot": 350
+ },
+ "OFSS": {
+  "secid": 10738,
+  "lot": 100
+ },
+ "OIL": {
+  "secid": 17438,
+  "lot": 1400
+ },
+ "ONGC": {
+  "secid": 2475,
+  "lot": 2250
+ },
+ "PAGEIND": {
+  "secid": 14413,
+  "lot": 20
+ },
+ "PATANJALI": {
+  "secid": 17029,
+  "lot": 1075
+ },
+ "PAYTM": {
+  "secid": 6705,
+  "lot": 725
+ },
+ "PERSISTENT": {
+  "secid": 18365,
+  "lot": 125
+ },
+ "PETRONET": {
+  "secid": 11351,
+  "lot": 1900
+ },
+ "PFC": {
+  "secid": 14299,
+  "lot": 1300
+ },
+ "PGEL": {
+  "secid": 25358,
+  "lot": 950
+ },
+ "PHOENIXLTD": {
+  "secid": 14552,
+  "lot": 350
+ },
+ "PIDILITIND": {
+  "secid": 2664,
+  "lot": 500
+ },
+ "PIIND": {
+  "secid": 24184,
+  "lot": 175
+ },
+ "PNB": {
+  "secid": 10666,
+  "lot": 8000
+ },
+ "PNBHOUSING": {
+  "secid": 18908,
+  "lot": 650
+ },
+ "POLICYBZR": {
+  "secid": 6656,
+  "lot": 350
+ },
+ "POLYCAB": {
+  "secid": 9590,
+  "lot": 125
+ },
+ "POWERGRID": {
+  "secid": 14977,
+  "lot": 1900
+ },
+ "POWERINDIA": {
+  "secid": 18457,
+  "lot": 25
+ },
+ "PREMIERENE": {
+  "secid": 25049,
+  "lot": 650
+ },
+ "PRESTIGE": {
+  "secid": 20302,
+  "lot": 450
+ },
+ "RADICO": {
+  "secid": 10990,
+  "lot": 150
+ },
+ "RBLBANK": {
+  "secid": 18391,
+  "lot": 3175
+ },
+ "RECLTD": {
+  "secid": 15355,
+  "lot": 1575
+ },
+ "RELIANCE": {
+  "secid": 2885,
+  "lot": 500
+ },
+ "RVNL": {
+  "secid": 9552,
+  "lot": 1925
+ },
+ "SAGILITY": {
+  "secid": 27052,
+  "lot": 12000
+ },
+ "SAIL": {
+  "secid": 2963,
+  "lot": 4700
+ },
+ "SBICARD": {
+  "secid": 17971,
+  "lot": 800
+ },
+ "SBILIFE": {
+  "secid": 21808,
+  "lot": 375
+ },
+ "SBIN": {
+  "secid": 3045,
+  "lot": 750
+ },
+ "SHREECEM": {
+  "secid": 3103,
+  "lot": 25
+ },
+ "SHRIRAMFIN": {
+  "secid": 4306,
+  "lot": 825
+ },
+ "SIEMENS": {
+  "secid": 3150,
+  "lot": 175
+ },
+ "SOLARINDS": {
+  "secid": 13332,
+  "lot": 50
+ },
+ "SONACOMS": {
+  "secid": 4684,
+  "lot": 1225
+ },
+ "SRF": {
+  "secid": 3273,
+  "lot": 200
+ },
+ "SUNPHARMA": {
+  "secid": 3351,
+  "lot": 350
+ },
+ "SUPREMEIND": {
+  "secid": 3363,
+  "lot": 175
+ },
+ "SUZLON": {
+  "secid": 12018,
+  "lot": 12700
+ },
+ "SWIGGY": {
+  "secid": 27066,
+  "lot": 1825
+ },
+ "TATACONSUM": {
+  "secid": 3432,
+  "lot": 550
+ },
+ "TATAELXSI": {
+  "secid": 3411,
+  "lot": 125
+ },
+ "TATAPOWER": {
+  "secid": 3426,
+  "lot": 1450
+ },
+ "TATASTEEL": {
+  "secid": 3499,
+  "lot": 2750
+ },
+ "TCS": {
+  "secid": 11536,
+  "lot": 225
+ },
+ "TECHM": {
+  "secid": 13538,
+  "lot": 600
+ },
+ "TIINDIA": {
+  "secid": 312,
+  "lot": 200
+ },
+ "TITAN": {
+  "secid": 3506,
+  "lot": 175
+ },
+ "TMPV": {
+  "secid": 3456,
+  "lot": 1600
+ },
+ "TORNTPHARM": {
+  "secid": 3518,
+  "lot": 125
+ },
+ "TRENT": {
+  "secid": 1964,
+  "lot": 225
+ },
+ "TVSMOTOR": {
+  "secid": 8479,
+  "lot": 175
+ },
+ "ULTRACEMCO": {
+  "secid": 11532,
+  "lot": 50
+ },
+ "UNIONBANK": {
+  "secid": 10753,
+  "lot": 4425
+ },
+ "UNITDSPR": {
+  "secid": 10447,
+  "lot": 400
+ },
+ "UNOMINDA": {
+  "secid": 14154,
+  "lot": 550
+ },
+ "UPL": {
+  "secid": 11287,
+  "lot": 1355
+ },
+ "VBL": {
+  "secid": 18921,
+  "lot": 1275
+ },
+ "VEDL": {
+  "secid": 3063,
+  "lot": 1150
+ },
+ "VMM": {
+  "secid": 27969,
+  "lot": 4850
+ },
+ "VOLTAS": {
+  "secid": 3718,
+  "lot": 375
+ },
+ "WAAREEENER": {
+  "secid": 25907,
+  "lot": 175
+ },
+ "WIPRO": {
+  "secid": 3787,
+  "lot": 3000
+ },
+ "YESBANK": {
+  "secid": 11915,
+  "lot": 31100
+ },
+ "ZYDUSLIFE": {
+  "secid": 7929,
+  "lot": 900
+ }
+}

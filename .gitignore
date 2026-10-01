@@ -10,3 +10,5 @@ journal_data/
 # trading_exec output: signals, shadow trades, real account data
 exec_data/
 research_data/
+# live, user-specific runtime state -- not code, drifts as real capital compounds
+stockopt/position_config.json
