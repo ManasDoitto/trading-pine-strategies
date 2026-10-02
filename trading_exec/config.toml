@@ -48,7 +48,8 @@ loss_pct = 5.0
 
 [guards]
 max_signals_per_day = 6             # across all instruments
-max_open_positions = 2
+max_open_per_strategy = 1           # each strategy holds one position at a time anyway; was a shared
+                                    # max_open_positions = 2, which let one instrument's trade block the others
 daily_loss_limit_inr = 10000        # mirrors the journal's R5
 session_buffer_minutes = 15         # no new entries within N minutes of the session close
 
@@ -63,14 +64,15 @@ lots = 2
 min_dte = 2                         # crude ATM theta was ~27% of premium/day at DTE 1
 max_spread_pct = 15.0
 
-# Silver: signal now computed on SILVER1! (switched back 2026-09-28 - a fuller 30-month backtest on
-# SILVERM's own bar history, using the SAME harness, found SILVER1! outperforms SILVERM1! on both the
-# incumbent and the new bo(3) breakout variant; the 2026-09-18 switch was based on a much shorter,
-# provisional ~71-trade sample). Options are still bought through the SILVERM chain (the liquid one;
-# big-SILVER ATM had OI 8 and a 168% spread).
+# Silver Mini: signal computed on SILVERM1! itself, the same chart whose options are bought (changed
+# 2026-10-03 at the trader's request - the signal chart should be the traded chart). It had been
+# computed on SILVER1! since 2026-09-28 because that scored a higher total on 30 months of history
+# (+302k vs +241k points, PF 1.47 vs 1.37); on SILVERM1! the strategy had MORE profitable months
+# (55% vs 48%, TradingView replay 56%) and slightly shorter losing runs of trades, at a somewhat
+# larger drawdown. Uses [strategy.SILVERM] in trading_agents/config.toml (identical v4.1 settings).
+# To go back, add: signal_from = "SILVER"
 [instruments.SILVERM]
 enabled = true
-signal_from = "SILVER"
 lots = 2
 min_dte = 2
 max_spread_pct = 15.0

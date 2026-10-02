@@ -64,7 +64,13 @@ class GuardTest(unittest.TestCase):
                       guards.check(s, atm(usable=False, reasons=["chain not usable: wide bid-ask spread"]),
                                    self.ctx()))
         self.assertTrue(any("signals today" in b for b in guards.check(s, atm(), self.ctx(signals_today=[1] * 6))))
-        self.assertTrue(any("already open" in b for b in guards.check(s, atm(), self.ctx(open_positions=[1, 2]))))
+        silver = dict(instrument="SILVERM", side="SHORT", opened_at="2026-09-29T09:20:19")
+        crude = dict(instrument="CRUDEOIL", side="LONG", opened_at="2026-09-16T10:05:00")
+        # another strategy's simulated trade no longer blocks; the same strategy's does, by name
+        self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[silver])), [])
+        self.assertIn("simulated CRUDEOIL LONG since 16-Sep 10:05 still open (max 1 per strategy)",
+                      guards.check(s, atm(), self.ctx(open_positions=[silver, crude])))
+        self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[dict(crude, observational=True)])), [])
         self.assertTrue(any("daily loss limit" in b
                             for b in guards.check(s, atm(), self.ctx(realised_today_inr=-10000))))
 
@@ -152,12 +158,102 @@ class ShadowTest(unittest.TestCase):
         t2["signal_series_type"] = "FUTCOM"
         self.assertEqual(self.marked(t2, obars.iloc[:2], ubars, datetime(2026, 9, 17, 10, 10))["status"], "OPEN")
 
+    def strategy_marked(self, sim, obars, ubars, now, engine="tenkan_kijun"):
+        """mark() with the strategy rerun stubbed to `sim` = (trades, pos, pending)."""
+        t = shadow.open_trade(sig(instrument="NIFTY", side="SHORT", bar_time="2026-09-16T11:30:00"), atm(), {},
+                              datetime(2026, 9, 16, 11, 35))
+        t.update(signal_security_id="13", signal_segment="IDX_I", signal_series_type="INDEX")
+        cfg = dict(strategy=dict(NIFTY=dict(engine=engine)), instruments=dict(NIFTY=dict(session=["09:15", "15:30"])))
+        with mock.patch.object(shadow, "agents_config", lambda: cfg), \
+                mock.patch.object(shadow, "intraday_bars", lambda *a, **k: ubars), \
+                mock.patch.object(shadow.scalp, "tenkan_frame", lambda b, p: b), \
+                mock.patch.object(shadow.scalp, "simulate_scalp", lambda d, p: sim):
+            return self.marked(t, obars, ubars, now)
+
+    def test_scalp_time_stop_exit_follows_the_strategy_at_the_bar_open(self):
+        # the Nifty short of 2026-09-30: the stop/target never hit, the strategy left on its time stop
+        ubars = bars([(10200, 10210, 10190, 10200)] * 12)
+        obars = bars([(234, 240, 230, 236)] * 9 + [(250, 255, 240, 245)] + [(245, 246, 244, 245)] * 2)
+        exit_bar = ubars["time"].iat[9]
+        sim = ([dict(side="SHORT", signal_time=datetime(2026, 9, 16, 11, 30), exit_time=exit_bar,
+                     exit=10200.0, result="TIME")], None, None)
+        t = self.strategy_marked(sim, obars, ubars, datetime(2026, 9, 16, 12, 40))
+        self.assertEqual((t["status"], t["exit_reason"], t["exit_premium"]), ("CLOSED", "TIME", 250.0))
+        self.assertEqual(t["exit_at"], exit_bar.isoformat())
+
+    def test_strategy_still_holding_keeps_it_open_and_tp_is_named_target(self):
+        ubars = bars([(10200, 10400, 10000, 10200)])             # touches both of the record's own levels
+        obars = bars([(234, 240, 230, 236)])
+        pos = dict(side="SHORT", signal_time=datetime(2026, 9, 16, 11, 30))
+        self.assertEqual(self.strategy_marked(([], pos, None), obars, ubars,
+                                              datetime(2026, 9, 16, 11, 45))["status"], "OPEN")
+        tp = ([dict(pos, exit_time=ubars["time"].iat[0], exit=10035.5, result="TP")], None, None)
+        t = self.strategy_marked(tp, obars, ubars, datetime(2026, 9, 16, 11, 45))
+        self.assertEqual((t["exit_reason"], t["underlying_exit"]), ("TARGET", 10035.5))
+
+    def test_unknown_to_the_strategy_falls_back_to_the_stop_target_scan(self):
+        ubars = bars([(10200, 10250, 10190, 10245)])             # a SHORT's stop at 10241.1 is hit
+        t = self.strategy_marked(([], None, None), bars([(234, 240, 230, 236)]), ubars,
+                                 datetime(2026, 9, 16, 11, 45))
+        self.assertEqual(t["exit_reason"], "SL")
+
     def test_realised_today_only_counts_closed(self):
         a = shadow.open_trade(sig(), atm(), {}, datetime(2026, 9, 16, 11, 45))
         shadow._close(a, datetime(2026, 9, 16, 13, 0), 10364.5, "TARGET", 300.0)
         b = shadow.open_trade(sig(bar_time="2026-09-16T12:30:00"), atm(), {}, datetime(2026, 9, 16, 12, 35))
         shadow.save([a, b])
         self.assertEqual(shadow.realised_today_inr(date(2026, 9, 16)), a["net_inr"])
+
+
+class NeverBlockTest(unittest.TestCase):
+    """2026-09-30: no signal is ever blocked. Guard objections are warnings on the alert; they only
+    decide whether it becomes a simulated option trade or is followed on the underlying."""
+
+    def setUp(self):
+        from trading_exec import runner
+        self.runner = runner
+        self.tmp = tempfile.TemporaryDirectory()
+        d = lambda *a: Path(self.tmp.name)
+        self.sent = []
+        self.patches = [mock.patch.object(shadow, "data_dir", d), mock.patch.object(signals, "data_dir", d),
+                        mock.patch.object(runner, "notify", lambda t, l, s="info": self.sent.append((t, l, s)))]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        self.tmp.cleanup()
+
+    def handle(self, s, a, now):
+        with mock.patch.object(self.runner.atm_mod, "resolve", lambda *x, **k: a), \
+                mock.patch.object(self.runner.atm_mod, "premium_targets", lambda *x, **k: {}):
+            return self.runner.handle_signal(None, s, now)
+
+    def test_guard_objection_is_a_warning_and_the_trade_still_opens(self):
+        shadow.save([dict(shadow.open_trade(sig(bar_time="2026-09-16T10:00:00"), atm(), {},
+                                            datetime(2026, 9, 16, 10, 5)))])     # same strategy already open
+        res = self.handle(sig(bar_time="2026-09-16T11:40:00"), atm(), datetime(2026, 9, 16, 11, 45))
+        self.assertIsNotNone(res["trade"])
+        self.assertTrue(any("still open" in w for w in res["warnings"]))
+        title, lines, severity = self.sent[-1]
+        self.assertTrue(title.startswith("[signal · simulated]"))
+        self.assertIn("Warnings (not blocking):", lines)
+        self.assertEqual(signals.load_all()[-1].status, "SHADOW")
+
+    def test_unpriceable_option_still_alerts_and_is_followed(self):
+        res = self.handle(sig(bar_time="2026-09-16T11:40:00"), atm(usable=False, reasons=["wide bid-ask spread"]),
+                          datetime(2026, 9, 16, 11, 45))
+        self.assertIsNone(res["trade"])
+        self.assertEqual(res["watch"]["blocked_by"], "wide bid-ask spread")
+        self.assertTrue(self.sent[-1][0].startswith("[signal · simulated]"))
+        self.assertEqual(signals.load_all()[-1].status, "SIGNAL")
+
+    def test_caught_up_signal_is_followed_not_bought_late(self):
+        res = self.handle(sig(bar_time="2026-09-16T10:00:00"), atm(), datetime(2026, 9, 16, 11, 45))
+        self.assertIsNone(res["trade"])
+        self.assertEqual(shadow.load(), [])
+        self.assertTrue(self.sent[-1][0].startswith("[signal · simulated]"))
 
 
 class ObservationalTest(unittest.TestCase):
@@ -605,14 +701,49 @@ class SignalFidelityTest(unittest.TestCase):
         with mock.patch.object(poller.v40, "simulate", lambda d, p: ([], None, fresh)):
             self.assertIs(poller.entry_on_last_bar(df, self.P)[0], fresh)
 
-    def test_silverm_options_are_signalled_off_silver(self):
-        # switched back 2026-09-28: a 30-month backtest found SILVER1! outperforms SILVERM1! on both
-        # the incumbent and the bo(3) variant (the 2026-09-18 switch rested on ~71 trades). Options
-        # are still bought through the liquid SILVERM chain.
+    def test_catch_up_finds_an_entry_the_loop_was_down_for(self):
+        from trading_exec import poller
+        df = self.frame(400, longs=[390])                       # fills at 391's open, still open or exited
+        sim = poller.v40.simulate(df, self.P)
+        t = df["time"]
+        self.assertEqual(poller.entries_since(df, sim, None), [])          # the old last-bar-only view loses it
+        found = poller.entries_since(df, sim, t.iat[388])                  # last good poll before bar 390 closed
+        self.assertEqual([(e["side"], e["signal_time"], missed) for e, _c, missed in found],
+                         [("LONG", t.iat[390], True)])
+        self.assertAlmostEqual(found[0][1], float(df["close"].iat[390]))
+        # a poll that ran just after bar 390 closed may still have been missing it (Dhan publishes late)
+        self.assertEqual(len(poller.entries_since(df, sim, t.iat[391] + poller.BAR)), 1)
+        self.assertEqual(poller.entries_since(df, sim, t.iat[391] + poller.OVERLAP + poller.BAR), [])
+
+    def test_catch_up_keeps_the_last_bar_signal_normal(self):
+        from trading_exec import poller
+        df = self.frame(400, longs=[399])
+        found = poller.entries_since(df, poller.v40.simulate(df, self.P), df["time"].iat[398])
+        self.assertEqual([(e["signal_time"], missed) for e, _c, missed in found], [(df["time"].iat[399], False)])
+        sigs = poller._to_signals(found, "CRUDEOIL", "CRUDEOIL", dict(self.P, name="t"),
+                                  dict(security_id=1, segment="MCX_COMM", instrument="FUTCOM", label="X"))
+        self.assertEqual(sigs[0].note, "")
+
+    def test_last_poll_round_trip_and_capped_at_midnight(self):
+        from trading_exec import poller
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(poller, "data_dir", lambda *a: Path(d)):
+            self.assertIsNone(poller.last_poll())
+            now = datetime.now().replace(microsecond=0)
+            poller.save_last_poll(now)
+            self.assertEqual(poller.last_poll(), now)
+            poller.save_last_poll(now - timedelta(days=2))                 # yesterday's gap is not replayed
+            self.assertEqual(poller.last_poll(), datetime.combine(now.date(), datetime.min.time()))
+
+    def test_silverm_options_are_signalled_off_silverm_itself(self):
+        # 2026-10-03: the signal chart is the traded chart. SILVERM uses [strategy.SILVERM], which must
+        # carry the same v4.1 settings as SILVER (it did before the 2026-09-28 move to SILVER1!).
         from trading_exec.config import instrument_cfg
         from trading_agents.core.config import load_config as agents_config
-        self.assertEqual(instrument_cfg("SILVERM").get("signal_from"), "SILVER")
-        self.assertEqual(agents_config()["strategy"]["SILVER"]["day_loss_limit_pts"], 350)
+        self.assertIsNone(instrument_cfg("SILVERM").get("signal_from"))
+        strat = agents_config()["strategy"]
+        for key in ("day_loss_limit_pts", "bo_lookback", "rr", "min_sl", "max_sl", "exclude_hours"):
+            self.assertEqual(strat["SILVERM"][key], strat["SILVER"][key], key)
+        self.assertEqual(strat["SILVERM"]["day_loss_limit_pts"], 350)
 
     def test_option_priced_off_its_own_future_not_the_signal(self):
         from trading_exec import atm as atm_mod
@@ -944,18 +1075,25 @@ class MorningJobTest(unittest.TestCase):
         "SILVERM": {"available": True,
                     "underlying": {"prev_day": {"close": 239940.0}, "prev_day_change_pct": 1.35,
                                    "atr_regime": "normal", "atr_ratio": 1.06},
-                    "strategy": {"available": True, "position": {"side": "LONG", "entry": 240031.0,
-                                                                 "sl": 238897.86, "tp": 243430.43,
-                                                                 "open_pts": -91.0}},
+                    # SILVERM's OWN-price strategy - not what the live checker trades on
+                    "strategy": {"available": True, "alignment": "short-aligned", "position": None},
                     "options": {"nearest": {"dte": 6, "atm_strike": 240000.0,
                                             "atm": {"ce": {"ltp": 4302.0, "theta_pct_of_premium": 7.2}}}}},
+        "SILVER": {"available": True,
+                   "strategy": {"available": True, "position": {"side": "LONG", "entry": 240031.0,
+                                                                "sl": 238897.86, "tp": 243430.43,
+                                                                "open_pts": -91.0}}},
         "BANKNIFTY": {"available": False},
     }}
+    OPEN_SHADOW = [dict(id="s", status="OPEN", instrument="SILVERM", side="SHORT", opened_at="2026-09-29T09:20:19",
+                        signal_label="SILVER-04Dec2026-FUT", signal_entry=225800.0, sl=227792.9, target=219821.3),
+                   dict(id="o", status="OPEN", instrument="NIFTY", side="SHORT", opened_at="2026-09-29T13:10:55",
+                        observational=True, sl=1.0, target=2.0)]
 
     def sent(self, **over):
         got = {}
         args = dict(day=date(2026, 9, 18), facts=self.FACTS, error=None,
-                    token_status="ok", expiry=datetime(2026, 9, 19, 10, 0))
+                    token_status="ok", expiry=datetime(2026, 9, 19, 10, 0), shadow=[])
         args.update(over)
         patches = [
             mock.patch.object(morning, "build_facts", lambda d, o: (args["facts"], args["error"])),
@@ -963,6 +1101,8 @@ class MorningJobTest(unittest.TestCase):
             mock.patch.object(morning.health, "token_expiry", lambda t: args["expiry"]),
             mock.patch.object(morning.health, "token_status", lambda *a: args["token_status"]),
             mock.patch.object(morning, "enabled_instruments", lambda: ["CRUDEOIL", "SILVERM", "BANKNIFTY"]),
+            mock.patch.object(morning, "instrument_cfg", lambda u: dict(signal_from="SILVER") if u == "SILVERM" else {}),
+            mock.patch.object(morning.shadow, "load", lambda: args["shadow"]),
         ]
         with contextlib.ExitStack() as stack:
             for p in patches:
@@ -980,9 +1120,19 @@ class MorningJobTest(unittest.TestCase):
         self.assertIn("CRUDEOIL 9,339.00 (-0.12%)  ATR normal 1.20x", g["text"])
         self.assertIn("flat, long-aligned", g["text"])
         self.assertIn("theta 1.8%/day", g["text"])
-        self.assertIn("holding LONG from 240,031.00", g["text"])
+        self.assertIn("SILVERM 239,940.00 (1.35%)  ATR normal 1.06x  (signal on SILVER)", g["text"])
+        self.assertIn("holding LONG from 240,031.00", g["text"])          # SILVER's position, the live source
+        self.assertNotIn("short-aligned", g["text"])                       # not SILVERM's own-price strategy
         self.assertIn("BANKNIFTY: no data", g["text"])
+        self.assertIn("No simulated trades open.", g["text"])
         self.assertEqual(g["severity"], "info")
+
+    def test_digest_lists_simulated_trades_still_open(self):
+        g = self.sent(shadow=self.OPEN_SHADOW)
+        self.assertIn("Simulated trades still open (shadow book - NOT your account):", g["text"])
+        self.assertIn("- SILVERM SHORT since 29-Sep 09:20: SILVER-04Dec2026-FUT from 225,800.00"
+                      "  stop 227,792.90 target 219,821.30", g["text"])
+        self.assertNotIn("NIFTY SHORT", g["text"])                         # observational ones are not trades
 
     def test_failed_build_still_alerts_and_says_so(self):
         g = self.sent(facts=None, error="DH-901 invalid token")
@@ -1051,16 +1201,18 @@ class TelegramMarkupTest(unittest.TestCase):
         self.assertIn("<b>DTE 1</b>", sent["text"])
 
     def test_the_card_is_built_for_a_phone(self):
-        head = notify_mod.headline("[shadow entry] SILVERM LONG signal (Silver v4.0 wide-ATR)")
-        self.assertEqual(head, "🟢 <b>SHADOW ENTRY</b> · <b>SILVERM LONG</b>\n<i>Silver v4.0 wide-ATR</i>")
+        head = notify_mod.headline("[signal · simulated] SILVERM LONG signal (Silver v4.0 wide-ATR)")
+        self.assertEqual(head, "🟢 <b>SIGNAL · SIMULATED</b> · <b>SILVERM LONG</b>\n<i>Silver v4.0 wide-ATR</i>")
         card = notify_mod.body(["stop 237,415.95  target 242,008.15", "", "Blocked by:", "- DTE 1 below floor 2"])
         self.assertIn(" · ", card)                                  # column gaps become separators
         self.assertIn("• <b>DTE 1</b> below floor <b>2</b>", card)  # dashes and indents become bullets
         self.assertIn("\n\n", card)                                 # blank lines still break sections
 
     def test_an_exit_icon_follows_the_outcome(self):
-        self.assertTrue(notify_mod.headline("[shadow exit] SILVERM LONG TARGET").startswith("🎯"))
-        self.assertTrue(notify_mod.headline("[shadow exit] CRUDEOIL SHORT SL").startswith("🛑"))
+        self.assertTrue(notify_mod.headline("[signal exit · simulated] SILVERM LONG TARGET").startswith("🎯"))
+        self.assertTrue(notify_mod.headline("[signal exit · simulated] CRUDEOIL SHORT SL").startswith("🛑"))
+        self.assertTrue(notify_mod.headline("[signal · simulated] CRUDEOIL SHORT").startswith("🔴"))
+        self.assertTrue(notify_mod.headline("[trade opened] CRUDEOIL-15Oct2026-8700-CE").startswith("📈"))  # real: unchanged
         self.assertTrue(notify_mod.headline("[cut it] CRUDEOIL 18 SEP 2026 9600 PUT", "error").startswith("🚨"))
 
     def test_clock_times_contract_names_and_ratios_survive(self):
