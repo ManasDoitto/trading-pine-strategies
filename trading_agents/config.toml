@@ -161,6 +161,9 @@ min_sl = 2.5
 max_sl = 5.0
 rr = 3.0
 bo_lookback = 3
+# "Daily brake", not a loss cap: once the day's CLOSED trades total -350 pts or worse, no new entries that day.
+# Typical stops are wider (median ~480, mean ~1000 pts), so in practice one stop-out ends the day. Tested against
+# 1000/1500/2000/3000/none/max-2-trades on 33 months (2026-10-03): 350 was the best on profit factor and drawdown.
 day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
 exclude_hours = [15, 16]
@@ -179,6 +182,9 @@ min_sl = 2.5
 max_sl = 5.0
 rr = 3.0
 bo_lookback = 3
+# "Daily brake", not a loss cap: once the day's CLOSED trades total -350 pts or worse, no new entries that day.
+# Typical stops are wider (median ~480, mean ~1000 pts), so in practice one stop-out ends the day. Tested against
+# 1000/1500/2000/3000/none/max-2-trades on 33 months (2026-10-03): 350 was the best on profit factor and drawdown.
 day_loss_limit_pts = 350
 session = ["09:15", "23:30"]
 exclude_hours = [15, 16]
