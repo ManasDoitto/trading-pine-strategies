@@ -1,0 +1,11 @@
+[Unit]
+Description=Trading backup job
+After=network-online.target
+OnFailure=trading-alert@%n.service
+[Service]
+Type=oneshot
+User=trading
+WorkingDirectory=/opt/trading/repo
+EnvironmentFile=/opt/trading/repo/.env
+Environment=PYTHONPATH=/opt/trading/repo
+ExecStart=/opt/trading/jobs/backup.sh

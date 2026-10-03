@@ -1,0 +1,7 @@
+[Unit]
+Description=Start the signal checker at 08:55 IST, weekdays
+[Timer]
+OnCalendar=Mon..Fri 08:55
+Persistent=false
+[Install]
+WantedBy=timers.target

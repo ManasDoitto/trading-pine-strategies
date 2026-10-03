@@ -1,0 +1,8 @@
+[Unit]
+Description=Dhan token expiry nudge, 07:45 and 21:30 IST daily
+[Timer]
+OnCalendar=*-*-* 07:45:00
+OnCalendar=*-*-* 21:30:00
+Persistent=false
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=Start the stock-options scanner at 09:20 IST, weekdays
+[Timer]
+OnCalendar=Mon..Fri 09:20
+Persistent=false
+[Install]
+WantedBy=timers.target

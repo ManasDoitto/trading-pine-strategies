@@ -1,0 +1,7 @@
+[Unit]
+Description=Start the position watcher at 08:56 IST, weekdays (staggered from the checker)
+[Timer]
+OnCalendar=Mon..Fri 08:56
+Persistent=false
+[Install]
+WantedBy=timers.target

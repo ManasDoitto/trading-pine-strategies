@@ -1,0 +1,16 @@
+[Unit]
+Description=Trading position watcher (real account, read-only)
+After=network-online.target trading-runner.service
+Wants=network-online.target
+OnFailure=trading-alert@%n.service
+[Service]
+Type=simple
+User=trading
+WorkingDirectory=/opt/trading/repo
+EnvironmentFile=/opt/trading/repo/.env
+Environment=PYTHONPATH=/opt/trading/repo
+ExecStart=/opt/trading/run-if-window.sh 08:51 23:59 /opt/trading/repo/.venv/bin/python -m trading_exec.trade_watch --loop --until 23:59
+Restart=on-failure
+RestartSec=30
+[Install]
+WantedBy=multi-user.target

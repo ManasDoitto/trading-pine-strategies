@@ -1,0 +1,16 @@
+[Unit]
+Description=Stocks-in-Play MA Base Breakout scanner
+After=network-online.target
+Wants=network-online.target
+OnFailure=trading-alert@%n.service
+[Service]
+Type=simple
+User=trading
+WorkingDirectory=/opt/trading/repo
+EnvironmentFile=/opt/trading/repo/.env
+Environment=PYTHONPATH=/opt/trading/repo
+ExecStart=/opt/trading/run-if-window.sh 09:15 15:35 /opt/trading/repo/.venv/bin/python -m stockopt.scan_live --loop
+Restart=on-failure
+RestartSec=30
+[Install]
+WantedBy=multi-user.target

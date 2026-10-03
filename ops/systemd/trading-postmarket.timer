@@ -1,0 +1,7 @@
+[Unit]
+Description=Post-market digest at 23:40 IST, weekdays
+[Timer]
+OnCalendar=Mon..Fri 23:40
+Persistent=false
+[Install]
+WantedBy=timers.target
