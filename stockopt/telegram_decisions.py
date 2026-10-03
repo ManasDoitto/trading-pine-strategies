@@ -6,10 +6,11 @@ capital_sync.py). Three different, deliberately separate things:
   - capital_sync.py:  what ACTUALLY got filled in your real Dhan account
   - the backtest:      what the strategy's rules say happened historically
 
-Button presses are picked up on the next scheduled scan pass (every 5 min during market
-hours), not instantly -- there is no separate always-on listener. Acknowledgment can lag up
-to ~5 minutes behind the actual tap. If that's not snappy enough, a small standalone poller
-can be added later; this piggybacks on the existing cadence to avoid new infrastructure.
+Button presses are picked up by stockopt/decision_poller.py, a small standalone loop that
+checks every 30 seconds independent of the heavy 5-minute signal scan (added 2026-10-01 --
+once a tap could trigger a real order with a time-limited entry trigger, a 5-minute lag was
+too slow). scan_live.py also still polls once per scan pass as a redundant backstop; the
+file lock below is what makes both safe to run at once.
 
 Storage (both gitignored, both under research_data/stockopt/):
   signal_decisions.json  -- one row per signal sent: taken / skipped / still pending
@@ -30,6 +31,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, "research_data", "stockopt")
 DECISIONS_FILE = os.path.join(DATA_DIR, "signal_decisions.json")
 OFFSET_FILE = os.path.join(DATA_DIR, ".telegram_offset.json")
+
+
+def _file_lock(timeout=20.0):
+    from filelock import FileLock
+    os.makedirs(DATA_DIR, exist_ok=True)
+    return FileLock(OFFSET_FILE + ".lock", timeout=timeout)
 
 
 def _atomic_write(path, obj):
@@ -96,12 +103,23 @@ def _ack_and_mark(token, chat, msg_id, text):
 
 
 def poll_decisions() -> list[dict]:
-    """Call once per live scan pass: picks up any button presses since the last check, records
-    the decision, removes the Telegram loading spinner on the button, and replies confirming
-    what was recorded. Returns the decisions newly processed this call (possibly empty)."""
+    """Call as often as you like, from as many processes as you like -- a file lock around
+    the offset+decisions read-modify-write makes concurrent callers safe, which matters now
+    that both scan_live.py (every 5 min) and decision_poller.py (every 30s) call this.
+    Without the lock, two processes reading the same stale offset before either wrote back
+    could both see the same button tap and both act on it -- with live order placement
+    wired in, that would mean two real orders for one tap. Picks up any button presses
+    since the last check, records the decision, removes the Telegram loading spinner on
+    the button, and replies confirming what was recorded. Returns the decisions newly
+    processed this call (possibly empty)."""
     token, chat = env("TELEGRAM_BOT_TOKEN"), env("TELEGRAM_CHAT_ID")
     if not token or not chat:
         return []
+    with _file_lock():
+        return _poll_decisions_locked(token, chat)
+
+
+def _poll_decisions_locked(token: str, chat: str) -> list[dict]:
     offset = 0
     if os.path.exists(OFFSET_FILE):
         offset = json.load(open(OFFSET_FILE)).get("offset", 0)

@@ -63,7 +63,9 @@ def markup(text):
 # icon and a shouted tag you can recognise from the lock screen, then short lines. Column alignment
 # built from runs of spaces is a terminal habit - it wraps into mush on a narrow screen - so those
 # runs become middle dots and indented lines become bullets.
-ICONS = {"shadow entry": "🟢", "setup armed": "⏳", "shadow exit": "🎯", "signal exit": "📊",
+# Strategy alerts all carry "· simulated" in the tag (2026-09-30: a shadow trade read as a real one);
+# the trader's own positions keep the plain tags (trade opened, closed, cut it ...).
+ICONS = {"setup armed · simulated": "⏳", "exit now · simulated": "⚠️",
          "blocked": "⛔", "pre-market": "🌅", "post-market": "🌙", "trade opened": "📈", "closed": "🏁",
          "cut it": "🚨", "losing": "⚠️", "held too long": "⏱", "averaging down": "🚨",
          "take profit": "💰", "test": "🧪"}
@@ -73,9 +75,9 @@ TRAILING_PARENS = re.compile(r"\s*\((?P<inner>[^()]+)\)\s*$")
 
 
 def _icon(tag, rest, severity):
-    if tag == "shadow exit":
+    if tag == "signal exit · simulated":
         return "🎯" if "TARGET" in rest else "🛑" if " SL" in rest else "🏁"
-    if tag == "shadow entry":
+    if tag == "signal · simulated":
         return "🟢" if "LONG" in rest else "🔴"
     if tag.startswith("token"):
         return "🔑"
@@ -83,7 +85,7 @@ def _icon(tag, rest, severity):
 
 
 def headline(title, severity="info"):
-    """`[shadow entry] CRUDEOIL LONG signal (CRUDE v4.0 ...)` -> an icon, a shouted tag, the subject,
+    """`[signal · simulated] CRUDEOIL LONG signal (CRUDE v4.0 ...)` -> an icon, a shouted tag, the subject,
     and the strategy moved onto its own quieter line."""
     m = TAG.match(title.strip())
     tag, rest = (m["tag"], m["rest"]) if m else ("", title.strip())

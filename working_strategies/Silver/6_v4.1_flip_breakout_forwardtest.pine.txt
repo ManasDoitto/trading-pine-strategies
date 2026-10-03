@@ -1,4 +1,4 @@
-//@version=5
+//@version=6
 // ============================================================================
 //  SILVER v4.1 = working_strategies #1 (v4.0 wide-ATR + fixed 350 daily limit)
 //                + Donchian breakout as a SECOND entry trigger.
@@ -26,7 +26,8 @@ strategy("SILVER v4.1 flip+breakout (forward test)", overlay=true,
      initial_capital=100000,
      default_qty_type=strategy.fixed, default_qty_value=1,
      margin_long=0, margin_short=0,
-     commission_type=strategy.commission.percent, commission_value=0.02,
+     commission_type=strategy.commission.percent,
+     commission_value=0.02,
      max_labels_count=500, max_lines_count=500)
 
 // ============ INPUTS (base frozen at working_strategies/Silver #1) ============
@@ -115,6 +116,7 @@ if okL and not dayLocked
     entryKind := flipUp ? "FLIP" : "BO"
     strategy.entry("L", strategy.long)
     strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+    alert("🟢 SILVER LONG | Entry: " + str.tostring(close, "#.0") + " | SL: " + str.tostring(slPx, "#.0") + " | TP: " + str.tostring(tpPx, "#.0") + " | " + entryKind, alert.freq_once_per_bar)
 if okS and not dayLocked
     slPx := close + riskS
     tpPx := close - rr * riskS
@@ -122,6 +124,7 @@ if okS and not dayLocked
     entryKind := flipDn ? "FLIP" : "BO"
     strategy.entry("S", strategy.short)
     strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+    alert("🔴 SILVER SHORT | Entry: " + str.tostring(close, "#.0") + " | SL: " + str.tostring(slPx, "#.0") + " | TP: " + str.tostring(tpPx, "#.0") + " | " + entryKind, alert.freq_once_per_bar)
 
 // ============ BACKTEST vs FORWARD-TEST SPLIT TABLE ============
 var int   bN = 0

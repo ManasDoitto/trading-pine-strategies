@@ -1,15 +1,23 @@
-"""Live scanner for the Stocks-in-Play MA Base Breakout -- READ ONLY, places no orders.
+"""Live scanner for the Stocks-in-Play MA Base Breakout.
+
+The scan itself is still read only -- it places no orders. Whether a "Taking it" button
+tap results in a real order is entirely stockopt/auto_order.py's call, gated by
+order_config.json's live_orders_enabled (ships False). While that's False, this is exactly
+as read-only as the docstring used to claim outright.
 
 Every run pulls the last ~45 sessions of 5m bars for the whole stock-options universe
 from Dhan, applies exactly the backtested rules to the last COMPLETED bar, and prints
 armed setups ranked by catalyst strength:
 
     python -m stockopt.scan_live            # one scan now
-    python -m stockopt.scan_live --loop     # re-scan at every 5m close until 13:20 IST
+    python -m stockopt.scan_live --loop     # re-scan at every 5m close until 13:20 IST,
+                                              # then keep checking (no new entries) until
+                                              # any REAL order placed today is flattened
 
-Signal lines read: BUY CE (long) / BUY PE (short), the underlying trigger price
-(buy-stop above / sell-stop below the base), the underlying stop and 3R target.
-A trigger is valid for the next 3 bars only, and never after 13:15.
+Signal lines read: LONG (buy) / SHORT (sell) -- this strategy trades the underlying stock
+directly, never an option. Each line gives the trigger price (buy-stop above / sell-stop
+below the base), the stop and the 3R target. A trigger is valid for the next 3 bars only,
+and never after 13:15.
 """
 from __future__ import annotations
 
@@ -28,7 +36,7 @@ from dotenv import load_dotenv
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from stockopt import capital_sync, engine, position_calc, shadow, telegram_decisions  # noqa: E402
+from stockopt import auto_order, capital_sync, engine, position_calc, shadow, telegram_decisions  # noqa: E402
 from trading_agents.core.dhan_client import wait_for_slot  # noqa: E402
 from trading_exec.notify import notify  # noqa: E402
 
@@ -218,8 +226,21 @@ def report(df, errs, now, spec, alert=False):
             decided = telegram_decisions.poll_decisions()
             for d in decided:
                 print(f"    [decision] {d['meta'].get('symbol', '?')}: {d['decision']}")
+                if d["decision"] == "taken":
+                    try:
+                        rec = auto_order.handle_taken_signal(d)
+                        print(f"    [order] {'LIVE' if rec['live'] else 'dry-run'} "
+                              f"{rec.get('error', rec['payload'])}")
+                    except Exception as e:
+                        print(f"    [order] failed: {e}")
         except Exception as e:
             print(f"    [decision poll] failed: {e}")
+        try:
+            moved = auto_order.poll_live_orders(now)
+            for r in moved:
+                print(f"    [order poll] {r['symbol']}: {r['status']}")
+        except Exception as e:
+            print(f"    [order poll] failed: {e}")
     if df.empty:
         print("no data (market closed or holiday?)")
         return
@@ -247,7 +268,7 @@ def report(df, errs, now, spec, alert=False):
     pos_cfg = position_calc.load_config()
     current = set()
     for r in sig.itertuples():
-        side = "BUY CE (long) " if r.dir == 1 else "BUY PE (short)"
+        side = "LONG (buy)   " if r.dir == 1 else "SHORT (sell)"
         side = ("A+ " if r.aplus else "   ") + side
         word = "buy-stop above" if r.dir == 1 else "sell-stop below"
         pos = position_calc.calc_position(r.trigger, r.stop, r.symbol, mpct_cache=mpct_cache)
@@ -295,7 +316,7 @@ def replay_one(sym, secid, headers, spec, day, index):
         d, px, stp = base_signal(p, i, cfg)
         if d:
             out.append({"symbol": sym, "bar": str(pd.Timestamp(p["dt"][i]).time())[:5],
-                        "side": "CE" if d == 1 else "PE",
+                        "side": "LONG" if d == 1 else "SHORT",
                         "aplus": is_aplus(sym, d, p, i, spec),
                         "trigger": round(px, 2), "stop": round(stp, 2),
                         "target": round(px + d * cfg["rr"] * abs(px - stp), 2),
@@ -382,6 +403,29 @@ def main():
         nxt = (now + timedelta(minutes=5)).replace(second=5, microsecond=0)
         nxt = nxt.replace(minute=(nxt.minute // 5) * 5)
         time.sleep(max(5.0, (nxt - datetime.now(IST)).total_seconds()))
+
+    # Entry window (09:45-13:15) is over -- no new signals matter now. But if any REAL
+    # order was placed today, it still needs explicit flattening by 15:15 IST (this
+    # strategy's own rule, not left to the broker's generic EOD square-off timing), so
+    # keep a lightweight watch going instead of just exiting. Skipped entirely on a replay
+    # or a --no-alert test run, and does nothing if live orders were never enabled.
+    if a.loop and not a.no_alert:
+        while auto_order.has_open_live_orders_today():
+            now = datetime.now(IST)
+            if now.hour * 60 + now.minute > 15 * 60 + 25:
+                print("    [eod watch] past 15:25 with orders still marked open -- "
+                      "check your Dhan app directly, stopping the watch.")
+                break
+            try:
+                changed = auto_order.poll_live_orders(now)
+                for r in changed:
+                    print(f"    [eod watch] {r['symbol']}: {r['status']}")
+            except Exception as e:
+                print(f"    [eod watch] error: {e}")
+            nxt = (now + timedelta(minutes=5)).replace(second=5, microsecond=0)
+            nxt = nxt.replace(minute=(nxt.minute // 5) * 5)
+            time.sleep(max(5.0, (nxt - datetime.now(IST)).total_seconds()))
+
     print(f"########## scan_live end {datetime.now(IST):%Y-%m-%d %H:%M:%S} IST ##########")
 
 

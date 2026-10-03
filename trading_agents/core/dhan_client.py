@@ -12,6 +12,7 @@ from .config import REPO_ROOT
 
 READ_METHODS = frozenset({
     "get_trade_book", "get_trade_history", "get_positions", "get_holdings", "get_fund_limits",
+    "get_order_list", "get_order_by_id", "get_super_order_list", "get_forever",
     "intraday_minute_data", "historical_daily_data",
     "option_chain", "expiry_list",
     "ticker_data", "ohlc_data", "quote_data",

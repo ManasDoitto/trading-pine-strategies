@@ -6,8 +6,9 @@ places an order; it only ever holds a read-only client.
 Rules, chosen to be pessimistic rather than flattering:
 - entry at the ASK (a buyer crosses the spread), exit at the bar's close, plus a configured
   per-lot cost on both legs
-- exits follow the strategy's UNDERLYING stop/target, exactly as the Pine does. If both are
-  touched in the same bar, the stop is assumed first
+- exits are the strategy's own: it is rerun on its signal series and this trade's exit read off it
+  (stop, target, time stop, flatten, daily lock, reversal). Only a trade the strategy no longer
+  has falls back to a plain stop/target scan, where a bar touching both assumes the stop
 - a 30% premium stop (the journal's R4 rule) is tracked in parallel as a comparison, never as the
   real exit, so the month-end report can say which exit style would have served better
 """
@@ -17,6 +18,7 @@ from datetime import date, datetime, timedelta
 
 from trading_agents.core import instruments
 from trading_agents.core import signals as v40
+from trading_agents.core import signals_scalp as scalp
 from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.market_data import intraday_bars
 
@@ -153,29 +155,51 @@ def _exit_scan(trade, ubars):
     return None, None, None
 
 
-def _reversal_exit_scan(client, trade, now):
-    """For a reversal_exit strategy (Crude v4.2): there is no fixed target to scan bars for, and the
-    real exit - an opposite valid signal while in a position - can only be seen by rerunning the
-    actual strategy, not by comparing the trade's own sl/target to price. This reruns production
-    simulate() over a properly warmed-up window (WARMUP_BARS before entry, same as live) and reads
-    this trade's own outcome off it: the only way to reproduce the reversal exit exactly."""
+STILL_OPEN = "OPEN"
+# simulate()'s result names -> the exit_reason the shadow book and reports use
+_REASONS = {"TP": "TARGET"}
+# exits the strategy fills at the bar's OPEN: the clock (TIME/FLAT) is known at the open, and a
+# reversal decided on the previous close fills there too. SL/TARGET/DAY LIMIT use the bar's close.
+OPEN_FILL_EXITS = {"EOD", "TIME", "FLAT", "REV"}
+
+
+def _strategy_exit_scan(client, trade, now):
+    """Reruns the strategy that produced this trade over its own signal series and reads this
+    trade's exit off it. The strategies have more exits than a stop and a target - the scalps' 45-min
+    time stop and 15:20 flatten, v4.0's daily loss lock, v4.2's reversal - and copying those rules
+    here drifted from the real thing (2026-09-30: a Nifty short sat "open" 7h after the NSE close).
+    Same window as live (30 days before the signal, closed bars only), so it is the same simulation.
+
+    Returns (exit_time, exit_level, reason), STILL_OPEN, or None when the strategy has no such trade
+    (e.g. a v0.4 record, or a series that has since changed) - the caller then falls back to the
+    plain stop/target scan."""
     strat = (agents_config().get("strategy", {}) or {}).get(trade.get("signal_instrument") or trade["instrument"])
-    if not strat or not strat.get("reversal_exit"):
-        return None
+    engine = (strat or {}).get("engine", "v40")
+    frames = {"v40": v40.v40_frame, "supertrend": scalp.supertrend_frame, "tenkan_kijun": scalp.tenkan_frame}
     sid, seg, kind = trade.get("signal_security_id"), trade.get("signal_segment"), trade.get("signal_series_type")
-    if not sid:
+    if not strat or engine not in frames or not sid:
         return None
-    entry_date = datetime.fromisoformat(trade["bar_time"]).date()
-    bars = intraday_bars(client, sid, seg, kind, entry_date - timedelta(days=30), now.date(), interval=5)
+    bar_time = datetime.fromisoformat(trade["bar_time"])
+    bars = intraday_bars(client, sid, seg, kind, bar_time.date() - timedelta(days=30), now.date(), interval=5)
+    bars = bars[bars["time"] + timedelta(minutes=5) <= now] if not bars.empty else bars
     if bars.empty:
         return None
-    df = v40.v40_frame(bars, strat)
-    sim_trades, _pos, _pending = v40.simulate(df, strat)
-    bar_time = datetime.fromisoformat(trade["bar_time"])
+    df = frames[engine](bars, strat)
+    sim_trades, pos, _pending = (v40.simulate(df, strat) if engine == "v40" else scalp.simulate_scalp(df, strat))
     for t in sim_trades:
         if t["signal_time"] == bar_time and t["side"] == trade["side"]:
-            return t["exit_time"], t["exit"], t["result"]
+            return t["exit_time"], float(t["exit"]), _REASONS.get(t["result"], t["result"])
+    if pos and pos["signal_time"] == bar_time and pos["side"] == trade["side"]:
+        return STILL_OPEN
     return None
+
+
+def _exit(client, trade, ubars, now):
+    """(time, level, reason) of this trade's exit, or (None, None, None) while it is still open."""
+    res = _strategy_exit_scan(client, trade, now)
+    if res == STILL_OPEN:
+        return None, None, None
+    return res if res is not None else _exit_scan(trade, ubars)
 
 
 def mark(client, trade, now=None):
@@ -201,13 +225,12 @@ def mark(client, trade, now=None):
 
     ubars = _underlying_bars(client, trade, now)
     if ubars is not None and not ubars.empty:
-        rev = _reversal_exit_scan(client, trade, now) if trade.get("target") is None else None
-        t, level, reason = rev if rev is not None else _exit_scan(trade, ubars)
+        t, level, reason = _exit(client, trade, ubars, now)
         if t is not None:
             at_exit = obars[obars["time"] <= t] if not obars.empty else obars
             exit_premium = float(at_exit["close"].iloc[-1]) if len(at_exit) else trade.get("last_premium")
-            if reason == "EOD" and len(at_exit) and at_exit["time"].iloc[-1] == t:
-                exit_premium = float(at_exit["open"].iloc[-1])          # the force-flat fills at the open
+            if reason in OPEN_FILL_EXITS and len(at_exit) and at_exit["time"].iloc[-1] == t:
+                exit_premium = float(at_exit["open"].iloc[-1])          # these exits fill at the bar's open
             _close(trade, t, level, reason, exit_premium)
             return trade
 
@@ -356,7 +379,7 @@ def mark_watch(client, watch, now=None):
         return watch
     if watch.get("entry_fill") is None:
         watch["entry_fill"] = float(bars["open"].iloc[0])     # the Pine fills at the next bar's open
-    t, level, reason = _exit_scan(watch, bars)
+    t, level, reason = _exit(client, watch, bars, now)
     if t is not None:
         _close_watch(watch, t, level, reason)
     elif (now - datetime.fromisoformat(watch["opened_at"])).days >= MAX_WATCH_DAYS:
