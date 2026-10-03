@@ -15,3 +15,9 @@ longest losing streak 20): they say what is ordinary and what is outside history
 ## Why this is the test that matters
 Every in-history result is optimistic by construction (many trials on one data set; stop settings sit on a peak; 10 trades are most of the profit). Forward trades are the only evidence that was
 not available when the settings were chosen. Option costs are measured separately in the shadow book once the trader asks for it.
+
+## AMENDMENT 2026-10-03 (same day, before any forward trade was recorded)
+At the trader's request the excluded signal hours were widened from 15-16 to 13-16 (signals from 13:00 to 16:59 IST are skipped). The forward test therefore runs on the settings above
+with `exclude_hours = [13, 14, 15, 16]`; the health ledger was re-seeded so its history uses the same rules (677 history trades, PF 1.47, +288,928, max drawdown 51,937 points). The judging rules are unchanged.
+This hour filter was chosen on the same history it was measured on and was not consistent on the SILVER chart, so it is the least-supported setting in the deployed strategy; if the forward test
+disappoints, it is the first thing to examine.

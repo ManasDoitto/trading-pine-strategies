@@ -742,8 +742,11 @@ class SignalFidelityTest(unittest.TestCase):
         self.assertIsNone(instrument_cfg("SILVERM").get("signal_from"))
         self.assertEqual(instrument_cfg("SILVERM")["max_spread_pct"], 5.0)       # tightened from 15 on 2026-10-03
         strat = agents_config()["strategy"]
-        for key in ("day_loss_limit_pts", "bo_lookback", "rr", "min_sl", "max_sl", "exclude_hours"):
+        for key in ("day_loss_limit_pts", "bo_lookback", "rr", "min_sl", "max_sl"):
             self.assertEqual(strat["SILVERM"][key], strat["SILVER"][key], key)
+        # deliberate differences from [strategy.SILVER]: SILVERM skips signals from 13:00 to 16:59 (SILVER only 15:00-16:59)
+        self.assertEqual(strat["SILVERM"]["exclude_hours"], [13, 14, 15, 16])
+        self.assertEqual(strat["SILVER"]["exclude_hours"], [15, 16])
         self.assertEqual(strat["SILVERM"]["day_loss_limit_pts"], 350)
         # the one deliberate difference: SILVERM skips signals whose stop is under 0.35% of price (2026-10-03)
         self.assertEqual(strat["SILVERM"]["min_stop_pct"], 0.35)

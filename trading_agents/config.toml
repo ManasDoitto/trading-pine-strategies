@@ -172,7 +172,7 @@ exclude_hours = [15, 16]
 # Same v4.1 bo(3) as SILVER, run on SILVERM's OWN price action. Since 2026-10-03 this is the LIVE signal
 # for SILVERM options too (trading_exec no longer sets signal_from = "SILVER"), as well as what the premarket/
 # session-close briefs use. Differences from [strategy.SILVER]: min_stop_pct below.
-name = "Silver v4.1 SHA flip + 3-bar Donchian breakout, 15-17h excluded, on SILVERM's own price action"
+name = "Silver v4.1 SHA flip + 3-bar Donchian breakout, 13-17h excluded, 0.35% min stop, on SILVERM's own price action"
 sha_len1 = 10
 sha_len2 = 10
 sw_len = 10
@@ -191,7 +191,10 @@ day_loss_limit_pts = 350
 # strategy_audit_2026_09/pre_registration_silverm_lowvol_fix2_2026_10_03.md. Remove the line to turn it off.
 min_stop_pct = 0.35
 session = ["09:15", "23:30"]
-exclude_hours = [15, 16]
+# 2026-10-03 (trader's request): signals from 13:00 to 16:59 IST are skipped (was 15:00-16:59). Backtest on top of the stop filter: SILVERM PF 1.42 -> 1.47,
+# net +255k -> +289k, drawdown 68.4k -> 51.9k, expectancy 0.203 -> 0.237 R; S1/S2/S3 PF 1.09/1.35/1.49 -> 1.20/1.39/1.53. NOT consistent on the SILVER chart
+# (S3 1.65 -> 1.58) and the hours were picked on the same history, so treat it as unproven. To undo: exclude_hours = [15, 16].
+exclude_hours = [13, 14, 15, 16]
 
 # Supertrend(20,3) + above-average volume, on the front-month FUTURE (NSE:BANKNIFTY1!) - needs
 # volume, which the index lacks (same reason v0.4 ran on the future). engine = "supertrend" ->
