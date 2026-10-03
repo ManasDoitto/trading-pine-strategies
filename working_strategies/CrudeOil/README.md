@@ -4,10 +4,23 @@ All walk-forward tested on this repo's tiled non-overlapping-window method,
 qty=1 lot, 0.02%/side commission. Full detail in
 `../../strategy_audit_2026_09/` (see filenames in each entry below).
 
-## 1. v4.0 SHA flip, R:R 4.0 recal — `1_v4.0_SHA_flip_RR4.0_recal.pine.txt`
-**Current best.** SHA-flip entry + EMA9/22 alignment, R:R target raised 3.0→4.0.
+## 1. **v5.0 SHA-ADX Hybrid — `4_v5.0_SHA_ADX_hybrid.pine.txt`** (default — highest PF)
+SHA-flip entry + EMA9/22/200 alignment + **15m ADX gate ≥30** + SHA stability + EMA9 proximity + daily loss circuit breaker + session-end forced exit.
+
+- **TradingView full-history** (MCX:CRUDEOIL1! 5m, Mar 2024–Sep 2026, 155 trades): PF **1.575**, net +1,347 pts, max-DD 399 pts (17%)
+- ADX gate effect: PF 1.166 (gate OFF, 544 trades) → **1.575** (gate ON, 155 trades) — +35% PF, -70% max-DD
+- Beats plain v4.0 (PF 1.205, 856 trades, max-DD 2,001 pts)
+- Note: L/W ratio ~0.55 — avg loss is 55% of avg win, does not meet <40% constraint
+- param sweep winner: ADX=30, PB=1.0, RR=3.0. Daily loss breaker: 300 pts.
+
+## 2. **v5.1 Flip + Donchian Breakout — `5_v5.1_flip_breakout.pine.txt`** (high-frequency)
+Adds Donchian channel breakout entry alongside SHA flip. Optimized for more trades (ADX=15, SHA=2, RR=3.0, BO5): 71 trades, PF 1.58, net +2,721 pts.
+- L/W ratio still ~0.55 on crude — does not meet the <40% avg-loss constraint. For that constraint, Silver is the right instrument.
+
+## 2. v4.0 SHA flip, R:R 4.0 recal — `1_v4.0_SHA_flip_RR4.0_recal.pine.txt`
+SHA-flip entry + EMA9/22 alignment, R:R target raised 3.0→4.0.
 PF 1.12, net +2,811 pts, ~26 trades/mo, Mar 2024–Sep 2026 (32.3mo).
-Source of results: `strategy_audit_2026_09/v4.0_recalibration_results.md`.
+De-ranked from #1 to #2 by v5.0. Source of results: `strategy_audit_2026_09/v4.0_recalibration_results.md`.
 
 ## 2. v4.0 + initiative filter (train/holdout-robust) — `2_v4.0_initiative_filter_train_holdout_robust.pine.txt`
 Same SHA-flip core + "outside prior-day value area" filter. Lower PF (1.07)

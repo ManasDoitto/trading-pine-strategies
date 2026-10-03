@@ -1,7 +1,8 @@
-"""Pre-trade guards. Each returns a human-readable reason when it blocks.
+"""Pre-trade guards. Each returns a human-readable reason when it objects.
 
-In Stage A nothing can be ordered anyway, but the guards still run, so the shadow record shows
-exactly which signals a live system would have refused, and Stage C inherits a tested stack.
+Since 2026-09-30 nothing is blocked on them: the runner sends every signal and prints these as
+warnings on the alert, so the record still shows what a live system would have refused. Stage C
+(live orders) would have to decide afresh which of them become real blocks.
 """
 from datetime import datetime, time, timedelta
 
@@ -18,6 +19,16 @@ def session_window(instrument):
 def _to_time(hhmm):
     hh, mm = hhmm.split(":")
     return time(int(hh), int(mm))
+
+
+def describe_open(trade):
+    """'SILVERM SHORT since 29-Sep 09:20' - names the simulated trade, so a block never reads as
+    if the trader held something."""
+    try:
+        since = datetime.fromisoformat(trade.get("opened_at") or trade["bar_time"]).strftime("%d-%b %H:%M")
+    except (KeyError, TypeError, ValueError):
+        since = "?"
+    return f"{trade.get('instrument')} {trade.get('side')} since {since}"
 
 
 def check(signal, atm, ctx):
@@ -50,9 +61,13 @@ def check(signal, atm, ctx):
     if len(todays) >= g["max_signals_per_day"]:
         blocks.append(f"already {len(todays)} signals today (max {g['max_signals_per_day']})")
 
-    openpos = ctx.get("open_positions") or []
-    if len(openpos) >= g["max_open_positions"]:
-        blocks.append(f"{len(openpos)} positions already open (max {g['max_open_positions']})")
+    # Per strategy, not across all of them: a multi-day silver swing used to hold one of two shared
+    # slots, so any Nifty trade then blocked every other instrument's forward test (2026-09-30).
+    same = [p for p in ctx.get("open_positions") or []
+            if p.get("instrument") == signal.instrument and not p.get("observational")]
+    if len(same) >= g["max_open_per_strategy"]:
+        blocks.append("simulated " + ", ".join(describe_open(p) for p in same) + " still open"
+                      f" (max {g['max_open_per_strategy']} per strategy)")
 
     realised = ctx.get("realised_today_inr") or 0.0
     if realised <= -g["daily_loss_limit_inr"]:

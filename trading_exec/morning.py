@@ -1,4 +1,4 @@
-"""The 08:27 pre-market job: build today's facts, then send a short digest to Telegram.
+﻿"""The 08:27 pre-market job: build today's facts, then send a short digest to Telegram.
 
 It exists so the morning does not depend on Claude being open. Two jobs:
 
@@ -25,7 +25,7 @@ from datetime import date, datetime
 from trading_agents.core.config import data_dir as agents_data_dir
 from trading_agents.facts import premarket as premarket_facts
 
-from . import health
+from . import guards, health, shadow
 from .config import enabled_instruments, instrument_cfg
 from .notify import notify
 
@@ -54,18 +54,22 @@ def build_facts(day, only=None):
         return None, f"facts written but unreadable: {e}"
 
 
-def instrument_lines(name, facts):
+def instrument_lines(name, facts, source=None):
     """Three lines an option buyer can act on: where price is, what the strategy holds, what the
-    option costs to hold."""
-    inst = (facts.get("instruments") or {}).get(name) or {}
+    option costs to hold. `source` is the instrument the live signal is computed on when it differs
+    (SILVERM options signalled off SILVER): the strategy line must describe THAT, or the digest
+    shows a position the live checker does not have."""
+    insts = facts.get("instruments") or {}
+    inst = insts.get(name) or {}
     if not inst.get("available"):
         return [f"{name}: no data"]
     u = inst.get("underlying") or {}
     prev = u.get("prev_day") or {}
     out = [f"{name} {_fmt(prev.get('close'))} ({_fmt(u.get('prev_day_change_pct'), 2)}%)"
-           f"  ATR {u.get('atr_regime') or 'n/a'} {_fmt(u.get('atr_ratio'), 2)}x"]
+           f"  ATR {u.get('atr_regime') or 'n/a'} {_fmt(u.get('atr_ratio'), 2)}x"
+           + (f"  (signal on {source})" if source and source != name else "")]
 
-    s = inst.get("strategy") or {}
+    s = ((insts.get(source) or {}) if source and source != name else inst).get("strategy") or {}
     if s.get("available"):
         pos, pend = s.get("position"), s.get("pending_entry")
         if pos:
@@ -87,6 +91,20 @@ def instrument_lines(name, facts):
     return out
 
 
+def open_shadow_lines(trades=None):
+    """Simulated trades carried into today. A swing trade can stay open for days after its one
+    [signal · simulated] alert; without this it later shows up only as a block reason, unexplained."""
+    op = [t for t in shadow.open_trades(trades) if not t.get("observational")]
+    if not op:
+        return ["No simulated trades open."]
+    out = ["Simulated trades still open (shadow book - NOT your account):"]
+    for t in op:
+        target = f" target {_fmt(t['target'])}" if t.get("target") is not None else " (reversal exit)"
+        out.append(f"- {guards.describe_open(t)}: {t.get('signal_label') or 'underlying'}"
+                   f" from {_fmt(t.get('signal_entry'))}  stop {_fmt(t['sl'])}{target}")
+    return out + [""]
+
+
 def digest(day, facts, token_status, expiry, error=None):
     lines = []
     if token_status == "expired":
@@ -97,8 +115,9 @@ def digest(day, facts, token_status, expiry, error=None):
         lines += [f"{BUILD_FAILED}: {error}", "", "Run /premarket by hand to see the full error."]
         return lines
     for name in enabled_instruments():
-        lines += instrument_lines(name, facts)
+        lines += instrument_lines(name, facts, instrument_cfg(name).get("signal_from"))
         lines.append("")
+    lines += open_shadow_lines()
     src = (facts.get("instruments") or {})
     watched = [n for n in src if n not in enabled_instruments()]
     if watched:

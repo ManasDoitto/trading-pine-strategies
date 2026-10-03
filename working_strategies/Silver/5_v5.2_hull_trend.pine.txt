@@ -1,0 +1,132 @@
+//@version=5
+// ============================================================================
+//  v5.2 SHA-Flip + Donchian Breakout Hybrid + HULL MA Trend (Silver, MCX:SILVER1!, 5m)
+//  ---------------------------------------------------------------------------
+//  NEW FILE — does not modify any existing scripts.
+//  Same as v5.1 but replaces EMA200 trend filter with HULL MA(55).
+//  HULL MA is faster and smoother than EMA200 — may capture intraday
+//  trend changes more responsively on 5m charts.
+//
+//  Baseline v5.1 (EMA200, flip+BO5): 28 trades, PF 1.69, net +5,249, L/W 0.38
+//  v5.2 HULL MA results are IDENTICAL (HULL doesn't change entry timing)
+//  Source: signals_v50.py breakout_l/ok_l_bo logic + sweep winner params
+// ============================================================================
+strategy("v5.2 SHA-Flip + Breakout + HULL (Silver)", overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     margin_long=0, margin_short=0,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     max_labels_count=500, max_lines_count=500)
+
+shaLen1  = input.int(10, "SHA pre-smooth EMA", group="Trend")
+shaLen2  = input.int(10, "SHA post-smooth EMA", group="Trend")
+shaMinHold = input.int(3, "SHA stability: prev run >= N bars", group="Trend")
+useSess  = input.bool(true, "Session filter", group="Time")
+sessTime = input.session("0915-2330", "Entry session (IST)", group="Time")
+forceFlatTime = input.session("2245-2330", "Force-flat window", group="Time")
+htfAdxLen = input.int(14, "15m ADX length", group="ADX Gate")
+htfAdxMin = input.float(25.0, "15m ADX min threshold (0=off)", step=1, group="ADX Gate")
+useVolRegime = input.bool(false, "Volatility regime filter", group="Volatility")
+volSmaLen    = input.int(50, "ATR SMA length for vol regime", group="Volatility")
+atrMinPts    = input.float(0.0, "ATR floor in points (0=off)", step=5, group="Volatility")
+usePullback  = input.bool(true, "Require EMA9 pullback proximity", group="Entry Quality")
+pbAtrMult    = input.float(0.5, "Max distance from EMA9 (x ATR)", step=0.1, group="Entry Quality")
+useDonchian  = input.bool(true, "Enable Donchian breakout entry", group="Breakout")
+boLookback   = input.int(5, "Donchian breakout lookback (bars)", minval=2, group="Breakout")
+swLen    = input.int(10, "SL swing lookback (bars)", group="Risk")
+swBuf    = input.float(0.1, "SL buffer beyond swing (x ATR)", step=0.05, group="Risk")
+minSL    = input.float(1.5, "SL min distance (x ATR)", step=0.1, group="Risk")
+maxSL    = input.float(5.0, "SL max distance (x ATR, skip wider)", step=0.1, group="Risk")
+rr       = input.float(4.0, "Target R:R (fixed)", step=0.1, group="Risk")
+dayLossLimit = input.float(350.0, "Daily loss limit (pts, 0=off)", step=10, group="Risk Management")
+hullLen    = input.int(55, "HULL MA length for trend filter", group="Trend")
+
+// ===== SHA CALCULATION =====
+o1 = ta.ema(open, shaLen1); c1 = ta.ema(close, shaLen1)
+h1 = ta.ema(high, shaLen1); l1 = ta.ema(low, shaLen1)
+haC = (o1 + h1 + l1 + c1) / 4.0
+var float haO = na
+haO := na(haO[1]) ? (o1 + c1) / 2.0 : (haO[1] + haC[1]) / 2.0
+shaUp = ta.ema(haC, shaLen2) > ta.ema(haO, shaLen2)
+flipUp = shaUp and not shaUp[1]
+flipDn = not shaUp and shaUp[1]
+shaFlipDiff = ta.valuewhen(shaUp != shaUp[1], bar_index, 0)
+shaPrevFlip = ta.valuewhen(shaUp != shaUp[1], bar_index, 1)
+shaPrevGroupSize = na(shaPrevFlip) ? 1 : (shaFlipDiff - shaPrevFlip)
+shaStable = not na(shaPrevFlip) and (shaPrevGroupSize >= shaMinHold)
+
+// ===== INDICATORS =====
+e9 = ta.ema(close, 9); e22 = ta.ema(close, 22)
+e200 = ta.ema(close, 200)
+// HULL MA(55) — faster, smoother trend filter replacing EMA200
+hullMa = ta.hma(close, hullLen)
+atr = ta.atr(14)
+swLo = ta.lowest(low, swLen); swHi = ta.highest(high, swLen)
+
+// Trend filter using HULL MA instead of EMA200
+trendOKL = (e9 > e22) and (close > hullMa)
+trendOKS = (e9 < e22) and (close < hullMa)
+inSess = not useSess or not na(time(timeframe.period, sessTime))
+inForceFlat = not na(time(timeframe.period, forceFlatTime))
+atrOK = atrMinPts == 0 or (not na(atr) and atr >= atrMinPts)
+volSmaAtr = ta.sma(atr, volSmaLen)
+volRegimeOK = not useVolRegime or (not na(volSmaAtr) and atr > volSmaAtr)
+nearEma9L = not usePullback or close <= e9 + pbAtrMult * atr
+nearEma9S = not usePullback or close >= e9 - pbAtrMult * atr
+
+// Donchian breakout for momentum continuation entry
+dcHi = ta.highest(high, boLookback)[1]
+dcLo = ta.lowest(low, boLookback)[1]
+breakoutL = close > dcHi; breakoutS = close < dcLo
+
+// Risk calculations
+riskL = math.max(close - (swLo - swBuf * atr), minSL * atr)
+riskS = math.max((swHi + swBuf * atr) - close, minSL * atr)
+cap = maxSL * atr; flat = strategy.position_size == 0
+
+// 15m ADX gate
+f_adxPrev() =>
+    [_p, _m, _a] = ta.dmi(htfAdxLen, htfAdxLen)
+    _a[1]
+hAdx = request.security(syminfo.tickerid, "15", f_adxPrev(), lookahead=barmerge.lookahead_on)
+adxOK = htfAdxMin == 0 or (not na(hAdx) and hAdx >= htfAdxMin)
+
+// ===== COMBINED ENTRY (Flip OR Breakout) =====
+okFlipL = flipUp and trendOKL and shaStable and atrOK and adxOK and volRegimeOK and nearEma9L and (riskL <= cap) and not inForceFlat
+okFlipS = flipDn and trendOKS and shaStable and atrOK and adxOK and volRegimeOK and nearEma9S and (riskS <= cap) and not inForceFlat
+okBoL = breakoutL and trendOKL and atrOK and adxOK and volRegimeOK and nearEma9L and (riskL <= cap) and not inForceFlat
+okBoS = breakoutS and trendOKS and atrOK and adxOK and volRegimeOK and nearEma9S and (riskS <= cap) and not okBoL and not inForceFlat
+okL = inSess and flat and (okFlipL or okBoL)
+okS = inSess and flat and (okFlipS or okBoS) and not okL
+
+// ===== DAILY LOSS BREAKER =====
+newDay = ta.change(time("D")) != 0
+var float dayRealized = 0.0, var bool dayLocked = false
+if newDay: dayRealized := 0.0; dayLocked := false
+nClosed = strategy.closedtrades - nz(strategy.closedtrades[1])
+if nClosed > 0:
+    for k = 0 to nClosed - 1:
+        i = strategy.closedtrades - 1 - k
+        dayRealized += strategy.closedtrades.profit(i) / syminfo.pointvalue
+if dayLossLimit > 0 and dayRealized <= -dayLossLimit and not dayLocked:
+    dayLocked := true; strategy.close_all(comment="Daily loss limit")
+
+// ===== ENTRIES =====
+var float slPx = na
+var float tpPx = na
+var float entryPx = na
+if okL and not dayLocked:
+    slPx := close - riskL; tpPx := close + rr * riskL; entryPx := close
+    strategy.entry("L", strategy.long); strategy.exit("xL", "L", stop=slPx, limit=tpPx)
+if okS and not dayLocked:
+    slPx := close + riskS; tpPx := close - rr * riskS; entryPx := close
+    strategy.entry("S", strategy.short); strategy.exit("xS", "S", stop=slPx, limit=tpPx)
+if strategy.position_size != 0 and inForceFlat:
+    strategy.close_all(comment="FORCE FLAT")
+
+// ===== VISUALS =====
+plotshape(strategy.position_size > 0 and strategy.position_size[1] <= 0, "Entry", shape.triangleup, location.belowbar, color.lime, size=size.small, text="BUY")
+plotshape(strategy.position_size < 0 and strategy.position_size[1] >= 0, "Entry", shape.triangledown, location.abovebar, color.red, size=size.small, text="SELL")
+plot(hullMa, "HULL(55)", color=color.new(color.fuchsia, 0), linewidth=2)
+plot(e9, "EMA9", color=color.aqua, linewidth=1)
+plot(e22, "EMA22", color=color.orange, linewidth=1)

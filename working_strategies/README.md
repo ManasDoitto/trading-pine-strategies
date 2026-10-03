@@ -6,6 +6,7 @@ Best 3 tested strategies per instrument, out of the full research history in
 - [BankNifty](BankNifty/README.md)
 - [CrudeOil](CrudeOil/README.md)
 - [Silver](Silver/README.md)
+- [StockOptions](StockOptions/README.md) — one rule set across all 210 NSE stock-option underlyings
 
 Gold and Nifty 50 results exist (see the repo's main
 `BEST STRATEGY PER SCRIPT...md` and `README.md`) but don't have a

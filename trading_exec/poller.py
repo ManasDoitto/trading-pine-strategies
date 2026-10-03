@@ -19,6 +19,7 @@ but as of 2026-09-18 none does: SILVERM used to signal off SILVER, but the two f
 41-45% of signals (measured twice) and SILVERM's own price action scored better on the data available,
 so SILVERM now signals off itself.
 """
+import json
 from datetime import datetime, timedelta
 
 from trading_agents.core import instruments
@@ -28,7 +29,7 @@ from trading_agents.core import signals_v04 as v04
 from trading_agents.core.config import load_config as agents_config
 from trading_agents.core.market_data import intraday_bars
 
-from .config import enabled_instruments, instrument_cfg, load_config
+from .config import data_dir, enabled_instruments, instrument_cfg, load_config
 from .signals import Signal, known_keys
 
 BAR = timedelta(minutes=5)
@@ -72,32 +73,61 @@ def entry_on_last_bar(df, strategy_cfg):
     return pending, float(df["close"].iat[-1])
 
 
-def v40_signals(traded, source, params, series, bars):
-    hit = entry_on_last_bar(v40.v40_frame(bars, params), params)
-    if not hit:
+MISSED_NOTE = "missed while the checker was not polling"
+OVERLAP = timedelta(minutes=15)
+
+
+def entries_since(df, sim, since):
+    """Every entry the strategy took on a bar that closed after `since` (the last successful poll):
+    still pending, filled, or already exited. since=None means only the last closed bar - a signal
+    there is always still pending. A signal the loop was down for is otherwise lost for good, since
+    by the next poll it has become a fill and no longer shows as `pending`. Each item is
+    (entry, signal-bar close, missed) with missed=True for everything before the last bar."""
+    trades, pos, pending = sim
+    last = df["time"].iat[-1]
+    closes = dict(zip(df["time"], df["close"]))
+    out, taken = [], set()
+    for e in list(trades) + [x for x in (pos, pending) if x]:
+        st = e.get("signal_time")
+        if st is None or (st, e["side"]) in taken:
+            continue
+        # A bar Dhan publishes a few seconds late was not visible to the poll that "should" have seen
+        # it, so the window reaches OVERLAP back past the last poll; anything already handled there is
+        # dropped by the caller's signals.jsonl key check.
+        already_seen = (st != last) if since is None else (st + BAR <= since - OVERLAP)
+        if already_seen:
+            continue
+        taken.add((st, e["side"]))
+        out.append((e, float(closes[st]), st != last))
+    return sorted(out, key=lambda x: x[0]["signal_time"])
+
+
+def _to_signals(found, traded, source, params, series):
+    out = []
+    for e, close, missed in found:
+        tp = e["tp"]                            # None for reversal_exit (v4.2): no fixed target
+        out.append(Signal(strategy=params["name"], instrument=traded, side=e["side"],
+                          bar_time=_iso(e["signal_time"]), entry_hint=round(close, 2),
+                          sl=round(e["sl"], 2), target=(round(tp, 2) if tp is not None else None),
+                          risk_pts=round(e["risk_pts"], 2), rr=params["rr"],
+                          note=MISSED_NOTE if missed else "", **_series_fields(source, series)))
+    return out
+
+
+def v40_signals(traded, source, params, series, bars, since=None):
+    df = v40.v40_frame(bars, params)
+    if len(df) < v40.WARMUP_BARS + 50:
         return []
-    pending, close = hit
-    tp = pending["tp"]                          # None for reversal_exit (v4.2): no fixed target
-    return [Signal(strategy=params["name"], instrument=traded, side=pending["side"],
-                   bar_time=_iso(pending["signal_time"]), entry_hint=round(close, 2),
-                   sl=round(pending["sl"], 2), target=(round(tp, 2) if tp is not None else None),
-                   risk_pts=round(pending["risk_pts"], 2), rr=params["rr"], **_series_fields(source, series))]
+    return _to_signals(entries_since(df, v40.simulate(df, params), since), traded, source, params, series)
 
 
 # ---------------------------------------------------------------- scalp (supertrend / tenkan_kijun)
-def scalp_signals(traded, source, params, series, bars, frame_fn):
+def scalp_signals(traded, source, params, series, bars, frame_fn, since=None):
     """Same shape as v40_signals, for the two engines in signals_scalp.py."""
     df = frame_fn(bars, params)
     if len(df) < scalp.WARMUP_BARS + 50:
         return []
-    _trades, _pos, pending = scalp.simulate_scalp(df, params)
-    if not pending or pending["signal_time"] != df["time"].iat[-1]:
-        return []
-    close = float(df["close"].iat[-1])
-    return [Signal(strategy=params["name"], instrument=traded, side=pending["side"],
-                   bar_time=_iso(pending["signal_time"]), entry_hint=round(close, 2),
-                   sl=round(pending["sl"], 2), target=round(pending["tp"], 2),
-                   risk_pts=round(pending["risk_pts"], 2), rr=params["rr"], **_series_fields(source, series))]
+    return _to_signals(entries_since(df, scalp.simulate_scalp(df, params), since), traded, source, params, series)
 
 
 # ---------------------------------------------------------------- v0.4
@@ -154,8 +184,31 @@ def v04_signals(client, traded, source, params, series, bars):
 
 
 # ---------------------------------------------------------------- poll
-def poll_once(client, now=None, seen=None):
-    """New, non-duplicate signals across the enabled traded instruments."""
+LAST_POLL = "last_poll.json"
+
+
+def last_poll():
+    """When the runner last completed a poll, or None. Never earlier than today's midnight: a signal
+    missed yesterday is of no use this morning."""
+    p = data_dir() / LAST_POLL
+    if not p.exists():
+        return None
+    try:
+        at = datetime.fromisoformat(json.loads(p.read_text(encoding="utf-8"))["at"])
+    except (ValueError, KeyError, TypeError):
+        return None
+    return max(at, datetime.combine(datetime.now().date(), datetime.min.time()))
+
+
+def save_last_poll(at):
+    (data_dir() / LAST_POLL).write_text(json.dumps(dict(at=at.replace(microsecond=0).isoformat())),
+                                        encoding="utf-8")
+
+
+def poll_once(client, now=None, seen=None, since=None):
+    """New, non-duplicate signals across the enabled traded instruments, on every bar that closed
+    after `since` (the last successful poll) - so a restart or an outage catches up on what it
+    missed. since=None looks at the last closed bar only."""
     cfg = load_config()["source"]
     now = now or datetime.now()
     seen = known_keys() if seen is None else seen
@@ -177,11 +230,11 @@ def poll_once(client, now=None, seen=None):
         if engine == "v04":
             found = v04_signals(client, traded, source, params, series, bars)
         elif engine == "supertrend":
-            found = scalp_signals(traded, source, params, series, bars, scalp.supertrend_frame)
+            found = scalp_signals(traded, source, params, series, bars, scalp.supertrend_frame, since)
         elif engine == "tenkan_kijun":
-            found = scalp_signals(traded, source, params, series, bars, scalp.tenkan_frame)
+            found = scalp_signals(traded, source, params, series, bars, scalp.tenkan_frame, since)
         else:
-            found = v40_signals(traded, source, params, series, bars)
+            found = v40_signals(traded, source, params, series, bars, since)
         for sig in found:
             if sig.key not in seen:
                 seen.add(sig.key)

@@ -1,7 +1,20 @@
-# Silver — top 3 working strategies (MCX:SILVER1!, 5m)
+# Silver — working strategies (MCX:SILVER1!, 5m)
 
-## 1. v4.0 wide-ATR + fixed 350pt daily loss limit — `1_v4.0_wideATR_plus_fixed350_daily_limit.pine.txt`
-**Current best result in this entire repo, crude/gold/BankNifty included.**
+## 1. **v5.0 SHA-ADX Hybrid — `4_v5.0_SHA_ADX_hybrid.pine.txt`** (default — highest PF)
+SHA-flip entry + EMA9/22/200 alignment + **15m ADX gate ≥30** + SHA stability + EMA9 proximity + **fixed 350-pt daily loss limit** + session-end forced exit. Stops: minSL 1.5, maxSL 5.0 ATR.
+
+- Python backtest on partial cached data (4.7-mo Dhan sample, 10 trades): PF **2.04**, net +3,518 pts, Sharpe 1.41, max-DD 2,268 pts, **L/W ratio = 0.21** (avg loss = 21% of avg win)
+- param sweep winner: ADX=30, PB=1.0, RR=4.0. Daily loss breaker: 350 pts.
+
+## 2. **v5.1 Flip + Donchian Breakout — `5_v5.1_flip_breakout.pine.txt`** (high-frequency)
+Adds Donchian channel breakout entry **alongside** the SHA flip. Either signal can trigger. Optimized for more trades while meeting the <40% avg-loss-of-avg-win constraint.
+
+- Python sweep on partial data (4.7-mo): **28 trades**, PF **1.69**, WR 39.3%, net **+5,249 pts**, L/W **0.38** (avg loss = 38% of avg win)
+- TV inputs pre-set to the sweep winner (ADX=25, BO5, RR=4.0). Adjust `useDonchian` toggle to disable.
+- Trade count ~2.8× higher than v5.0 (10→28). PF and net profit improve; use this for active intraday.
+
+## 2. v4.0 wide-ATR + fixed 350pt daily loss limit — `1_v4.0_wideATR_plus_fixed350_daily_limit.pine.txt`
+**Formerly current best result in this entire repo, crude/gold/BankNifty included.**
 SHA-flip v4.0 core, stops widened (minSL 1.5→2.5 ATR, maxSL 3.0→5.0 ATR),
 plus a fixed 350-pt/day circuit breaker layered on top. PF **1.35**, net
 +160,845 pts, ~24 trades/mo, max single-window DD cut from 76,863→24,551 pts

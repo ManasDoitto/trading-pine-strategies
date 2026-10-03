@@ -216,7 +216,7 @@ def report(events, now, alert=False):
         print("no changes")
     for kind, t in events:
         if kind == "ARMED":
-            side = "BUY CE (long)" if t["dir"] == 1 else "BUY PE (short)"
+            side = "LONG (buy)" if t["dir"] == 1 else "SHORT (sell)"
             tag = "A+ " if t["aplus"] else ""
             print(f"  ARMED {t['symbol']:12s} {tag}{side}  trigger {t['trigger']:.2f}  stop {t['stop']:.2f}")
             if alert:

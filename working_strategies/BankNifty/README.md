@@ -1,7 +1,16 @@
 # BankNifty — top 3 working strategies (NSE:BANKNIFTY1!)
 
-## 1. v0.4 EMA pullback + 15m ADX gate — `1_v0.4_EMA_pullback_15mADX_gate.pine.txt` (5m)
-**Current best / "the holy grail" of this repo.** Rejection-wick + above-avg
+## 1. **v5.0 SHA-ADX Hybrid — `4_v5.0_SHA_ADX_hybrid.pine.txt`** (default — highest PF)
+SHA-flip entry + EMA9/22/200 alignment + **15m ADX gate ≥20** + **volatility-regime filter (ATR>SMA80)** + SHA stability + EMA9 proximity + session-end forced exit. Entry switched to SHA-flip from v0.4's pullback — post-Sep-2025 BankNifty regime doesn't reward pullback entry, while SHA-flip + vol-regime gate is robust.
+
+- **Python backtest** (23.2-mo cached Dhan data, 49 trades): PF **1.494**, net +1,807 pts, 44.9% win rate, Sharpe 1.31, max-DD -1,668 pts
+- param sweep winner: ADX=20, PB=1.0, RR=4.0, day-loss=500, atr floor=50pts. Volatility-regime filter ON.
+
+## 2. **v5.1 Flip + Donchian Breakout — `5_v5.1_flip_breakout.pine.txt`** (experimental)
+Adds Donchian channel breakout entry alongside SHA flip. Sweep showed 126 trades, PF 0.94 on BankNifty — **not recommended** as it degrades PF significantly. BankNifty does not benefit from combined entry; L/W constraint also not met.
+
+## 2. v0.4 EMA pullback + 15m ADX gate — `1_v0.4_EMA_pullback_15mADX_gate.pine.txt` (5m)
+**Formerly current best / "the holy grail" of this repo.** Rejection-wick + above-avg
 volume + VWAP-side + EMA21-hold pullback reclaim, gated by prior-completed
 15m ADX(14) ≥ 25. PF **1.29**, net +1,277 pts, 2.5 trades/mo, max DD 1,668 pts
 (10%), positive in 3/5 windows, Mar 2024–Sep 2026 (30mo). Also the only
