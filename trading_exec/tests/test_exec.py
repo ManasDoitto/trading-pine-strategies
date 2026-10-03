@@ -744,6 +744,9 @@ class SignalFidelityTest(unittest.TestCase):
         for key in ("day_loss_limit_pts", "bo_lookback", "rr", "min_sl", "max_sl", "exclude_hours"):
             self.assertEqual(strat["SILVERM"][key], strat["SILVER"][key], key)
         self.assertEqual(strat["SILVERM"]["day_loss_limit_pts"], 350)
+        # the one deliberate difference: SILVERM skips signals whose stop is under 0.35% of price (2026-10-03)
+        self.assertEqual(strat["SILVERM"]["min_stop_pct"], 0.35)
+        self.assertNotIn("min_stop_pct", strat["SILVER"])
 
     def test_option_priced_off_its_own_future_not_the_signal(self):
         from trading_exec import atm as atm_mod

@@ -169,10 +169,9 @@ session = ["09:15", "23:30"]
 exclude_hours = [15, 16]
 
 [strategy.SILVERM]
-# Same v4.1 bo(3) as SILVER, kept for SILVERM's OWN price action (used only by the premarket/
-# session-close briefs, which price SILVERM directly - trading_exec now signals SILVERM's traded
-# options off SILVER1! instead, via signal_from in trading_exec/config.toml; see the 2026-09-28
-# backtest that found SILVER1! outperforms SILVERM1! on both variants over the same 30-month window).
+# Same v4.1 bo(3) as SILVER, run on SILVERM's OWN price action. Since 2026-10-03 this is the LIVE signal
+# for SILVERM options too (trading_exec no longer sets signal_from = "SILVER"), as well as what the premarket/
+# session-close briefs use. Differences from [strategy.SILVER]: min_stop_pct below.
 name = "Silver v4.1 SHA flip + 3-bar Donchian breakout, 15-17h excluded, on SILVERM's own price action"
 sha_len1 = 10
 sha_len2 = 10
@@ -186,6 +185,11 @@ bo_lookback = 3
 # Typical stops are wider (median ~480, mean ~1000 pts), so in practice one stop-out ends the day. Tested against
 # 1000/1500/2000/3000/none/max-2-trades on 33 months (2026-10-03): 350 was the best on profit factor and drawdown.
 day_loss_limit_pts = 350
+# Added 2026-10-03: skip a signal whose stop is closer than 0.35% of the signal-bar close (~800 pts at 228,000). Quiet-market
+# protection: on the 2024-25 samples it lifted S2 PF 1.18 -> 1.35 (net +20.5k -> +34.0k) and left S1 and the volatile S3 unchanged;
+# today it removes ~3% of trades. Tuned on that data (17 trials) and neighbouring 0.20-0.30% settings did not confirm it - see
+# strategy_audit_2026_09/pre_registration_silverm_lowvol_fix2_2026_10_03.md. Remove the line to turn it off.
+min_stop_pct = 0.35
 session = ["09:15", "23:30"]
 exclude_hours = [15, 16]
 

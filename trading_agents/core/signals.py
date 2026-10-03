@@ -66,6 +66,15 @@ def v40_frame(bars, p):
         entry_s = entry_s | (df["close"] < df["low"].rolling(bo).min().shift(1))
     df["ok_l"] = df["in_sess"] & entry_l & (df["e9"] > df["e22"]) & (df["risk_l"] <= cap)
     df["ok_s"] = df["in_sess"] & entry_s & (df["e9"] < df["e22"]) & (df["risk_s"] <= cap) & ~df["ok_l"]
+    # min_stop_pct (2026-10-03): skip a signal whose stop is closer than this % of the signal-bar close. A stop of
+    # a few hundred points is mostly noise, and the round-trip cost (0.04% of price) is a large share of it. It helped
+    # the quiet 2025 sample (PF 1.18 -> 1.35) and is a no-op in today's wide-stop regime. None/0 -> unchanged.
+    # Applied AFTER ok_l/ok_s are built, so a long dropped here does not free the short side of the same bar.
+    min_stop_pct = p.get("min_stop_pct")
+    if min_stop_pct:
+        floor_pts = df["close"] * (float(min_stop_pct) / 100.0)
+        df["ok_l"] = df["ok_l"] & (df["risk_l"] >= floor_pts)
+        df["ok_s"] = df["ok_s"] & (df["risk_s"] >= floor_pts)
     return df
 
 

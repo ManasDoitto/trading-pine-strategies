@@ -85,6 +85,32 @@ class SignalsTest(unittest.TestCase):
             self.assertAlmostEqual(t["exit"], t["sl"] if t["result"] == "SL" else t["tp"])
         self.assertLessEqual(sum(1 for x in (pos, pending) if x), 1)
 
+    def test_min_stop_pct_drops_only_signals_with_a_small_stop(self):
+        # a smooth sine yields no natural signals, so use a seeded random walk (breakout entries on) that does
+        closes = 1000 + np.random.default_rng(1).normal(0, 2.0, 1500).cumsum()
+        P = dict(self.P, bo_lookback=3)
+        base = signals.v40_frame(bars_from(closes, wick=0.8), P)
+        sig = base[base["ok_l"] | base["ok_s"]]
+        self.assertGreater(len(sig), 20, "the fixture must produce signals for this test to mean anything")
+        risk = np.where(sig["ok_l"], sig["risk_l"], sig["risk_s"])
+        pct_of_price = risk / sig["close"].to_numpy() * 100
+        cut = float(np.median(pct_of_price))
+        df = signals.v40_frame(bars_from(closes, wick=0.8), dict(P, min_stop_pct=cut))
+        kept = df[df["ok_l"] | df["ok_s"]]
+        self.assertGreater(len(kept), 0)
+        self.assertLess(len(kept), len(sig))
+        # every surviving signal has a stop of at least cut % of the signal-bar close, and nothing new appeared
+        kr = np.where(kept["ok_l"], kept["risk_l"], kept["risk_s"])
+        self.assertTrue((kr >= kept["close"].to_numpy() * cut / 100 - 1e-9).all())
+        self.assertTrue(set(kept.index) <= set(sig.index))
+        # the filter never alters the stop distance itself, and 0 / None switch it off
+        for off in (0, None):
+            same = signals.v40_frame(bars_from(closes, wick=0.8), dict(P, min_stop_pct=off))
+            self.assertTrue((same["ok_l"] == base["ok_l"]).all() and (same["ok_s"] == base["ok_s"]).all())
+        pd.testing.assert_series_equal(df["risk_l"], base["risk_l"])      # warm-up rows are NaN, so == would be wrong
+        huge = signals.v40_frame(bars_from(closes, wick=0.8), dict(P, min_stop_pct=50.0))
+        self.assertFalse((huge["ok_l"] | huge["ok_s"]).any())
+
     def test_state_keys(self):
         s = signals.v40_state(bars_from(self.closes()), self.P)
         self.assertTrue(s["available"])
