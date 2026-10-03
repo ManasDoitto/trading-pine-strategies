@@ -12,6 +12,8 @@ Commands:
   /status          shadow book, real positions, signals today, blocked signals being followed
   /premarket       rebuild today's pre-market facts and resend the digest (same as the 08:27 job)
   /session-close   rebuild today's session facts and resend the digest (same as the 23:40 job)
+  /health          strategy health on demand: rolling PF, drawdown, time below peak, losing
+                   streak, forward-test count - the same section the 23:40 digest carries
   /help            list commands
 
 /premarket and /session-close send the deterministic digest, not the full Claude-written
@@ -82,12 +84,18 @@ def cmd_session_close(client):
     evening.run()
 
 
+def cmd_health(client):
+    from . import strategy_health
+    notify("[bot] /health", strategy_health.digest_lines(client), "info")
+
+
 def cmd_help(client):
     notify("[bot] commands", [
         "/analyze - live trade analysis for your open positions",
         "/status - shadow book, real positions, signals today",
         "/premarket - rebuild + resend today's pre-market digest",
         "/session-close - rebuild + resend today's post-market digest",
+        "/health - strategy health on demand (rolling PF, drawdown, forward test)",
     ], "info")
 
 
@@ -96,6 +104,7 @@ COMMANDS = {
     "/status": cmd_status,
     "/premarket": cmd_premarket,
     "/session-close": cmd_session_close,
+    "/health": cmd_health,
     "/help": cmd_help,
     "/start": cmd_help,
 }

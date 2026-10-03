@@ -502,6 +502,15 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(handled, ["/help"])
         self.assertEqual(self.sent[0][0], "[bot] commands")
 
+    def test_health_command_sends_the_strategy_health_digest(self):
+        self.bot._save_state({"offset": 1})
+        from trading_exec import strategy_health
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "/health")]), \
+             mock.patch.object(strategy_health, "digest_lines", lambda client: ["strategy health: OK"]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual(handled, ["/health"])
+        self.assertEqual(self.sent[0], ("[bot] /health", ("strategy health: OK",), "info"))
+
     def test_a_message_from_any_other_chat_is_silently_ignored(self):
         self.bot._save_state({"offset": 1})
         with mock.patch.object(self.bot, "get_updates",
