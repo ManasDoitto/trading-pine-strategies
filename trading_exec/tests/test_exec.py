@@ -1319,6 +1319,21 @@ class StrategyHealthTest(unittest.TestCase):
         pf = sh.compute(self.ledger(([300] * 40 + [-100] * 60)))["pf100"]
         self.assertAlmostEqual(pf, 12000 / 6000)
 
+    def test_forward_test_counts_only_live_trades(self):
+        from trading_exec import strategy_health as sh
+        nets = [100, -50] * 40 + [200, -100, 200, -100, 200, -100, 200, -100, 200, -100, 200, -100]
+        src = ["history"] * 80 + ["live"] * 12
+        s = sh.compute(self.ledger(nets, sources=src))
+        self.assertEqual(s["live_n"], 12)
+        self.assertAlmostEqual(s["fwd_net"], 600.0)
+        self.assertAlmostEqual(s["fwd_pf"], 1200 / 600)             # forward PF uses the 12 live trades, not the history
+        self.assertAlmostEqual(s["fwd_dd"], 100.0)
+        text = "\n".join(sh.lines(s))
+        self.assertIn("forward test (frozen settings, live trades since 2 Oct): 12 of 60, PF 2.00", text)
+        none = sh.compute(self.ledger([100, -50] * 40))
+        self.assertIsNone(none["fwd_pf"])
+        self.assertIn(": 0 of 60", "\n".join(sh.lines(none)))
+
     def test_status_ok_watch_review(self):
         from trading_exec import strategy_health as sh
         good = sh.compute(self.ledger([200, -100] * 60))

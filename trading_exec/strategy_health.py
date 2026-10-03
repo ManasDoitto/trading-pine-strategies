@@ -133,6 +133,11 @@ def compute(led):
              normal_lo=float(np.percentile(roll100, 5)) if roll100 else None, normal_hi=float(np.percentile(roll100, 75)) if roll100 else None,
              dd_now=float(dd.iloc[-1]), dd_max=float(dd.max()), underwater_now=int(underwater.iloc[-1]), underwater_max=int(underwater.max()),
              streak_now=streak_now, streak_max=longest_streak, last30_net=float(last30.sum()), last30_n=len(last30), live_n=int((led["source"] == "live").sum()))
+    live = led.loc[led["source"] == "live", "net_pts"].reset_index(drop=True)
+    leq = live.cumsum()
+    s["fwd_pf"] = _pf(live) if len(live) >= 10 else None
+    s["fwd_net"] = float(live.sum())
+    s["fwd_dd"] = float((leq.cummax().clip(lower=0) - leq).max()) if len(live) else 0.0
     L = LIMITS
     review, watch = [], []
     if s["pf100"] is not None:
@@ -163,6 +168,12 @@ def lines(s):
         out.append(f"  last 100 trades PF {s['pf100']:.2f}{normal}, last 60 PF {s['pf60']:.2f}")
     out.append(f"  drawdown now {f(s['dd_now'])} pts (history max {f(s['dd_max'])}, review above {f(LIMITS['dd_review'])})")
     out.append(f"  below its peak for {s['underwater_now']} days (longest {s['underwater_max']}, review above {LIMITS['underwater_review']})")
+    fwd = f"  forward test (frozen settings, live trades since 2 Oct): {s['live_n']} of 60"
+    if s["fwd_pf"] is not None:
+        fwd += f", PF {s['fwd_pf']:.2f}, net {f(s['fwd_net'])} pts, drawdown {f(s['fwd_dd'])} (KEEP needs PF >= 1.15 and drawdown <= 75,000 at 60 trades)"
+    elif s["live_n"]:
+        fwd += f", net {f(s['fwd_net'])} pts (PF shown from 10 trades)"
+    out.append(fwd)
     out.append(f"  losing streak now {s['streak_now']} (longest {s['streak_max']}), last 30 days {s['last30_n']} trades {f(s['last30_net'])} pts")
     return out
 
