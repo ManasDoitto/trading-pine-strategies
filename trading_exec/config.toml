@@ -75,7 +75,9 @@ max_spread_pct = 15.0
 enabled = true
 lots = 2
 min_dte = 2
-max_spread_pct = 15.0
+# 2026-10-03: 15 -> 5. The 6 recorded SILVERM entries all had spreads of 0.1-0.5% of the premium; liquid strikes (225k/228k/230k) trade at
+# 0.4-2%, thin ones at 10-90%. A signal whose ATM option is wider than this is still alerted but is followed on the underlying only.
+max_spread_pct = 5.0
 
 # BankNifty Supertrend(20,3)+volume runs on the front-month FUTURE (NSE:BANKNIFTY1!) - it needs
 # volume - and is bought as BANKNIFTY index options. Its trades are flat by 15:20.

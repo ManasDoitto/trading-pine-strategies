@@ -740,6 +740,7 @@ class SignalFidelityTest(unittest.TestCase):
         from trading_exec.config import instrument_cfg
         from trading_agents.core.config import load_config as agents_config
         self.assertIsNone(instrument_cfg("SILVERM").get("signal_from"))
+        self.assertEqual(instrument_cfg("SILVERM")["max_spread_pct"], 5.0)       # tightened from 15 on 2026-10-03
         strat = agents_config()["strategy"]
         for key in ("day_loss_limit_pts", "bo_lookback", "rr", "min_sl", "max_sl", "exclude_hours"):
             self.assertEqual(strat["SILVERM"][key], strat["SILVER"][key], key)
