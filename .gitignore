@@ -12,3 +12,5 @@ exec_data/
 research_data/
 # live, user-specific runtime state -- not code, drifts as real capital compounds
 stockopt/position_config.json
+stockopt/order_config.json
+backups_offlaptop/
