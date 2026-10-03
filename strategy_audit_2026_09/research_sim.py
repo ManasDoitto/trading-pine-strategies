@@ -25,7 +25,7 @@ def load(name):
 
 
 def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_min=None, flat_at=None, max_per_day=None, be_at_r=None, trail_start_r=None, trail_dist_r=1.0,
-             cooldown_bars=None, reversal_exit=False, scale_r=None, scale_frac=0.5, min_hold_bars_rev=0):
+             cooldown_bars=None, reversal_exit=False, scale_r=None, scale_frac=0.5, min_hold_bars_rev=0, entry_delay_bars=None):
     """Bracket strategy with next-bar-open fills, as production simulate() does, plus:
     gap_fills   a bar that OPENS beyond the stop/target exits at that open (TradingView), not at the level
     commission  fraction of price charged per side (0.0002 = the Pine scripts' 0.02%)
@@ -42,6 +42,8 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
                 from the bar's own high/low extreme, no lookahead); the remaining (1-scale_frac) rides to the
                 normal exit. One trade record per entry, net = weighted sum of both legs.
     min_hold_bars_rev  (round 8) a reversal signal is ignored until the position has been open this many bars
+    entry_delay_bars  the trader enters this many 5-minute bars AFTER the normal fill (stop and target levels stay those of the
+                signal); the trade is skipped if that open is already beyond the stop or target. None/0 = off, results unchanged.
     Returns a list of trade dicts with `net` (points, after commission)."""
     rows = df.to_dict("records")
     limit = p.get("day_loss_limit_pts") or 0
@@ -79,9 +81,17 @@ def simulate(df, p, start=WARMUP, gap_fills=True, commission=0.0002, time_stop_m
         if pending is not None:
             if flat is not None and minute >= flat:
                 pending = None                                     # would fill inside the flat window: skip
+            elif entry_delay_bars and pending.get("waited", 0) < entry_delay_bars:
+                pending["waited"] = pending.get("waited", 0) + 1     # trader enters late: wait before filling
             else:
-                pos = dict(pending, entry_time=r["time"], entry=r["open"], entry_i=i)
-                pending = None
+                fill = r["open"]
+                late_through = (entry_delay_bars and ((pending["side"] == "LONG" and (fill <= pending["sl"] or fill >= pending["tp"]))
+                                                      or (pending["side"] == "SHORT" and (fill >= pending["sl"] or fill <= pending["tp"]))))
+                if late_through:
+                    pending = None                                 # price already through the stop or target: no trade
+                else:
+                    pos = dict(pending, entry_time=r["time"], entry=fill, entry_i=i)
+                    pending = None
 
         if pos is not None:
             long_ = pos["side"] == "LONG"
