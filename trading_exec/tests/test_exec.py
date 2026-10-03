@@ -502,6 +502,20 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(handled, ["/help"])
         self.assertEqual(self.sent[0][0], "[bot] commands")
 
+    def test_journal_command_rebuilds_facts_and_sends_your_day(self):
+        self.bot._save_state({"offset": 1})
+        from trading_agents.facts import journal as journal_facts
+        from trading_exec import evening
+        calls = []
+        with mock.patch.object(self.bot, "get_updates", lambda offset=None: [self.update(1, "AUTH_CHAT", "/journal")]), \
+             mock.patch.object(journal_facts, "main", lambda argv: calls.append(argv)), \
+             mock.patch.object(evening, "your_day_lines", lambda day: ["you: 3 round trips, net 500 INR"]):
+            handled = self.bot.poll_and_handle(None)
+        self.assertEqual(handled, ["/journal"])
+        self.assertEqual(self.sent[0], ("[bot] /journal", ("you: 3 round trips, net 500 INR",), "info"))
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], "--date")
+
     def test_health_command_sends_the_strategy_health_digest(self):
         self.bot._save_state({"offset": 1})
         from trading_exec import strategy_health

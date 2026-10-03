@@ -12,12 +12,15 @@ Commands:
   /status          shadow book, real positions, signals today, blocked signals being followed
   /premarket       rebuild today's pre-market facts and resend the digest (same as the 08:27 job)
   /session-close   rebuild today's session facts and resend the digest (same as the 23:40 job)
+  /journal         rebuild today's journal facts and send a deterministic summary: round trips,
+                   win rate, PF, and any rule violations with their cost
   /health          strategy health on demand: rolling PF, drawdown, time below peak, losing
                    streak, forward-test count - the same section the 23:40 digest carries
   /help            list commands
 
-/premarket and /session-close send the deterministic digest, not the full Claude-written
-narrative brief - a bot command can't invoke a Claude session. Ask Claude directly for that.
+/premarket, /session-close and /journal send the deterministic digest, not the full
+Claude-written narrative - a bot command can't invoke a Claude session. Ask Claude directly
+for the written journal, pre-market brief or session-close review.
 
 First run marks any already-pending messages as read without acting on them, so an old test
 message sent before this existed can never be replayed as a command.
@@ -84,6 +87,15 @@ def cmd_session_close(client):
     evening.run()
 
 
+def cmd_journal(client):
+    from datetime import date
+    from trading_agents.facts import journal as journal_facts
+    from . import evening
+    today = date.today()
+    journal_facts.main(["--date", today.isoformat()])
+    notify("[bot] /journal", evening.your_day_lines(today), "info")
+
+
 def cmd_health(client):
     from . import strategy_health
     notify("[bot] /health", strategy_health.digest_lines(client), "info")
@@ -95,6 +107,7 @@ def cmd_help(client):
         "/status - shadow book, real positions, signals today",
         "/premarket - rebuild + resend today's pre-market digest",
         "/session-close - rebuild + resend today's post-market digest",
+        "/journal - rebuild today's journal facts + send round trips, PF, violations",
         "/health - strategy health on demand (rolling PF, drawdown, forward test)",
     ], "info")
 
@@ -104,6 +117,7 @@ COMMANDS = {
     "/status": cmd_status,
     "/premarket": cmd_premarket,
     "/session-close": cmd_session_close,
+    "/journal": cmd_journal,
     "/health": cmd_health,
     "/help": cmd_help,
     "/start": cmd_help,
