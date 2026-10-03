@@ -1297,6 +1297,93 @@ class EveningJobTest(unittest.TestCase):
         self.assertEqual(g["severity"], "warning")
 
 
+class StrategyHealthTest(unittest.TestCase):
+    """Rolling PF / drawdown / time-below-peak / losing-streak check shown in the post-market digest."""
+
+    def ledger(self, nets, start=datetime(2026, 1, 5, 12, 0), sources=None):
+        import pandas as pd
+        rows = []
+        for i, n in enumerate(nets):
+            t = start + timedelta(days=i)
+            rows.append(dict(signal_time=t - timedelta(minutes=5), side="LONG", entry_time=t, exit_time=t, net_pts=float(n),
+                             source=(sources[i] if sources else "history")))
+        return pd.DataFrame(rows)
+
+    def test_rolling_pf_drawdown_underwater_and_streak(self):
+        from trading_exec import strategy_health as sh
+        s = sh.compute(self.ledger([100] * 10 + [-50] * 8))
+        self.assertEqual(s["n"], 18)
+        self.assertAlmostEqual(s["dd_now"], 400.0)
+        self.assertEqual(s["underwater_now"], 8)                    # peak on day 10, last trade on day 18
+        self.assertEqual((s["streak_now"], s["streak_max"]), (8, 8))
+        pf = sh.compute(self.ledger(([300] * 40 + [-100] * 60)))["pf100"]
+        self.assertAlmostEqual(pf, 12000 / 6000)
+
+    def test_status_ok_watch_review(self):
+        from trading_exec import strategy_health as sh
+        good = sh.compute(self.ledger([200, -100] * 60))
+        self.assertEqual(good["status"], "OK")
+        weak = sh.compute(self.ledger([100, -105] * 60))              # last-100 PF ~0.95: below 1.0 is a WATCH, not a review
+        self.assertEqual(weak["status"], "WATCH")
+        broken = sh.compute(self.ledger([100, -200] * 60))            # PF 0.5
+        self.assertEqual(broken["status"], "REVIEW")
+        deep = sh.compute(self.ledger([1000, -150000]))
+        self.assertEqual(deep["status"], "REVIEW")
+        self.assertTrue(any("drawdown" in r for r in deep["reasons"]))
+        streak = sh.compute(self.ledger([500] * 30 + [-1] * 21))
+        self.assertEqual(streak["status"], "REVIEW")
+        self.assertTrue(any("losses in a row" in r for r in streak["reasons"]))
+
+    def test_update_appends_only_later_signals_and_is_idempotent(self):
+        import pandas as pd
+        from trading_exec import strategy_health as sh
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(sh, "ledger_path", lambda: Path(tmp) / "l.csv"):
+            led = self.ledger([100, -50, 80])
+            sh._atomic_write_csv(led, sh.ledger_path())
+            newest = led["signal_time"].max()
+            fetched = pd.concat([led.tail(1).assign(source="live"),                               # already in the ledger
+                                 self.ledger([-70], start=datetime(2026, 2, 1, 12, 0), sources=["live"])])   # genuinely new
+            out, added = sh.update(None, None, fetch=lambda c, n: fetched)
+            self.assertEqual(added, 1)
+            self.assertEqual(len(out), 4)
+            self.assertEqual(out["source"].tolist().count("live"), 1)
+            self.assertGreater(out["signal_time"].max(), newest)
+            _, again = sh.update(None, None, fetch=lambda c, n: fetched)
+            self.assertEqual(again, 0)
+
+    def test_digest_lines_never_raise(self):
+        from trading_exec import strategy_health as sh
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(sh, "ledger_path", lambda: Path(tmp) / "none.csv"):
+            self.assertIn("ledger not built", " ".join(sh.digest_lines()))
+            sh._atomic_write_csv(self.ledger([100, -50] * 30), sh.ledger_path())
+
+            def boom(c, n):
+                raise RuntimeError("dhan down")
+            text = "\n".join(sh.digest_lines(object(), None, fetch=boom))
+            self.assertIn("strategy health (SILVERM v4.1, 60 trades", text)
+            self.assertIn("not updated today", text)
+            Path(sh.ledger_path()).write_text("not,a,ledger\n1,2,3\n", encoding="utf-8")
+            self.assertIn("unavailable", " ".join(sh.digest_lines()))
+
+    def test_evening_digest_carries_the_health_section(self):
+        with mock.patch.object(evening, "build_facts", lambda d, s, o: (EveningJobTest.FACTS, None)), \
+                mock.patch.object(evening, "_facts", lambda d, kind: EveningJobTest.JOURNAL), \
+                mock.patch.object(evening.health, "token_from_env_file", lambda: "t"), \
+                mock.patch.object(evening.health, "token_expiry", lambda t: datetime(2026, 9, 19, 10, 0)), \
+                mock.patch.object(evening.health, "token_status", lambda *a: "ok"), \
+                mock.patch.object(evening, "shadow_lines", lambda d: []), \
+                mock.patch.object(evening, "health_lines", lambda d: ["strategy health (SILVERM v4.1): OK", "  last 100 trades PF 1.27"]):
+            got = {}
+            evening.run(date(2026, 9, 17), notify_fn=lambda title, lines, sev="info": got.update(text="\n".join(lines)) or {})
+        self.assertIn("strategy health (SILVERM v4.1): OK", got["text"])
+        self.assertLess(got["text"].index("strategy health"), got["text"].index("Full review"))
+
+    def test_health_lines_survive_a_dead_client(self):
+        with mock.patch.object(evening.health, "fresh_client", side_effect=RuntimeError("no token")), \
+                mock.patch.object(evening.strategy_health, "digest_lines", lambda client=None, *a, **k: [f"client={client}"]):
+            self.assertEqual(evening.health_lines(date(2026, 9, 17)), ["client=None"])
+
+
 class UnattendedRunnerTest(unittest.TestCase):
     def test_parse_hhmm(self):
         from datetime import time as dtime

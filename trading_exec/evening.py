@@ -30,7 +30,7 @@ from trading_agents.facts import journal as journal_facts
 from trading_agents.facts import session_close as session_facts
 from trading_agents.validate import scorecard
 
-from . import health, shadow
+from . import guards, health, shadow, strategy_health
 from .morning import _fmt
 from .notify import notify
 
@@ -106,13 +106,25 @@ def shadow_lines(day):
     elif shadow.open_trades(trades):
         out.append(f"shadow book (simulated, not your money): nothing closed today, "
                    f"{len(shadow.open_trades(trades))} still simulated open")
+    for t in shadow.open_trades(trades):
+        if not t.get("observational"):
+            out.append(f"  still simulated open: {guards.describe_open(t)}  stop {_fmt(t['sl'])}")
     for w in watches:
-        out.append(f"blocked signal ended: {w['instrument']} {w['side']} {w['exit_reason']}"
+        out.append(f"signal followed on the underlying ended: {w['instrument']} {w['side']} {w['exit_reason']}"
                    f" {_fmt(w.get('pts'))} pts (not traded)")
     return out
 
 
-def digest(day, facts, token_status, expiry, error=None):
+def health_lines(day):
+    """The strategy-health section (rolling PF, drawdown, time below peak, losing streak). Never raises."""
+    try:
+        client = health.fresh_client()
+    except Exception:
+        client = None
+    return strategy_health.digest_lines(client)
+
+
+def digest(day, facts, token_status, expiry, error=None, health_section=None):
     lines = []
     if token_status == "expired":
         lines += [f"TOKEN EXPIRED ({expiry:%d-%b %H:%M}) - renew DHAN_ACCESS_TOKEN in .env before tomorrow", ""]
@@ -125,6 +137,8 @@ def digest(day, facts, token_status, expiry, error=None):
     sl = shadow_lines(day)
     if sl:
         lines += sl + [""]
+    if health_section:
+        lines += health_section + [""]
     lines.append("Full review: run /session-close - the facts are already built.")
     return lines
 
@@ -135,7 +149,7 @@ def run(day=None, session="ALL", notify_fn=None, only=None):
     expiry = health.token_expiry(health.token_from_env_file())
     status = health.token_status(expiry, datetime.now(), None)
     facts, error = build_facts(day, session, only)
-    lines = digest(day, facts or {}, status, expiry, error)
+    lines = digest(day, facts or {}, status, expiry, error, health_lines(day))
     notify_fn(f"[post-market] {day:%a %d-%b}", lines, "warning" if error else "info")
     return dict(day=day.isoformat(), error=error, token_status=status, lines=lines)
 
