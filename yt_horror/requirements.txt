@@ -1,0 +1,21 @@
+# yt_horror pipeline dependencies — all free / permissively licensed.
+#
+# NOTE ON PYTHON VERSION
+#   The visual "diffusion" provider runs ComfyUI and is happiest on Python 3.11/3.12.
+#   This box has 3.13 only. ComfyUI runs on 3.13 but some custom nodes do not.
+#   Create a dedicated 3.12 venv for the diffusion provider when it is enabled:
+#       winget install Python.Python.3.12
+#       py -3.12 -m venv .venv-diffusion
+#
+# The rest of the pipeline (scriptwriter, TTS, editor, guard, motion visuals)
+# works on this box's 3.13 with just Pillow + edge-tts.
+
+Pillow>=10.0          # frame rendering for the motion visual provider
+edge-tts>=6.1         # free TTS, hi-IN voices, WordBoundary timings for captions
+
+# Optional: offline TTS fallback, licence-clean (MIT), used if edge-tts is unreachable
+# piper-tts>=1.2
+
+# Optional: diffusion visual provider (needs >=8GB VRAM, see preflight)
+# torch>=2.4
+# torchvision>=0.19

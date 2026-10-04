@@ -1,0 +1,26 @@
+# Generated media — regenerate, never commit
+render/clips/
+render/frames/
+render/audio/
+render/out/
+render/tmp/
+qc/*.png
+
+# Pipeline working state
+state/
+logs/
+licenses.csv
+
+# External engine (cloned by setup, hundreds of MB)
+ComfyUI/
+.venv/
+.venv-diffusion/
+
+# Local model weights
+models/
+
+# Windows / editor noise
+__pycache__/
+*.pyc
+Thumbs.db
+.DS_Store

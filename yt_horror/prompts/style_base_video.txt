@@ -1,0 +1,11 @@
+# SHEESHA - locked video style base (Wan2.1 text-to-video)
+# The video twin of prompts/style_base.txt. Version-locked for the whole season:
+# changing this line changes the look of every generated clip.
+#
+# It differs from the image base on purpose. A video model is asked for a moving
+# shot, so it must not be told the scene is a "still" - that word invites a frozen
+# frame. The camera terms that work on a still ("handheld micro drift", "push in")
+# are the same vocabulary a video model uses for actual motion, so they are kept.
+# Photorealism is stated explicitly because this is the channel's whole identity.
+
+cinematic horror scene, continuous single take, photorealistic, live action film still aesthetic, shot on 35mm anamorphic lens, shallow depth of field, moody low-key lighting, deep shadows, muted desaturated palette, volumetric haze, subtle film grain, handheld micro drift, slow deliberate camera movement, high contrast falloff, first person POV, no daylight, night interior of an old North Indian haveli, practical lamp light only

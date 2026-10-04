@@ -1,0 +1,15 @@
+{
+  "generated_from": "preflight",
+  "gpu": {
+    "name": "GeForce GTX 1650 with Max-Q Design",
+    "vram_mb": 4096,
+    "driver": "436.30"
+  },
+  "visual_provider": "motion",
+  "diffusion": {
+    "available": false,
+    "reason": "GeForce GTX 1650 with Max-Q Design has 4096 MB VRAM, checkpoint needs 8192 MB",
+    "checkpoint": "Wan-AI/Wan2.1-T2V-1.3B",
+    "min_vram_mb": 8192
+  }
+}

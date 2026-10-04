@@ -1,0 +1,125 @@
+{
+  "schema": "sheesha.story_bible/1",
+  "title": "Sheesha",
+  "tagline": "Ek ghar. Ek rule. Tees raatein.",
+  "season_length": 30,
+  "nights_total": 30,
+  "disclosure_line": "यह एक काल्पनिक कहानी है। इस चैनल की सारी फुटेज और आवाज़ AI से बनाई गई है।",
+
+  "logline": "A man inherits his grandfather's house in a small North-Indian town with one rule: at night, do not look at yourself in the mirror. It sees you first.",
+
+  "rule": {
+    "text_hinglish": "Raat ko sheeshe mein apna chehra mat dekho. Woh pehle tumhe dekh leta hai.",
+    "text_devanagari": "रात को शीशे में अपना चेहरा मत देखो। वो पहले तुम्हें देख लेता है।",
+    "origin": "Written by Nana, handed over with the house keys in a courier's envelope.",
+    "window": "02:30 - 03:00",
+    "cost_mechanic": "The mirror keeps a copy. Each night inside the 30-minute window it takes one more detail of the narrator's face. When it holds every detail, it steps out and the original is left inside.",
+    "countdown": "Thirty nights. One episode per night. The season ends when the copy is complete."
+  },
+
+  "setting": {
+    "place": "An inherited old house in a small North-Indian town",
+    "anchor_locations": [
+      "hall mirror, draped in an old sari",
+      "grandfather's room, locked",
+      "stairwell with a fourth step that creaks",
+      "courtyard with a mogra (jasmine) plant",
+      "the dry well behind the kitchen",
+      "kitchen with a wall clock stopped at 2:30"
+    ],
+    "time": "present day",
+    "season": "one month, night after night",
+    "hard_world_rules": [
+      "There is no second mirror in the house.",
+      "There is no electricity after 2 AM.",
+      "The well is dry and has been for years.",
+      "The house was never sold; it was inherited. No purchase money, only the keys.",
+      "The clock in the kitchen is stuck at 2:30 and does not move forward."
+    ]
+  },
+
+  "cast": [
+    {
+      "id": "narrator",
+      "name": "main",
+      "role": "protagonist, first person",
+      "on_screen": "camera POV only, never visible",
+      "voice": {"provider": "edge-tts", "id": "hi-IN-MadhurNeural", "rate": "+6%", "pitch": "+0Hz"},
+      "arc": "refuses the rule, then weaponises it, then pays for it"
+    },
+    {
+      "id": "nana",
+      "name": "nana",
+      "role": "grandfather, died six years ago",
+      "on_screen": "cane silhouette, seen only in recordings or a doorway",
+      "voice": {"provider": "edge-tts", "id": "hi-IN-MadhurNeural", "rate": "-25%", "pitch": "-20Hz"},
+      "arc": "the only one who knew the rule and never told his son"
+    },
+    {
+      "id": "maa",
+      "name": "maa",
+      "role": "mother, lives in the house",
+      "on_screen": "sari pallu silhouette, backlit",
+      "voice": {"provider": "edge-tts", "id": "hi-IN-SwaraNeural", "rate": "+0%", "pitch": "+0Hz"},
+      "arc": "has kept the mirror covered for twenty years and has her own debt at the mirror"
+    },
+    {
+      "id": "papa",
+      "name": "papa",
+      "role": "father, works in the Gulf, phone calls only",
+      "on_screen": "never on screen, voice only",
+      "voice": {"provider": "edge-tts", "id": "hi-IN-MadhurNeural", "rate": "+14%", "pitch": "+8Hz"},
+      "arc": "knew something, and his warning arrives too late"
+    },
+    {
+      "id": "presence",
+      "name": "the one on the other side",
+      "role": "antagonist, the unfinished copy",
+      "on_screen": "doorway silhouette, never a face",
+      "voice": {"provider": "edge-tts", "id": "hi-IN-SwaraNeural", "rate": "-35%", "pitch": "-25Hz"},
+      "arc": "no motivation, no bargain, only a checklist of details to finish"
+    },
+    {
+      "id": "babulal",
+      "name": "Babulal",
+      "role": "old neighbour who knew Nana",
+      "on_screen": "never speaks - exists only as a written note",
+      "voice": null,
+      "arc": "his note is the third of three keys to the ending"
+    }
+  ],
+
+  "motifs": [
+    {"id": "mirror", "desc": "the covered hall mirror - the threat and the clock", "first_seen": 1},
+    {"id": "clock_0230", "desc": "kitchen clock stopped at 2:30", "first_seen": 2},
+    {"id": "mogra", "desc": "jasmine, cut and wet on the morning after each night", "first_seen": 6},
+    {"id": "three_knocks", "desc": "three knocks from the courtyard, never four", "first_seen": 9},
+    {"id": "kurta", "desc": "Nana's kurta on a hanger, warm", "first_seen": 4},
+    {"id": "cassette", "desc": "Nana's cassette carrying the narrator's own voice", "first_seen": 8}
+  ],
+
+  "forbidden_states": [
+    "The narrator is never named on screen or in narration.",
+    "No character is ever given a visible, detailed face. Silhouette and backlight only.",
+    "The mirror is never broken. It cannot be broken - only covered, or traded with.",
+    "The Presence never explains itself, never bargains, never is defeated by an argument.",
+    "Papa never physically appears in the house.",
+    "No second mirror is ever introduced.",
+    "No episode may resolve the season-long question before episode 29.",
+    "No gore, no blood, no weapons, no real persons, no real place names."
+  ],
+
+  "arcs": [
+    {"id": 1, "episodes": [1, 10], "name": "Pehli Raat", "goal": "establish the rule, the house, and the first six stolen details"},
+    {"id": 2, "episodes": [11, 20], "name": "Khoja", "goal": "investigate Nana's notes; discover the copy is three days ahead and that Maa is also in debt"},
+    {"id": 3, "episodes": [21, 30], "name": "Aakhri", "goal": "the Presence steps out; the narrator breaks the rule on purpose and swaps places"}
+  ],
+
+  "continuity_rules": [
+    "Nights run in order; episode N is night N.",
+    "Stolen details are cumulative and never regress: posture (ep4), clothes (ep3), age (ep5), spectacles (ep11), mother's voice (ep19).",
+    "The copy is always exactly three days ahead of the narrator once episode 18 reveals it.",
+    "Maa's twenty-year cover only comes off the mirror in episode 16.",
+    "Every episode ends on a cliffhanger that the next episode opens by resolving."
+  ]
+}

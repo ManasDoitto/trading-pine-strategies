@@ -1,0 +1,5 @@
+# SHEESHA - locked style base
+# Appended to every shot prompt by the prompt-engineer agent. Version-locked:
+# changing this line changes the look of the entire season.
+
+cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens

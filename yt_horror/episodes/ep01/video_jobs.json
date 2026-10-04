@@ -1,0 +1,36 @@
+{
+  "episode": 1,
+  "schema": "sheesha.video_jobs/1",
+  "model": "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+  "steps": 30,
+  "guidance_scale": 6.0,
+  "delivery": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "duration_s": 30.0
+  },
+  "notes": [
+    "Generate every job into out_name inside the output directory.",
+    "num_frames must be 4k+1; 81 is 81 frames at 16 fps.",
+    "float16 is required: a Colab T4 is Turing (sm_75) and has no bfloat16.",
+    "TEST MANIFEST: one shot only, to validate the look before committing to a full episode."
+  ],
+  "jobs": [
+    {
+      "id": "s6",
+      "kind": "doorway_figure",
+      "out_name": "ep01_s6_doorway-figure_ai.mp4",
+      "prompt": "cinematic horror scene, continuous single take, photorealistic, live action film still aesthetic, shot on 35mm anamorphic lens, shallow depth of field, moody low-key lighting, deep shadows, muted desaturated palette, volumetric haze, subtle film grain, handheld micro drift, slow deliberate camera movement, high contrast falloff, first person POV, no daylight, night interior of an old North Indian haveli, practical lamp light only, first person POV of a dark doorway backlit from behind, a tall faceless female silhouette standing in the frame with a draped cloth, fog, cinematic horror, static, unidentifiable figure, face hidden, backlit silhouette only",
+      "negative_prompt": "worst quality, low quality, JPEG compression residue, blurry, overexposed, bright tones, subtitles, text overlay, watermark, logo, painting, still picture, static image, frozen frame, cartoon, anime, 3d render, cgi, deformed, disfigured, misshapen limbs, extra fingers, fused fingers, poorly drawn hands, poorly drawn faces, visible face, detailed face, portrait, crowded background, many people, camera shake, morphing, flickering, facial features, eyes",
+      "seed": 20458106,
+      "height": 832,
+      "width": 480,
+      "num_frames": 81,
+      "fps": 16,
+      "want_frames": 103,
+      "want_duration": 4.2917,
+      "narration": "Mera chehra nahi tha, uske peechhe koi nahi tha."
+    }
+  ]
+}

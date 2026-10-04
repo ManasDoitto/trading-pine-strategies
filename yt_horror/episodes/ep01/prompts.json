@@ -1,0 +1,58 @@
+[
+  {
+    "id": "s1",
+    "kind": "corridor",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, long dark corridor of an old North Indian haveli at 2am, single warm lamp far at the end, drifting fog, no people, cinematic horror, shallow depth",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, person, face, crowd",
+    "seed": 20581484,
+    "warnings": []
+  },
+  {
+    "id": "s2",
+    "kind": "phone_dark",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV in a pitch dark room at night, a single small phone screen glowing cold blue on a bed sheet, everything else black, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, face, hands, person",
+    "seed": 21159706,
+    "warnings": []
+  },
+  {
+    "id": "s3",
+    "kind": "stairwell",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV down a narrow old stairwell at night, worn stone steps, iron railing, pale moonlight from a window, fog, no people, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, person, face",
+    "seed": 20567196,
+    "warnings": []
+  },
+  {
+    "id": "s4",
+    "kind": "mirror_hall",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV of a tall old framed mirror in a dark hall, an old sari cloth being pulled off it, dim lamp light, heavy fog, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, detailed face, visible features, facial features, eyes, portrait",
+    "seed": 20647338,
+    "warnings": []
+  },
+  {
+    "id": "s5",
+    "kind": "mirror_hall",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV looking into an empty old mirror at night, the reflected room holds a chair and a wall but no person, dim amber light, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, reflection of a person, figure, face",
+    "seed": 20395088,
+    "warnings": []
+  },
+  {
+    "id": "s6",
+    "kind": "doorway_figure",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV of a dark doorway backlit from behind, a tall faceless female silhouette standing in the frame with a draped cloth, fog, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, detailed face, facial features, eyes, portrait",
+    "seed": 20458106,
+    "warnings": []
+  },
+  {
+    "id": "s7",
+    "kind": "mirror_hall",
+    "positive": "cinematic horror still, first person pov, night interior of an old north indian haveli, practical lamp light only, no daylight, 35mm film grain, deep shadows, muted desaturated palette, volumetric fog, handheld micro drift, high contrast falloff, anamorphic, shot on 35mm lens, first person POV holding still on an empty mirror at night, faint fog, nothing moving, cinematic horror",
+    "negative": "blurry, lowres, jpeg artifacts, watermark, text overlay, logo, cartoon, anime, 3d render, deformed hands, extra limbs, duplicate person, oversaturated, daylight, cheerful, text, figure, reflection of person",
+    "seed": 20558669,
+    "warnings": []
+  }
+]

@@ -1,0 +1,80 @@
+{
+  "schema": "sheesha.dop_grammar/1",
+  "version": "1.0.0",
+  "locked": true,
+  "note": "Version-locked. Changing anything here invalidates the look of the whole season and requires re-approval. All shots share one camera and one palette family so 30 episodes read as one film.",
+
+  "camera": {
+    "lens_equivalent_mm": 24,
+    "height": "eye level, never overhead",
+    "sensor_grain": 0.055,
+    "vignette": 0.6,
+    "aspect": "9:16",
+    "safe_caption_band_y": [1180, 1620],
+    "rule": "First person. The camera is a person who is scared but standing still. No flying, no crane, no dolly-out."
+  },
+
+  "grade": {
+    "lift": [4, 5, 12],
+    "gain": [1.02, 0.99, 0.94],
+    "contrast": 1.12,
+    "saturation": 0.82
+  },
+
+  "palette": {
+    "hall":      {"bg": [10, 12, 20],    "glow": [232, 200, 106], "fill": [40, 34, 26]},
+    "mirror":    {"bg": [8, 10, 16],     "glow": [226, 206, 140], "fill": [30, 32, 40]},
+    "kitchen":   {"bg": [9, 14, 14],     "glow": [126, 154, 142], "fill": [26, 34, 34]},
+    "stairwell": {"bg": [10, 13, 18],    "glow": [159, 182, 200], "fill": [28, 34, 44]},
+    "courtyard": {"bg": [9, 11, 22],     "glow": [96, 112, 160],  "fill": [22, 26, 40]},
+    "mogra":     {"bg": [10, 16, 14],    "glow": [214, 226, 198], "fill": [26, 40, 32]},
+    "lamp":      {"bg": [14, 10, 8],     "glow": [255, 186, 92],  "fill": [46, 30, 20]},
+    "well":      {"bg": [6, 8, 12],      "glow": [88, 108, 128],  "fill": [16, 20, 26]},
+    "phone":     {"bg": [7, 10, 16],     "glow": [120, 176, 214], "fill": [18, 26, 36]},
+    "void":      {"bg": [5, 6, 9],       "glow": [70, 78, 96],    "fill": [14, 16, 20]}
+  },
+
+  "characters": {
+    "sari_silhouette": {
+      "height_frac": 0.66, "posture": "still, pallu draped over head",
+      "build": "narrow shoulders, widening drape", "rim_light": 1,
+      "tells": ["head slightly bowed", "pallu edge cuts the profile"]
+    },
+    "cane_silhouette": {
+      "height_frac": 0.58, "posture": "stooped, one shoulder lower",
+      "build": "thin, forward pitched", "rim_light": 1, "prop": "cane",
+      "tells": ["cane line always visible", "head tilted down"]
+    },
+    "doorway_presence": {
+      "height_frac": 0.72, "posture": "square, unnaturally still",
+      "build": "featureless tapered column", "rim_light": 1, "edge": "soft blur",
+      "tells": ["never has a face", "does not sway when the camera moves"]
+    }
+  },
+
+  "shot_kinds": {
+    "corridor":            {"palette": "hall",      "camera": "slow push forward 4%", "fog": 0.5},
+    "stairwell":           {"palette": "stairwell", "camera": "static, slight handheld drift", "fog": 0.35},
+    "doorway_figure":      {"palette": "hall",      "camera": "static", "fog": 0.4},
+    "door_crack":          {"palette": "void",      "camera": "slow push in", "fog": 0.6},
+    "mirror_hall":         {"palette": "mirror",    "camera": "very slow push in 6%", "fog": 0.3},
+    "window_bars":         {"palette": "stairwell", "camera": "static", "fog": 0.25},
+    "kitchen_clock":       {"palette": "kitchen",   "camera": "push in on the face", "fog": 0.3},
+    "courtyard_night":     {"palette": "courtyard", "camera": "slow tilt up", "fog": 0.55},
+    "courtyard_mogra":     {"palette": "mogra",     "camera": "static", "fog": 0.35},
+    "well_dry":            {"palette": "well",      "camera": "slow lean in", "fog": 0.5},
+    "almirah_notes":       {"palette": "lamp",      "camera": "macro, slight handheld", "fog": 0.2},
+    "cassette":            {"palette": "lamp",      "camera": "macro, slight handheld", "fog": 0.2},
+    "lamp_table":          {"palette": "lamp",      "camera": "static", "fog": 0.3},
+    "phone_dark":          {"palette": "phone",     "camera": "static", "fog": 0.45},
+    "nana_room_dark":      {"palette": "void",      "camera": "slow push forward 4%", "fog": 0.5}
+  },
+
+  "motion_motifs": {
+    "flicker_hz": 7.3,
+    "push_in_px_per_s": 9,
+    "drift_px": 3,
+    "shimmer": "reflection panel scrolls 2% of width per second",
+    "fog_drift_px_per_s": 5
+  }
+}

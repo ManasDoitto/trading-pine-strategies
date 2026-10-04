@@ -1,0 +1,85 @@
+{
+  "schema": "sheesha.script/1",
+  "episode": 1,
+  "season": 1,
+  "title": "Sheesha",
+  "hook_text_dev": "पहली रात शीशा मत खोलना।",
+  "cliffhanger": "Sheeshe mein kamra khali hai. Uske peechhe koi nahi hai.",
+  "beat_source": "story/season_30.json#ep1",
+  "end_card_dev": ["आगामी कहानी", "कल रात 2:30 बजे"],
+
+  "shots": [
+    {
+      "id": "s1",
+      "kind": "corridor",
+      "character_visual": null,
+      "narration_hinglish": "Papa ne kaha — sheesha pehli raat khol mat.",
+      "caption_devanagari": "पापा ने कहा — शीशा पहली रात मत खोलना।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV, long dark corridor of an old North Indian haveli at 2am, single warm lamp far at the end, drifting fog, no people, cinematic horror, shallow depth",
+      "negative_extra": "person, face, crowd"
+    },
+    {
+      "id": "s2",
+      "kind": "phone_dark",
+      "character_visual": null,
+      "narration_hinglish": "Gulf se, awaaz kaanpti hui.",
+      "caption_devanagari": "गुल्फ़ से, आवाज़ काँपती हुई।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV in a pitch dark room at night, a single small phone screen glowing cold blue on a bed sheet, everything else black, cinematic horror",
+      "negative_extra": "face, hands, person"
+    },
+    {
+      "id": "s3",
+      "kind": "stairwell",
+      "character_visual": null,
+      "narration_hinglish": "Raat ko sheesha dhak se band tha, phir bhi andar koi hil raha tha.",
+      "caption_devanagari": "रात को शीशा ढक से बंद था, फिर भी अंदर कोई हिल रहा था।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV down a narrow old stairwell at night, worn stone steps, iron railing, pale moonlight from a window, fog, no people, cinematic horror",
+      "negative_extra": "person, face"
+    },
+    {
+      "id": "s4",
+      "kind": "mirror_hall",
+      "character_visual": "sari_silhouette",
+      "narration_hinglish": "Maine dhakka hataya.",
+      "caption_devanagari": "मैंने ढक्का हटाया।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV of a tall old framed mirror in a dark hall, an old sari cloth being pulled off it, dim lamp light, heavy fog, cinematic horror",
+      "negative_extra": "detailed face, visible features"
+    },
+    {
+      "id": "s5",
+      "kind": "mirror_hall",
+      "character_visual": null,
+      "narration_hinglish": "Sheeshe mein kamra, kursi, deewar — aur kamra khali.",
+      "caption_devanagari": "शीशे में कमरा, कुर्सी, दीवार — और कमरा खाली।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV looking into an empty old mirror at night, the reflected room holds a chair and a wall but no person, dim amber light, cinematic horror",
+      "negative_extra": "reflection of a person, figure, face"
+    },
+    {
+      "id": "s6",
+      "kind": "doorway_figure",
+      "character_visual": "sari_silhouette",
+      "narration_hinglish": "Mera chehra nahi tha, uske peechhe koi nahi tha.",
+      "caption_devanagari": "मेरा चेहरा नहीं था, उसके पीछे कोई नहीं था।",
+      "on_screen_text_dev": null,
+      "visual_prompt": "first person POV of a dark doorway backlit from behind, a tall faceless female silhouette standing in the frame with a draped cloth, fog, cinematic horror",
+      "negative_extra": "detailed face, facial features, eyes"
+    },
+    {
+      "id": "s7",
+      "kind": "mirror_hall",
+      "character_visual": null,
+      "narration_hinglish": "",
+      "caption_devanagari": "",
+      "on_screen_text_dev": null,
+      "silent": true,
+      "duration_hint_s": 4.0,
+      "visual_prompt": "first person POV holding still on an empty mirror at night, faint fog, nothing moving, cinematic horror",
+      "negative_extra": "figure, reflection of person"
+    }
+  ]
+}

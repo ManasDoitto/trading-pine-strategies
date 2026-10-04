@@ -1,0 +1,118 @@
+{
+  "channel": {
+    "name": "Sheesha",
+    "tagline": "Ek ghar. Ek rule. Tees raatein.",
+    "language": "hi-IN",
+    "script_style": "hinglish"
+  },
+
+  "video": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "duration_s": 30.0,
+    "duration_tolerance_s": 0.25,
+    "vcodec": "libx264",
+    "crf": 20,
+    "preset": "medium",
+    "pix_fmt": "yuv420p"
+  },
+
+  "audio": {
+    "sample_rate": 48000,
+    "channels": 1,
+    "tts_provider": "edge-tts",
+    "voice": "hi-IN-MadhurNeural",
+    "voice_fallbacks": ["hi-IN-SwaraNeural", "hi-IN-MadhurNeural"],
+    "rate": "+22%",
+    "pitch": "+0Hz",
+    "loudness_lufs": -14.0,
+    "ambience_bed_db": -14.0,
+    "voice_duck_db": -3.0
+  },
+
+  "captions": {
+    "script": "devanagari",
+    "font": "Nirmala UI",
+    "font_size": 96,
+    "max_words_per_line": 4,
+    "highlight_colour": "&H00E8C86A&",
+    "base_colour": "&H00FFFFFF&",
+    "outline_colour": "&H00000000&",
+    "outline": 7,
+    "shadow": 2,
+    "margin_v": 380,
+    "fonts_dir": "C:/Windows/Fonts"
+  },
+
+  "visual": {
+    "provider": "auto",
+    "allowed_providers": ["pollinations", "wan", "diffusion", "motion"],
+    "seed_base": 20261003,
+    "pollinations": {
+      "model": "alibaba/wan-3.0",
+      "api_key": "",
+      "width": 720,
+      "height": 1280,
+      "aspect_ratio": "9:16",
+      "duration_s": 5,
+      "quality": "medium",
+      "timeout_s": 600,
+      "max_attempts": 4,
+      "retry_sleep_s": 20,
+      "grain": 6
+    },
+    "wan": {
+      "model": "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+      "gen_width": 480,
+      "gen_height": 832,
+      "num_frames": 81,
+      "gen_fps": 16,
+      "steps": 30,
+      "guidance_scale": 6.0,
+      "grain": 6,
+      "negative": "worst quality, low quality, JPEG compression residue, blurry, overexposed, bright tones, subtitles, text overlay, watermark, logo, painting, still picture, static image, frozen frame, cartoon, anime, 3d render, cgi, deformed, disfigured, misshapen limbs, extra fingers, fused fingers, poorly drawn hands, poorly drawn faces, visible face, detailed face, portrait, crowded background, many people, camera shake, morphing, flickering"
+    },
+    "diffusion": {
+      "comfy_url": "http://127.0.0.1:8188",
+      "checkpoint": "Wan-AI/Wan2.1-T2V-1.3B",
+      "min_vram_mb": 8192,
+      "width": 832,
+      "height": 480,
+      "frames": 81,
+      "steps": 30,
+      "cfg": 5.0,
+      "negative": "blurry, deformed hands, extra limbs, text, watermark, cartoon, lowres, jpeg artifacts"
+    },
+    "motion": {
+      "render_scale": 0.5,
+      "grain": 0.055,
+      "vignette": 0.6,
+      "fog_layers": 3,
+      "flicker_hz": 7.3
+    }
+  },
+
+  "llm": {
+    "provider": "static",
+    "base_url": "http://localhost:20128/v1",
+    "model": "",
+    "api_key_env": "OMNIROUTE_API_KEY",
+    "timeout_s": 180,
+    "temperature": 0.85
+  },
+
+  "guard": {
+    "block_terms": [
+      "blood", "bloody", "gore", "beheaded", "corpse", "morgue", "suicide",
+      "rape", "torture", "nude", "naked", "molest",
+      "modi", "bjp", "congress", "muslim", "hindu", "sikhs", "christian",
+      "pakistan", "kashmir", "muslim", "jihad",
+      "guarantee", "guaranteed", "100% profit", "paisa hi paisa", "sure shot", "pakka profit",
+      "subscribe karo", "like karo", "bell icon"
+    ],
+    "require_disclosure": true,
+    "max_words": 96,
+    "max_line_chars": 46
+  }
+}
