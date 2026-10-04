@@ -48,8 +48,12 @@ loss_pct = 5.0
 
 [guards]
 max_signals_per_day = 6             # across all instruments
-max_open_per_strategy = 1           # each strategy holds one position at a time anyway; was a shared
-                                    # max_open_positions = 2, which let one instrument's trade block the others
+max_open_per_strategy = 2           # don't flag a signal until 2+ of the same strategy are already open;
+                                    # was 1 (each strategy normally holds one position at a time), raised
+                                    # 2026-10-03 at the user's request (briefly set to 3, then settled on 2).
+                                    # Was a shared max_open_positions = 2 before that, which let one
+                                    # instrument's trade block every OTHER instrument's -- that bug is what
+                                    # this comment used to describe; this "2" is a different, scoped setting.
 daily_loss_limit_inr = 10000        # mirrors the journal's R5
 session_buffer_minutes = 15         # no new entries within N minutes of the session close
 

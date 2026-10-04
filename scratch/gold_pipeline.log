@@ -1,0 +1,36 @@
+combined 3945600 2018-01-01 00:00:00 2026-10-02 23:59:00
+288 tasks, 3 workers
+1/288 done 130s
+11/288 done 162s
+21/288 done 193s
+31/288 done 277s
+41/288 done 410s
+51/288 done 530s
+61/288 done 691s
+71/288 done 782s
+81/288 done 795s
+91/288 done 806s
+101/288 done 849s
+111/288 done 950s
+121/288 done 1054s
+131/288 done 1120s
+141/288 done 1180s
+151/288 done 1267s
+161/288 done 1335s
+171/288 done 1384s
+181/288 done 1394s
+191/288 done 1401s
+201/288 done 1432s
+211/288 done 1573s
+221/288 done 1675s
+231/288 done 1776s
+241/288 done 1865s
+251/288 done 1934s
+261/288 done 2018s
+271/288 done 2131s
+281/288 done 2226s
+DONE 288 ok, 0 failed 2301s
+TPO mean-reversion fade 12237
+TPO trend breakout RR2 3256
+TPO hybrid (fade then follow) 19300
+PIPELINE_FINISHED

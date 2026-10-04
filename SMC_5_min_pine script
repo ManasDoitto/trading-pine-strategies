@@ -1,0 +1,189 @@
+//@version=6
+strategy("Silver 5m SMC Strategy", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1, initial_capital=100000, margin_long=0, margin_short=0, currency=currency.NONE, commission_type=strategy.commission.cash_per_order, commission_value=0, slippage=2, calc_on_every_tick=false)
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+
+htfBiasLen     = input.int(200, "HTF EMA Length (1H)", group="HTF Bias")
+pivotLen       = input.int(3, "Pivot Lookback (Bars)",  minval=1, group="Structure")
+rewardMultiple = input.float(3.6, "Reward:Risk", minval=1.0, step=0.1, group="Entry")
+maxTradesDay   = input.int(2, "Max Trades/Day", minval=1, maxval=10, group="Risk")
+useSession     = input.bool(true, "Session Filter", group="Session")
+sessionStart   = input.int(17, "Start Hour IST", minval=0, maxval=23, group="Session")
+sessionEnd     = input.int(23, "End Hour IST", minval=0, maxval=23, group="Session")
+
+// ============================================================================
+// HTF BIAS — 1H 200 EMA
+// ============================================================================
+
+htfEma   = request.security(syminfo.tickerid, "60", ta.ema(close, htfBiasLen), lookahead=barmerge.lookahead_off)
+
+bool biasBull = close > htfEma
+bool biasBear = close < htfEma
+
+plot(htfEma, "1H EMA", color=color.new(color.orange, 30), linewidth=2)
+
+// ============================================================================
+// SESSION & TRADES COUNTER
+// ============================================================================
+
+int currentHour = hour(time, "Asia/Kolkata")
+bool inSession = not useSession or (currentHour >= sessionStart and currentHour < sessionEnd)
+
+var int dailyTrades = 0
+if ta.change(time("D")) != 0
+    dailyTrades := 0
+
+bool canTrade = inSession and dailyTrades < maxTradesDay
+
+// ============================================================================
+// 5m STRUCTURE (Fractal Swings)
+// ============================================================================
+
+pivH = ta.pivothigh(high, pivotLen, pivotLen)
+pivL = ta.pivotlow(low, pivotLen, pivotLen)
+
+var float lastPivotHigh = na
+var float lastPivotLow  = na
+var int barPivotHigh = na
+var int barPivotLow = na
+
+if not na(pivH)
+    lastPivotHigh := pivH
+    barPivotHigh  := bar_index[pivotLen]
+if not na(pivL)
+    lastPivotLow := pivL
+    barPivotLow  := bar_index[pivotLen]
+
+// ============================================================================
+// LIQUIDITY SWEEP (IDM Sweep)
+// ============================================================================
+
+// A sweep is when the low wicks below the last pivot low, but closes ABOVE it.
+bool bullSweep = not na(lastPivotLow) and low < lastPivotLow and close >= lastPivotLow
+// Bear sweep: high wicks above last pivot high, closes BELOW it
+bool bearSweep = not na(lastPivotHigh) and high > lastPivotHigh and close <= lastPivotHigh
+
+var float activeBullSweepLow = na
+var float activeBearSweepHigh = na
+var bool pendingBull = false
+var bool pendingBear = false
+
+// Reset pending signals if opposite bias or session ends
+if not inSession or not biasBull
+    pendingBull := false
+if not inSession or not biasBear
+    pendingBear := false
+
+// If a sweep occurs, wait for displacement (FVG)
+if bullSweep and biasBull and strategy.position_size == 0 and canTrade
+    activeBullSweepLow := low
+    pendingBull := true
+    pendingBear := false // switch focus
+
+if bearSweep and biasBear and strategy.position_size == 0 and canTrade
+    activeBearSweepHigh := high
+    pendingBear := true
+    pendingBull := false
+
+// ============================================================================
+// DISPLACEMENT & FVG DETECTION (MARKET ENTRY)
+// ============================================================================
+
+bool bullFVG = low > high[2] and close > open and close > high[1] // Bullish gap & momentum
+bool bearFVG = high < low[2] and close < open and close < low[1]  // Bearish gap & momentum
+
+var float entryPx = na
+var float slPx = na
+var float tpPx = na
+
+if pendingBull and bullFVG and strategy.position_size == 0 and canTrade
+    float orderSL = activeBullSweepLow - 2 // Buffer
+    float risk = close - orderSL
+    if risk > 0
+        float orderTP = close + (risk * rewardMultiple)
+        entryPx := close
+        slPx := orderSL
+        tpPx := orderTP
+        strategy.entry("Long", strategy.long)
+        strategy.exit("L Exit", "Long", stop=orderSL, limit=orderTP)
+        dailyTrades += 1
+        pendingBull := false
+
+if pendingBear and bearFVG and strategy.position_size == 0 and canTrade
+    float orderSL = activeBearSweepHigh + 2 // Buffer
+    float risk = orderSL - close
+    if risk > 0
+        float orderTP = close - (risk * rewardMultiple)
+        entryPx := close
+        slPx := orderSL
+        tpPx := orderTP
+        strategy.entry("Short", strategy.short)
+        strategy.exit("S Exit", "Short", stop=orderSL, limit=orderTP)
+        dailyTrades += 1
+        pendingBear := false
+
+// When in a trade, reset pending flags
+if strategy.position_size != 0
+    pendingBull := false
+    pendingBear := false
+
+// ============================================================================
+// VISUALS
+// ============================================================================
+
+plotshape(bullSweep and canTrade, "Bull Sweep", shape.triangleup, location.belowbar, color.new(color.lime, 0), size=size.tiny)
+plotshape(bearSweep and canTrade, "Bear Sweep", shape.triangledown, location.abovebar, color.new(color.fuchsia, 0), size=size.tiny)
+
+plot(strategy.position_size != 0 ? entryPx : na, "Entry",  color=color.new(color.blue, 0),   style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? slPx    : na, "Stop",   color=color.new(color.red, 0),    style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tpPx    : na, "Target", color=color.new(color.green, 0),  style=plot.style_linebr, linewidth=2)
+
+// ============================================================================
+// AUDIT BLOCK FOR STRATEGY COMPARISON DASHBOARD
+// ============================================================================
+var int aud_from = na
+if bar_index == 400
+    aud_from := (math.floor(time / 86400000.0) + 1) * 86400000
+var float aud_n = 0.0
+var float aud_w = 0.0
+var float aud_sw = 0.0
+var float aud_sl = 0.0
+var float aud_eq = 0.0
+var float aud_pk = 0.0
+var float aud_mn = 0.0
+var float aud_dd = 0.0
+var float aud_d2 = 0.0
+var float aud_dayP = 0.0
+var int aud_nD = 0
+var int aud_dayStart = 0
+aud_newDay = ta.change(time("D")) != 0
+if aud_newDay
+    if not na(aud_from) and aud_dayStart >= aud_from
+        aud_nD += 1
+        aud_d2 += aud_dayP * aud_dayP
+    aud_dayP := 0.0
+    aud_dayStart := time
+aud_nc = strategy.closedtrades - nz(strategy.closedtrades[1])
+if aud_nc > 0
+    for aud_k = 0 to aud_nc - 1
+        aud_i = strategy.closedtrades - 1 - aud_k
+        if not na(aud_from) and strategy.closedtrades.entry_time(aud_i) >= aud_from
+            aud_sz = math.abs(strategy.closedtrades.size(aud_i))
+            aud_p = strategy.closedtrades.profit(aud_i) / syminfo.pointvalue / (aud_sz > 0 ? aud_sz : 1)
+            aud_n += 1
+            if aud_p > 0
+                aud_w += 1
+                aud_sw += aud_p
+            else
+                aud_sl += aud_p
+            aud_eq += aud_p
+            aud_pk := math.max(aud_pk, aud_eq)
+            aud_mn := math.min(aud_mn, aud_eq)
+            aud_dd := math.max(aud_dd, aud_pk - aud_eq)
+            aud_dayP += aud_p
+if barstate.islastconfirmedhistory or barstate.islast
+    var table aud_t = table.new(position.bottom_center, 1, 1, bgcolor=color.new(color.black, 10))
+    aud_incl = not na(aud_from) and aud_dayStart >= aud_from
+    table.cell(aud_t, 0, 0, "AUD|" + syminfo.ticker + "|" + timeframe.period + "|from=" + str.tostring(aud_from) + "|last=" + str.tostring(time) + "|nD=" + str.tostring(aud_nD + (aud_incl ? 1 : 0)) + "|pv=" + str.tostring(syminfo.pointvalue) + "|" + str.tostring(aud_n) + "," + str.tostring(aud_w) + "," + str.tostring(aud_sw, "#.#") + "," + str.tostring(aud_sl, "#.#") + "," + str.tostring(aud_dd, "#.#") + "," + str.tostring(aud_d2 + (aud_incl ? aud_dayP * aud_dayP : 0), "#.#") + "," + str.tostring(aud_pk, "#.#") + "," + str.tostring(aud_mn, "#.#"), text_color=color.yellow, text_size=size.tiny, text_halign=text.align_left)

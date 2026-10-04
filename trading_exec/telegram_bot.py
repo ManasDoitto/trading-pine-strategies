@@ -1,6 +1,8 @@
 """Telegram bot commands: read messages FROM the trader, not just alerts TO them, and run the
-matching workflow. Checked once per position-watcher tick (~20s poll_seconds) - see the call to
-poll_and_handle() in trade_watch.run_loop. No separate process, no separate schedule.
+matching workflow. Checked once per position-watcher tick (~20s poll_seconds) during trading hours
+- see the call to poll_and_handle() in trade_watch.run_loop - AND independently, any time of day,
+by telegram_daemon.py's own loop. _acquire_poll_lock() keeps the two from double-handling a command
+when both are running at once.
 
 Only messages from TELEGRAM_CHAT_ID are ever acted on; everything else is silently ignored, so
 finding the bot's username does not let a stranger trigger anything on this account. Nothing here
@@ -16,6 +18,9 @@ Commands:
                    win rate, PF, and any rule violations with their cost
   /health          strategy health on demand: rolling PF, drawdown, time below peak, losing
                    streak, forward-test count - the same section the 23:40 digest carries
+  /vmhealth        is the VM itself okay, right now: failed systemd units, Dhan token expiry,
+                   server clock, disk space - answered by telegram_daemon.service (always on),
+                   unlike every other command here which needs trading-watcher's daytime window
   /help            list commands
 
 /premarket, /session-close and /journal send the deterministic digest, not the full
@@ -101,6 +106,11 @@ def cmd_health(client):
     notify("[bot] /health", strategy_health.digest_lines(client), "info")
 
 
+def cmd_vmhealth(client):
+    from . import vm_health
+    notify("[bot] /vmhealth", vm_health.lines(), "info")
+
+
 def cmd_help(client):
     notify("[bot] commands", [
         "/analyze - live trade analysis for your open positions",
@@ -109,6 +119,7 @@ def cmd_help(client):
         "/session-close - rebuild + resend today's post-market digest",
         "/journal - rebuild today's journal facts + send round trips, PF, violations",
         "/health - strategy health on demand (rolling PF, drawdown, forward test)",
+        "/vmhealth - is the VM okay right now (works any time, not just trading hours)",
     ], "info")
 
 
@@ -119,39 +130,71 @@ COMMANDS = {
     "/session-close": cmd_session_close,
     "/journal": cmd_journal,
     "/health": cmd_health,
+    "/vmhealth": cmd_vmhealth,
     "/help": cmd_help,
     "/start": cmd_help,
 }
 
 
+def _acquire_poll_lock():
+    """Cross-platform non-blocking lock, same pattern as trade_watch.acquire_single_instance_watch.
+
+    telegram_daemon.service (always on) and trading-watcher.service (daytime only) both call
+    poll_and_handle() on their own schedules and can overlap in the 08:51-23:59 window; without
+    this, both could read the same pending command and run it twice. Whichever gets here first
+    handles this tick; the other sees nothing to do and skips silently - the message isn't lost,
+    just picked up on its next tick.
+    """
+    import os
+    f = open(data_dir() / "telegram_poll.lock", "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        return None
+    return f
+
+
 def poll_and_handle(client):
     """One check for new commands. Call every tick from an existing loop. Returns the commands
     actually run, for the caller's own logging."""
-    authorized = (env("TELEGRAM_CHAT_ID") or "").strip()
-    state = _load_state()
-    first_run = "offset" not in state
-    updates = get_updates(state.get("offset"))
-    handled = []
-    for upd in updates:
-        state["offset"] = upd["update_id"] + 1
-        if first_run:
-            continue                                      # backlog from before this existed - mark read only
-        msg = upd.get("message") or upd.get("edited_message") or {}
-        chat_id = str((msg.get("chat") or {}).get("id") or "")
-        text = (msg.get("text") or "").strip()
-        if not text or chat_id != authorized:
-            continue                                      # not from the owner's chat - ignore entirely
-        cmd = text.split()[0].lower()
-        fn = COMMANDS.get(cmd)
-        if fn is None:
-            if cmd.startswith("/"):
-                notify(f"[bot] unknown command {cmd}", ["Try /help"], "info")
-            continue
-        try:
-            fn(client)
-        except Exception as e:
-            notify(f"[bot] {cmd} failed", [f"{type(e).__name__}: {e}"], "warning")
-        handled.append(cmd)
-    if updates:
-        _save_state(state)
-    return handled
+    lock = _acquire_poll_lock()
+    if lock is None:
+        return []
+    try:
+        authorized = (env("TELEGRAM_CHAT_ID") or "").strip()
+        state = _load_state()
+        first_run = "offset" not in state
+        updates = get_updates(state.get("offset"))
+        handled = []
+        for upd in updates:
+            state["offset"] = upd["update_id"] + 1
+            if first_run:
+                continue                                  # backlog from before this existed - mark read only
+            msg = upd.get("message") or upd.get("edited_message") or {}
+            chat_id = str((msg.get("chat") or {}).get("id") or "")
+            text = (msg.get("text") or "").strip()
+            if not text or chat_id != authorized:
+                continue                                  # not from the owner's chat - ignore entirely
+            cmd = text.split()[0].lower()
+            fn = COMMANDS.get(cmd)
+            if fn is None:
+                if cmd.startswith("/"):
+                    notify(f"[bot] unknown command {cmd}", ["Try /help"], "info")
+                continue
+            try:
+                fn(client)
+            except Exception as e:
+                notify(f"[bot] {cmd} failed", [f"{type(e).__name__}: {e}"], "warning")
+            handled.append(cmd)
+        if updates:
+            _save_state(state)
+        return handled
+    finally:
+        lock.close()

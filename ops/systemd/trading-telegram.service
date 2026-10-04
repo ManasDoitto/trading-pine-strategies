@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram bot command poller (always on, no trading-hours window)
+After=network-online.target
+Wants=network-online.target
+OnFailure=trading-alert@%n.service
+[Service]
+Type=simple
+User=trading
+WorkingDirectory=/opt/trading/repo
+EnvironmentFile=/opt/trading/repo/.env
+Environment=PYTHONPATH=/opt/trading/repo
+ExecStart=/opt/trading/repo/.venv/bin/python -m trading_exec.telegram_daemon
+Restart=on-failure
+RestartSec=30
+[Install]
+WantedBy=multi-user.target

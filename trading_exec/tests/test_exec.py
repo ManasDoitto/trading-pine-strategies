@@ -66,11 +66,15 @@ class GuardTest(unittest.TestCase):
         self.assertTrue(any("signals today" in b for b in guards.check(s, atm(), self.ctx(signals_today=[1] * 6))))
         silver = dict(instrument="SILVERM", side="SHORT", opened_at="2026-09-29T09:20:19")
         crude = dict(instrument="CRUDEOIL", side="LONG", opened_at="2026-09-16T10:05:00")
-        # another strategy's simulated trade no longer blocks; the same strategy's does, by name
+        crude2 = dict(crude, opened_at="2026-09-17T10:05:00")
+        # another strategy's simulated trade never blocks; the same strategy's doesn't either until
+        # 2+ are already open (raised from 1 at the user's request, 2026-10-03)
         self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[silver])), [])
-        self.assertIn("simulated CRUDEOIL LONG since 16-Sep 10:05 still open (max 1 per strategy)",
-                      guards.check(s, atm(), self.ctx(open_positions=[silver, crude])))
-        self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[dict(crude, observational=True)])), [])
+        self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[silver, crude])), [])
+        self.assertIn("simulated CRUDEOIL LONG since 16-Sep 10:05, CRUDEOIL LONG since 17-Sep 10:05 "
+                      "still open (max 2 per strategy)",
+                      guards.check(s, atm(), self.ctx(open_positions=[silver, crude, crude2])))
+        self.assertEqual(guards.check(s, atm(), self.ctx(open_positions=[dict(crude, observational=True)] * 2)), [])
         self.assertTrue(any("daily loss limit" in b
                             for b in guards.check(s, atm(), self.ctx(realised_today_inr=-10000))))
 
@@ -231,8 +235,9 @@ class NeverBlockTest(unittest.TestCase):
             return self.runner.handle_signal(None, s, now)
 
     def test_guard_objection_is_a_warning_and_the_trade_still_opens(self):
-        shadow.save([dict(shadow.open_trade(sig(bar_time="2026-09-16T10:00:00"), atm(), {},
-                                            datetime(2026, 9, 16, 10, 5)))])     # same strategy already open
+        # 2 of the same strategy already open -- the guard's own threshold (raised from 1, 2026-10-03)
+        shadow.save([dict(shadow.open_trade(sig(bar_time=f"2026-09-{d:02d}T10:00:00"), atm(), {},
+                                            datetime(2026, 9, d, 10, 5))) for d in (15, 16)])
         res = self.handle(sig(bar_time="2026-09-16T11:40:00"), atm(), datetime(2026, 9, 16, 11, 45))
         self.assertIsNotNone(res["trade"])
         self.assertTrue(any("still open" in w for w in res["warnings"]))

@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "metric_count": 19,
+  "strategy": "SILVER v4.1 flip+breakout (forward test)",
+  "currency": "INR",
+  "source": "internal_api",
+  "metrics": {
+    "net_profit": 169667.9819999996,
+    "net_profit_percent": 1.6966798199999962,
+    "gross_profit": 2240237.8079999997,
+    "gross_loss": 2070569.8260000001,
+    "profit_factor": 1.0819426516650106,
+    "max_drawdown": 730233.4560000002,
+    "max_drawdown_percent": 1.1512093627051927,
+    "total_trades": 72,
+    "winning_trades": 23,
+    "losing_trades": 49,
+    "percent_profitable": 0.3194444444444444,
+    "avg_trade": 2356.49975,
+    "largest_win": 181583.38799999998,
+    "largest_loss": 164901.558,
+    "commission_paid": 198282.01800000007,
+    "sharpe_ratio": 0.05867521442428096,
+    "sortino_ratio": 0.10570867895450135,
+    "buy_hold_return": -29910,
+    "open_pl": 0
+  }
+}
