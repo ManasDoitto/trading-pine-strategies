@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "metric_count": 19,
+  "strategy": "SILVER v5.3 optimized (sweep winner)",
+  "currency": "INR",
+  "source": "internal_api",
+  "metrics": {
+    "net_profit": -367083.0360000003,
+    "net_profit_percent": -3.670830360000003,
+    "gross_profit": 1495424.9100000004,
+    "gross_loss": 1862507.9460000007,
+    "profit_factor": 0.8029092778968471,
+    "max_drawdown": 737979.3900000001,
+    "max_drawdown_percent": 1.6379641027345402,
+    "total_trades": 86,
+    "winning_trades": 28,
+    "losing_trades": 58,
+    "percent_profitable": 0.32558139534883723,
+    "avg_trade": -4268.407395,
+    "largest_win": 143007.12,
+    "largest_loss": 62800.374,
+    "commission_paid": 237963.03599999996,
+    "sharpe_ratio": 0.026983556998074237,
+    "sortino_ratio": 0.0364965468079918,
+    "buy_hold_return": 88500,
+    "open_pl": 0
+  }
+}

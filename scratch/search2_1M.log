@@ -1,0 +1,86 @@
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: invalid value encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+4h: markets ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'XAU', 'NIFTY', 'BANKNIFTY', 'CRUDE', 'SILVERM'] rows/K [1808, 7515, 12425, 14158, 14583, 14600]  (4s)
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: invalid value encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+D:\Trading code-Claude\consol_search2.py:63: RuntimeWarning: invalid value encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp
+1h: markets ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'XAU', 'NIFTY', 'BANKNIFTY', 'CRUDE', 'SILVERM'] rows/K [7371, 31249, 47043, 51691, 52595, 52928]  (11s)
+drew 1,000,000 combos (11s)
+searched 4h in 97s
+searched 1h in 437s
+
+===== 4h: 247,972 of 1,000,000 combos have enough trades in every period =====
+mean net R over ALL combos: train -0.0209  val +0.0452  HOLDOUT +0.0217
+share positive: train 44.8%  val 63.0%  holdout 60.3%
+best train t 3.94 | best val t 5.07 | best holdout t (hindsight) 4.02
+selected on train->val: 50 | their HOLDOUT mean +0.0469 | best single pick holdout +0.1157 (n=305)
+
+===== 1h: 505,163 of 1,000,000 combos have enough trades in every period =====
+mean net R over ALL combos: train -0.0685  val -0.1112  HOLDOUT -0.0120
+share positive: train 31.0%  val 9.8%  holdout 40.7%
+best train t 5.07 | best val t 3.09 | best holdout t (hindsight) 3.80
+selected on train->val: 50 | their HOLDOUT mean -0.0519 | best single pick holdout -0.0940 (n=794)
+
+===== NULL CALIBRATION (same 1M combos, shuffled outcomes, 4h) =====
+        best_train_t  best_val_t  best_hold_t  sel_R_tr  sel_R_va  sel_R_ho  base_ho
+null_1        3.8516      4.2085       3.5483    0.2678    0.2077   -0.0384  -0.0297
+null_2        4.6886      3.9763       4.0513    0.2878    0.2531   -0.0447  -0.0175
+REAL          3.9426      5.0668       4.0188    0.2700    0.3234    0.0469   0.0217
+
+===== MARGINAL EFFECT OF EACH PARAMETER VALUE (4h, averaged over all qualifying combos) =====
+holdout mean net R by value; 'lift' = value's holdout mean minus the overall holdout mean
+
+--- 4h (overall holdout mean +0.0217) --- top 12 lifts and bottom 6
+param  value  combos    R_tr    R_va    R_ho    lift  mkts_pos_ho  n_med
+    k    0.0     677 -0.2614 -0.0148  0.0645  0.0428       0.3146  248.0
+  vol    1.2   72137 -0.0515  0.0539  0.0623  0.0406       1.1176  381.0
+    k    1.0   14148 -0.0152 -0.0005  0.0590  0.0373       0.5373  315.0
+  imp    4.0    1778 -0.1047 -0.0929  0.0542  0.0325       0.0073  209.5
+    k    2.0   39162 -0.0386  0.0330  0.0409  0.0192       0.8678  359.0
+ hold    1.0   82884 -0.0148  0.0534  0.0409  0.0191       1.1154  389.0
+ body    0.8   23052  0.0307  0.1131  0.0363  0.0146       0.4239  296.0
+ body    0.5   60948 -0.0236  0.0235  0.0336  0.0118       1.1621  411.0
+   rr    3.0   61291 -0.0018  0.0682  0.0329  0.0112       1.0254  388.0
+ hour    0.0   95837 -0.0035  0.0708  0.0326  0.0109       1.1949  409.0
+  ema    3.0   56243 -0.0121  0.0570  0.0324  0.0107       0.9306  367.0
+ cpos    0.0   93522 -0.0212  0.0349  0.0324  0.0107       1.1924  412.0
+ cpos    0.8   68636 -0.0214  0.0630  0.0062 -0.0155       0.7976  363.0
+ hour    2.0   66883 -0.0467 -0.0032  0.0028 -0.0189       0.7675  359.0
+  vol    0.0   94588 -0.0337  0.0160  0.0025 -0.0192       1.0932  426.0
+    k    5.0   67512 -0.0112  0.0519  0.0013 -0.0204       1.0643  410.0
+  vol    2.0   27979  0.0505  0.0887 -0.0077 -0.0294       0.6904  344.0
+ body    0.7   42912 -0.0011  0.0730 -0.0088 -0.0305       0.6948  358.0
+
+--- 1h (overall holdout mean -0.0120) --- top 12 lifts and bottom 6
+param  value  combos    R_tr    R_va    R_ho    lift  mkts_pos_ho  n_med
+  adx   30.0  107172 -0.1106 -0.1190  0.0104  0.0224       1.6708  538.0
+ body    0.7   97667 -0.0629 -0.1124  0.0023  0.0143       1.9433  643.0
+ rngm    1.3   99079 -0.0592 -0.1143  0.0000  0.0120       2.0038  700.0
+   dr    1.0  166943  0.0427 -0.1041 -0.0006  0.0114       1.6175  608.0
+    k    5.0  123266 -0.0494 -0.0999 -0.0009  0.0110       2.2498  850.0
+ body    0.8   71542 -0.0630 -0.0660 -0.0026  0.0094       1.4161  488.0
+   rr    2.0  126308 -0.0609 -0.1078 -0.0028  0.0092       2.0255  720.0
+  adx   25.0  122343 -0.0607 -0.1117 -0.0032  0.0087       1.8832  650.0
+   rr    3.0  125717 -0.0598 -0.1027 -0.0037  0.0082       1.9776  716.0
+ hold    2.0  168113 -0.0572 -0.1244 -0.0039  0.0081       2.0620  713.0
+ rngm    1.6   92320 -0.0526 -0.0988 -0.0043  0.0076       1.7230  617.0
+ stop    0.0  242551 -0.0553 -0.0919 -0.0046  0.0073       1.9358  680.0
+  ema    0.0  132260 -0.0838 -0.1145 -0.0247 -0.0128       1.8890  837.0
+   rr    0.0  126479 -0.0818 -0.1223 -0.0251 -0.0131       1.7967  728.0
+   dr   -1.0  138230 -0.2012 -0.1055 -0.0262 -0.0142       1.8035  666.0
+  adx    0.0  142389 -0.0442 -0.0931 -0.0301 -0.0181       2.1415 1031.0
+    k    1.0   43021 -0.1176 -0.1126 -0.0328 -0.0209       1.1038  475.0
+    k    0.0    3939 -0.2685 -0.2748 -0.1767 -0.1647       0.1968  351.0
+
+total 738s

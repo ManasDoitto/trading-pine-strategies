@@ -1,0 +1,48 @@
+D:\Trading code-Claude\consol_search.py:63: RuntimeWarning: divide by zero encountered in divide
+  body = np.abs(c - o) / np.maximum(h - l, 1e-12); rng = (h - l) / atrp; hour = ((pd.DatetimeIndex(d["time"]).hour) // 4).to_numpy()
+crypto signals built 5s; rows per K: [1152, 5408, 8544, 9404, 9554, 9529]
+REPLICATION: n=2329 mean net R=+0.060  (earlier standalone sim: n=2232, +0.061)
+100k combos searched in 4s
+
+combos with enough trades in every period: 17819 of 100000
+share positive in TRAIN: 63.9%  VALIDATION: 70.1%  HOLDOUT: 50.3% | positive in train AND validation: 51.9%; all three: 24.7%
+mean net R across all combos: train +0.037  val +0.068  holdout -0.000
+best TRAIN t-stat found among 100k: 4.2  | best VAL t-stat: 4.8 | best HOLDOUT t-stat (hindsight, not used): 3.9
+
+Top-5 picks after TRAIN (top 500 by t) then VALIDATION selection -> HOLDOUT:
+  k  stop  rr  hold  ema  strength  adx  body  rngm  cpos  vol   imp  dr  nmin  hour  n_tr  R_tr  t_tr  n_va  R_va  t_va  n_ho   R_ho   t_ho
+2.0   1.0 2.0   1.0  1.0       2.0 20.0   0.7   1.6   0.8  0.0 -99.0 1.0   4.0   0.0  83.0 0.418 2.787  72.0 0.579 3.708  67.0 -0.127 -0.894
+4.0   0.0 1.0   2.0  3.0       0.0  0.0   0.5   1.6   0.8  2.0 -99.0 0.0   6.0   0.0  94.0 0.345 3.274 118.0 0.361 3.475 157.0 -0.035 -0.502
+2.0   1.0 1.0   2.0  3.0       0.5  0.0   0.7   1.6   0.7  0.0 -99.0 1.0   4.0   1.0 147.0 0.341 3.185 131.0 0.379 3.395 112.0 -0.199 -1.847
+4.0   1.0 3.0   1.0  0.0       0.5  0.0   0.5   1.6   0.7  1.2 -99.0 1.0   6.0   0.0 298.0 0.261 3.246 334.0 0.261 3.286 363.0  0.002  0.039
+4.0   1.0 3.0   2.0  3.0       0.0  0.0   0.0   1.6   0.0  2.0   0.0 0.0   4.0   0.0 194.0 0.309 2.722 302.0 0.318 3.253 331.0  0.037  0.492
+
+FINAL PICK: train +0.418 (n=83) | validation +0.579 (n=72) | HOLDOUT -0.127 (n=67, t=-0.9)
+avg HOLDOUT net R of the top-20 shortlisted: -0.043   (all-combos baseline holdout -0.000)
+
+=== NULL (shuffled outcomes, same 100k combos, same pipeline) ===
+   best_train_t  best_val_t  pos_train_and_val  pick_train  pick_val  pick_hold  top20_hold  base_hold
+0         3.600       4.836              0.158       0.256     0.332      0.024      -0.034     -0.022
+1         3.509       3.683              0.163       0.185     0.213     -0.044       0.021     -0.019
+2         3.996       3.462              0.183       0.279     0.270     -0.084      -0.014     -0.016
+REAL for comparison: {'best_train_t': np.float64(4.16), 'best_val_t': np.float64(4.76), 'pos_train_and_val': np.float64(0.519), 'pick_train': np.float64(0.418), 'pick_val': np.float64(0.579), 'pick_hold': np.float64(-0.127), 'top20_hold': np.float64(-0.043), 'base_hold': np.float64(-0.0)}
+
+=== FEWER TRADES? (no selection: average over all combos in each trade-count bucket) ===
+           combos  R_train  R_val  R_holdout  pct_hold_pos
+bucket                                                    
+150-300      6449    0.024  0.096     -0.010         0.453
+300-600      7609    0.040  0.060      0.004         0.514
+600-1200     3079    0.055  0.042      0.008         0.552
+1200-2400     634    0.039  0.020      0.012         0.637
+>2400          48    0.023 -0.002      0.009         0.604
+
+=== same, only combos that were positive in BOTH train and validation (selected without holdout) ===
+           combos_pos_tr_va  R_holdout_of_those  pct_hold_pos
+bucket                                                       
+150-300                3110              -0.023         0.411
+300-600                3928              -0.004         0.473
+600-1200               1831               0.007         0.540
+1200-2400               357               0.020         0.725
+>2400                    24               0.030         0.917
+
+total 27s
