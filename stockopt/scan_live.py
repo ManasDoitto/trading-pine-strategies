@@ -45,9 +45,13 @@ SPEC = os.path.join(ROOT, "stockopt", "strategy_v1.json")
 UNIVERSE = os.path.join(ROOT, "stockopt", "universe.json")
 URL = "https://api.dhan.co/v2/charts/intraday"
 
-_ARM_ACTIVE: set = set()  # (symbol, dir) armed as of the LAST pass -- alerts on the rising
-# edge only (first pass a setup appears), not every 5-min pass it keeps re-qualifying with a
-# slightly drifting trigger/stop. Same fix as stockopt/shadow_runner.py (found 2026-10-01).
+# (symbol, dir, YYYY-MM-DD) -> True: sent an alert for this symbol+direction today.
+# Keyed by day so it auto-expires overnight without any explicit reset.
+# This is a DAILY dedup, not a per-pass one: once WIPRO LONG fires today it never fires
+# again today even if the setup disappears for a bar and reappears. The old per-pass
+# _ARM_ACTIVE cleared on every "no signals" pass, so a re-arming symbol would alert again
+# and again, flooding the user with duplicate signals.
+_ALERTED_TODAY: dict = {}
 
 # This scanner does not go through the dhanhq client (raw REST, so it can batch NSE_EQ
 # requests its own way), but it shares the same Dhan account/token as trading_exec.runner
@@ -251,7 +255,6 @@ def report(df, errs, now, spec, alert=False):
           ", ".join(f"{r.symbol}({r.gap:+.1f}%/{r.orvol:.1f}x)" for r in play.head(15).itertuples()))
     sig = play[play.dir != 0]
     if sig.empty:
-        _ARM_ACTIVE.clear()
         print("no armed base breakouts on the last completed bar")
         return
     print("\nARMED (valid for the next 3 bars, cancel after 13:15, flat by 15:15):")
@@ -266,7 +269,7 @@ def report(df, errs, now, spec, alert=False):
         except Exception as e:
             print(f"    [capital] sync failed, using last known value: {e}")
     pos_cfg = position_calc.load_config()
-    current = set()
+    today_str = now.strftime("%Y-%m-%d")
     for r in sig.itertuples():
         side = "LONG (buy)   " if r.dir == 1 else "SHORT (sell)"
         side = ("A+ " if r.aplus else "   ") + side
@@ -275,9 +278,9 @@ def report(df, errs, now, spec, alert=False):
         print(f"  {r.symbol:12s} {side}  underlying {word} {r.trigger:>9.2f}  stop {r.stop:>9.2f}  "
               f"target {r.target:>9.2f}  risk {r.risk_pct:.2f}%   gap {r.gap:+.2f}%  vol {r.orvol:.1f}x  bar {r.bar}  "
               f"-- {pos['shares']} shares (Rs{pos['risk_rupees']:,.0f} risk)")
-        key = (r.symbol, r.dir)
-        current.add(key)
-        if alert and key not in _ARM_ACTIVE:
+        daily_key = (r.symbol, r.dir, today_str)
+        if alert and daily_key not in _ALERTED_TODAY:
+            _ALERTED_TODAY[daily_key] = True
             sid = telegram_decisions.signal_id(r.symbol, r.dir, r.bar, now.strftime("%Y%m%d"))
             meta = dict(symbol=r.symbol, dir=r.dir, trigger=r.trigger, stop=r.stop, target=r.target,
                        shares=pos["shares"], risk_rupees=pos["risk_rupees"], bar=r.bar,
@@ -293,8 +296,8 @@ def report(df, errs, now, spec, alert=False):
                 "stockopt/position_config.json -- keep its capital figure updated yourself.",
             ], sid, meta)
             print(f"    [alert] {res}")
-    _ARM_ACTIVE.clear()
-    _ARM_ACTIVE.update(current)
+        else:
+            print(f"    [alert already sent today, not re-alerting]")
 
 
 def replay_one(sym, secid, headers, spec, day, index):
