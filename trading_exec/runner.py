@@ -141,9 +141,12 @@ def check_exit_now_alerts(client, now=None):
         _save_exit_alert_keys(seen)
 
 
-def handle_signal(client, sig, now):
+def handle_signal(client, sig, now, silent=False):
     """Resolve the option, run the guards as warnings, alert, and record a shadow trade (or, when no
-    option can be priced, follow the signal on the underlying). Never blocks."""
+    option can be priced, follow the signal on the underlying). Never blocks.
+
+    silent=True: record the shadow trade normally but suppress all Telegram/email notifications.
+    Used for instruments whose alerts_enabled=false in config (forward-test mode)."""
     strat = (agents_config().get("strategy", {}) or {}).get(sig.signal_instrument or sig.instrument) or {}
     ref_rr = strat.get("ref_rr") if sig.target is None else None
     a = atm_mod.resolve(client, sig.instrument, sig.option_right, now)
@@ -186,9 +189,12 @@ def handle_signal(client, sig, now):
         sig.status = "SIGNAL"
         sig.note = ((poller.MISSED_NOTE + " | ") if missed else "") + "; ".join(warnings)
         signals.append(sig)
-        notify(f"[signal · simulated] {head}", ["SIMULATED - a strategy signal, not a trade in your Dhan account.", ""] + base + warn_lines + [
-            "", f"No simulated option trade ({why}). Followed on {sig.signal_label or 'the underlying'}:"
-                " you get [signal exit · simulated] when the strategy exits."], "warning" if warnings else "info")
+        if not silent:
+            notify(f"[signal · simulated] {head}", ["SIMULATED - a strategy signal, not a trade in your Dhan account.", ""] + base + warn_lines + [
+                "", f"No simulated option trade ({why}). Followed on {sig.signal_label or 'the underlying'}:"
+                    " you get [signal exit · simulated] when the strategy exits."], "warning" if warnings else "info")
+        else:
+            print(f"{_stamp()} [silent signal] {head} — alerts_enabled=false, recorded but not sent")
         return dict(signal=sig.to_dict(), warnings=warnings, trade=None, watch=watch)
 
     trade = shadow.open_trade(sig, a, prem, now)
@@ -196,24 +202,27 @@ def handle_signal(client, sig, now):
     sig.status = "SHADOW"
     sig.note = trade["id"] + (" | " + "; ".join(warnings) if warnings else "")
     signals.append(sig)
-    if prem.get("approx_target_premium") is not None:
-        premium_target_txt = f" / target {_fmt(prem['approx_target_premium'])}"
-    elif prem.get("approx_ref_target_premium") is not None:
-        premium_target_txt = f" / ~{_fmt(prem['approx_ref_target_premium'])} avg-win ref (not a real exit)"
+    if not silent:
+        if prem.get("approx_target_premium") is not None:
+            premium_target_txt = f" / target {_fmt(prem['approx_target_premium'])}"
+        elif prem.get("approx_ref_target_premium") is not None:
+            premium_target_txt = f" / ~{_fmt(prem['approx_ref_target_premium'])} avg-win ref (not a real exit)"
+        else:
+            premium_target_txt = ""
+        notify(f"[signal · simulated] {head}", ["SIMULATED - a strategy signal, not a trade in your Dhan account.", ""] + base + [
+            "",
+            f"option {a['symbol']}  ({a['lots']} lots = {a['qty_units']} units, DTE {a['dte']})",
+            f"entry at ask {_fmt(a['entry_premium'])}  (bid {_fmt(a['bid'])}, spread {_fmt(a['spread_pct'],1)}%)",
+            f"IV {_fmt(a['iv'],1)}  delta {_fmt(a['delta'],3)}  theta {_fmt(a['theta'],1)}/day"
+            f"  ({_fmt(a.get('theta_pct_of_premium'),1)}% of premium)",
+            f"cost {_fmt(prem.get('cost_inr'),0)} INR   approx premium stop {_fmt(prem.get('approx_sl_premium'))}"
+            f"{premium_target_txt}",
+        ] + warn_lines + [
+            "",
+            "SHADOW ONLY - no order was placed.",
+        ], "warning" if warnings else "info")
     else:
-        premium_target_txt = ""
-    notify(f"[signal · simulated] {head}", ["SIMULATED - a strategy signal, not a trade in your Dhan account.", ""] + base + [
-        "",
-        f"option {a['symbol']}  ({a['lots']} lots = {a['qty_units']} units, DTE {a['dte']})",
-        f"entry at ask {_fmt(a['entry_premium'])}  (bid {_fmt(a['bid'])}, spread {_fmt(a['spread_pct'],1)}%)",
-        f"IV {_fmt(a['iv'],1)}  delta {_fmt(a['delta'],3)}  theta {_fmt(a['theta'],1)}/day"
-        f"  ({_fmt(a.get('theta_pct_of_premium'),1)}% of premium)",
-        f"cost {_fmt(prem.get('cost_inr'),0)} INR   approx premium stop {_fmt(prem.get('approx_sl_premium'))}"
-        f"{premium_target_txt}",
-    ] + warn_lines + [
-        "",
-        "SHADOW ONLY - no order was placed.",
-    ], "warning" if warnings else "info")
+        print(f"{_stamp()} [silent signal] {head} — alerts_enabled=false, shadow trade {trade['id']} recorded")
     return dict(signal=sig.to_dict(), warnings=warnings, trade=trade)
 
 
@@ -246,12 +255,35 @@ def tick(client, now=None):
     out = dict(at=now.replace(microsecond=0).isoformat(), signals=[], armed=0, followed=0, opened=0,
                closed=[], watch_closed=[])
     check_exit_now_alerts(client, now)                    # proactive - before the retrospective checks below
+
+    # Load trades/watches once per tick for the per-instrument SL count check.
+    _all_trades  = shadow.load()
+    _all_watches = shadow.load_watches()
+
     for sig in poller.poll_once(client, now, since=poller.last_poll()):   # catches up after a restart/outage
         if sig.kind == "armed":
             out["signals"].append(handle_armed(client, sig, now)["signal"])
             out["armed"] += 1
             continue
-        res = handle_signal(client, sig, now)
+
+        icfg = load_config()["instruments"].get(sig.instrument, {})
+
+        # Hard block: max_losses_day per instrument. Append to signals.jsonl so it is never re-emitted.
+        max_losses = icfg.get("max_losses_day")
+        if max_losses:
+            sl_today = shadow.sl_exits_today(sig.instrument, now.date(), _all_trades, _all_watches)
+            if sl_today >= max_losses:
+                sig.status = "BLOCKED"
+                sig.note = f"max_losses_day={max_losses}: {sl_today} SL exits today for {sig.instrument}"
+                signals.append(sig)
+                print(f"{_stamp()} [blocked] {sig.instrument} {sig.side} — {sig.note}")
+                out["signals"].append(sig.to_dict())
+                continue
+
+        # Soft mode: alerts_enabled=false means shadow-record but suppress Telegram/email.
+        silent = not icfg.get("alerts_enabled", True)
+
+        res = handle_signal(client, sig, now, silent=silent)
         out["signals"].append(res["signal"])
         out["followed"] += res["trade"] is None
         out["opened"] += bool(res["trade"])

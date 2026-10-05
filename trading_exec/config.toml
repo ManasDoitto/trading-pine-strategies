@@ -67,6 +67,7 @@ enabled = true
 lots = 2
 min_dte = 2                         # crude ATM theta was ~27% of premium/day at DTE 1
 max_spread_pct = 15.0
+max_losses_day = 2                  # backtest: PF 1.308->1.313, maxDD -22%, P(PF<1) 9.6->7.6%
 
 # Silver Mini: signal computed on SILVERM1! itself, the same chart whose options are bought (changed
 # 2026-10-03 at the trader's request - the signal chart should be the traded chart). It had been
@@ -79,6 +80,7 @@ max_spread_pct = 15.0
 enabled = true
 lots = 2
 min_dte = 2
+max_losses_day = 2                  # backtest: PF 1.473->1.554, maxDD -18%, worst day -21k->-12k pts
 # 2026-10-03: 15 -> 5. The 6 recorded SILVERM entries all had spreads of 0.1-0.5% of the premium; liquid strikes (225k/228k/230k) trade at
 # 0.4-2%, thin ones at 10-90%. A signal whose ATM option is wider than this is still alerted but is followed on the underlying only.
 max_spread_pct = 5.0
@@ -98,8 +100,12 @@ min_dte = 2
 max_spread_pct = 15.0
 
 # Nifty Tenkan(9)/Kijun(26)+EMA200 runs on the NIFTY index directly (no volume needed). New 2026-09-28.
+# alerts_enabled=false: signals still generated, shadow trades still recorded, Telegram suppressed.
+# Research-sim shows gross PF=1.17 but commission kills net edge (0.70 over 9.5yr). Need more forward
+# data before treating as a live signal source. 2026-10-05.
 [instruments.NIFTY]
 enabled = true
+alerts_enabled = false
 lots = 1
 min_dte = 2
 max_spread_pct = 15.0

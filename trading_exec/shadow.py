@@ -65,6 +65,24 @@ def realised_today_inr(day=None, trades=None):
                and str(t.get("exit_at", ""))[:10] == day)
 
 
+def sl_exits_today(instrument, day=None, trades=None, watches=None):
+    """Count closed SL exits today for instrument (shadow trades + underlying watches).
+    Used by the max_losses_day guard in runner.py."""
+    day = (day or date.today()).isoformat()
+    trades  = trades  if trades  is not None else load()
+    watches = watches if watches is not None else load_watches()
+    t_count = sum(1 for t in trades
+                  if t.get("instrument") == instrument and t["status"] == "CLOSED"
+                  and not t.get("observational")
+                  and str(t.get("exit_at", ""))[:10] == day
+                  and t.get("exit_reason") == "SL")
+    w_count = sum(1 for w in watches
+                  if w.get("instrument") == instrument and w["status"] == "CLOSED"
+                  and str(w.get("exit_at", ""))[:10] == day
+                  and w.get("exit_reason") == "SL")
+    return t_count + w_count
+
+
 def open_trade(signal, atm, premium_targets, now=None, observational=False):
     """Record the entry a live system would have made.
 
