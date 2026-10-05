@@ -54,7 +54,7 @@ max_open_per_strategy = 2           # don't flag a signal until 2+ of the same s
                                     # Was a shared max_open_positions = 2 before that, which let one
                                     # instrument's trade block every OTHER instrument's -- that bug is what
                                     # this comment used to describe; this "2" is a different, scoped setting.
-daily_loss_limit_inr = 10000        # mirrors the journal's R5
+daily_loss_limit_inr = 9999999      # effectively disabled — max_losses_day=2 per instrument is the only loss control
 session_buffer_minutes = 15         # no new entries within N minutes of the session close
 
 [notify]
