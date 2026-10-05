@@ -279,6 +279,9 @@ def report(df, errs, now, spec, alert=False):
               f"target {r.target:>9.2f}  risk {r.risk_pct:.2f}%   gap {r.gap:+.2f}%  vol {r.orvol:.1f}x  bar {r.bar}  "
               f"-- {pos['shares']} shares (Rs{pos['risk_rupees']:,.0f} risk)")
         daily_key = (r.symbol, r.dir, today_str)
+        if not r.aplus:
+            print(f"    [no alert: not A+, audit-only]")
+            continue
         if alert and daily_key not in _ALERTED_TODAY:
             _ALERTED_TODAY[daily_key] = True
             sid = telegram_decisions.signal_id(r.symbol, r.dir, r.bar, now.strftime("%Y%m%d"))
